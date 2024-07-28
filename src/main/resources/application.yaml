@@ -3,10 +3,10 @@ spring:
     active:
       - ${SPRING_PROFILES_ACTIVE:local}
   datasource:
-    url: jdbc:postgresql://hostname:5432/dbname
+    url: jdbc:postgresql://${PG_HOSTNAME}:${PG_PORT}/${PD_DBNAME}
     driverClassName: org.postgresql.Driver
-    username: username
-    password: password
+    username: ${PG_USER}
+    password: ${PG_PASS}
   exposed:
     show-sql: true
 

@@ -1,18 +1,21 @@
 package pl.zarajczyk.familyrules.report
 
 import com.fasterxml.jackson.annotation.JsonProperty
+import kotlinx.datetime.Clock
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.todayIn
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestHeader
 import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.server.ResponseStatusException
+import pl.zarajczyk.familyrules.shared.DbConnector
 import pl.zarajczyk.familyrules.shared.InvalidPassword
-import pl.zarajczyk.familyrules.shared.UserService
 import pl.zarajczyk.familyrules.shared.decodeBasicAuth
 
 @RestController
-class ReportController(private val userService: UserService) {
+class ReportController(private val dbConnector: DbConnector) {
 
     @PostMapping("/report")
     fun report(
@@ -20,7 +23,9 @@ class ReportController(private val userService: UserService) {
         @RequestHeader("Authorization", required = false) authHeader: String?
     ): ReportResponse = try {
         val auth = authHeader.decodeBasicAuth()
-        userService.validateInstanceToken(auth.user, report.instanceName, auth.pass)
+        val instanceId = dbConnector.validateInstanceToken(auth.user, report.instanceName, auth.pass)
+        val today = Clock.System.todayIn(TimeZone.currentSystemDefault())
+        dbConnector.saveReport(instanceId, today, report.screenTimeSeconds, report.applicationsSeconds)
         println(report)
         ReportResponse(NoAction)
     } catch (e: InvalidPassword) {

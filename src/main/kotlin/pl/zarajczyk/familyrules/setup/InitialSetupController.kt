@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.RestController
 import pl.zarajczyk.familyrules.shared.*
 
 @RestController
-class InitialSetupController(private val userService: UserService) {
+class InitialSetupController(private val dbConnector: DbConnector) {
 
     @PostMapping("/setup")
     fun setup(
@@ -15,8 +15,8 @@ class InitialSetupController(private val userService: UserService) {
         @RequestHeader("Authorization", required = false) authHeader: String?
     ): InitialSetupResponse = try {
         val auth = authHeader.decodeBasicAuth()
-        userService.validatePassword(auth.user, auth.pass)
-        val token = userService.setupNewInstance(auth.user, data.instanceName)
+        dbConnector.validatePassword(auth.user, auth.pass)
+        val token = dbConnector.setupNewInstance(auth.user, data.instanceName)
         InitialSetupResponse(InitialSetupStatus.SUCCESS, token)
     } catch (e: InvalidPassword) {
         InitialSetupResponse(InitialSetupStatus.INVALID_PASSWORD)

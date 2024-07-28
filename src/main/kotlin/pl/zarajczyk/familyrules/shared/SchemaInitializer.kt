@@ -11,6 +11,6 @@ import org.springframework.transaction.annotation.Transactional
 class SchemaInitializer : ApplicationRunner {
 
     override fun run(args: ApplicationArguments?) {
-        SchemaUtils.create(UserService.Users, UserService.Instances)
+        SchemaUtils.create(DbConnector.Users, DbConnector.Instances, DbConnector.ScreenTimes)
     }
 }
