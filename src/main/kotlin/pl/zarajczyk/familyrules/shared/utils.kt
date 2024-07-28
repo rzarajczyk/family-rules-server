@@ -1,5 +1,6 @@
-package pl.zarajczyk.familyrules.setup
+package pl.zarajczyk.familyrules.shared
 
+import java.security.MessageDigest
 import java.util.*
 
 fun String?.decodeBasicAuth(): BasicAuth {
@@ -17,8 +18,16 @@ fun String?.decodeBasicAuth(): BasicAuth {
     }
 }
 
+fun String.sha256() = MessageDigest
+    .getInstance("SHA-256")
+    .digest(toByteArray()).joinToString("") { "%02x".format(it) }
+
 
 data class BasicAuth(
     val user: String,
     val pass: String
 )
+
+fun main() {
+    println("admin".sha256())
+}
