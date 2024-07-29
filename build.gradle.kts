@@ -65,7 +65,7 @@ tasks.withType<Test> {
 }
 
 application {
-    mainClass.set("pl.zarajczyk.app.ApplicationKt")
+    mainClass.set("pl.zarajczyk.familyrules.ApplicationKt")
 }
 
 tasks {
