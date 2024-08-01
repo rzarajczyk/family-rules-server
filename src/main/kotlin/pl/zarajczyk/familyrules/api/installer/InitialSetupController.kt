@@ -1,4 +1,4 @@
-package pl.zarajczyk.familyrules.installer
+package pl.zarajczyk.familyrules.api.installer
 
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody

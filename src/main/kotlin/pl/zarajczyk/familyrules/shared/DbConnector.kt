@@ -46,6 +46,29 @@ class DbConnector {
     }
 
     @Throws(InvalidPassword::class)
+    fun validatePasswordAndCreateOneTimeToken(username: String, password: String, seed: String): String {
+        val user = Users.select(Users.passwordSha256)
+            .where { (Users.username eq username) and (Users.passwordSha256 eq password.sha256()) }
+        if (user.count() == 0L)
+            throw InvalidPassword()
+        return createOneTimeToken(user.first()[Users.passwordSha256], seed)
+    }
+
+    private fun createOneTimeToken(passwordSha256: String, seed: String) = "${seed}/${passwordSha256}".sha256()
+
+    @Throws(InvalidPassword::class)
+    fun validateOneTimeToken(username: String, token: String, seed: String) {
+        val user = Users
+            .select(Users.passwordSha256)
+            .where { Users.username eq username }
+        if (user.count() == 0L)
+            throw InvalidPassword()
+        val expectedToken = createOneTimeToken(user.first()[Users.passwordSha256], seed)
+        if (expectedToken != token)
+            throw InvalidPassword()
+    }
+
+    @Throws(InvalidPassword::class)
     fun validateInstanceToken(username: String, instanceName: String, instanceToken: String): InstanceId {
         val rows = Instances.select(Instances.id)
             .where { (Instances.username eq username) and (Instances.instanceName eq instanceName) and (Instances.instanceTokenSha256 eq instanceToken.sha256()) }
@@ -72,9 +95,14 @@ class DbConnector {
         return instanceToken
     }
 
-    fun saveReport(instanceId: InstanceId, day: LocalDate, screenTimeSeconds: Long, applicationsSeconds: Map<String, Long>) {
+    fun saveReport(
+        instanceId: InstanceId,
+        day: LocalDate,
+        screenTimeSeconds: Long,
+        applicationsSeconds: Map<String, Long>
+    ) {
         val existingEntryId = ScreenTimes.select(ScreenTimes.id)
-            .where { (ScreenTimes.instanceId eq instanceId) and (ScreenTimes.day eq day)  }
+            .where { (ScreenTimes.instanceId eq instanceId) and (ScreenTimes.day eq day) }
             .firstOrNull()
             ?.get(ScreenTimes.id)
         if (existingEntryId == null) {
@@ -90,6 +118,18 @@ class DbConnector {
         }
     }
 
+    fun getInstances(username: String) = Instances
+        .select(Instances.id, Instances.instanceName)
+        .where { Instances.username eq username }
+        .map { InstanceDto(id = it[Instances.id], name = it[Instances.instanceName]) }
+
+    fun getScreenTimeSeconds(id: InstanceId, day: LocalDate): Long = ScreenTimes
+        .select(ScreenTimes.screenTimeSeconds)
+        .where { (ScreenTimes.instanceId eq id) and (ScreenTimes.day eq day) }
+        .firstOrNull()
+        ?.get(ScreenTimes.screenTimeSeconds)
+        ?: 0L
+
 }
 
 typealias InstanceId = Long
@@ -98,3 +138,8 @@ class InvalidPassword : RuntimeException("Invalid password")
 class IllegalInstanceName(val instanceName: String) : RuntimeException("Instance $instanceName already exists")
 class InstanceAlreadyExists(val instanceName: String) :
     RuntimeException("Instance $instanceName has incorrect name")
+
+data class InstanceDto(
+    val id: InstanceId,
+    val name: String
+)

@@ -1,4 +1,4 @@
-package pl.zarajczyk.familyrules.report
+package pl.zarajczyk.familyrules.api.report
 
 import com.fasterxml.jackson.annotation.JsonProperty
 import kotlinx.datetime.Clock
@@ -13,6 +13,7 @@ import org.springframework.web.server.ResponseStatusException
 import pl.zarajczyk.familyrules.shared.DbConnector
 import pl.zarajczyk.familyrules.shared.InvalidPassword
 import pl.zarajczyk.familyrules.shared.decodeBasicAuth
+import pl.zarajczyk.familyrules.shared.today
 
 @RestController
 class ReportController(private val dbConnector: DbConnector) {
@@ -24,8 +25,7 @@ class ReportController(private val dbConnector: DbConnector) {
     ): ReportResponse = try {
         val auth = authHeader.decodeBasicAuth()
         val instanceId = dbConnector.validateInstanceToken(auth.user, report.instanceName, auth.pass)
-        val today = Clock.System.todayIn(TimeZone.currentSystemDefault())
-        dbConnector.saveReport(instanceId, today, report.screenTimeSeconds, report.applicationsSeconds)
+        dbConnector.saveReport(instanceId, today(), report.screenTimeSeconds, report.applicationsSeconds)
         println(report)
         ReportResponse(NoAction)
     } catch (e: InvalidPassword) {

@@ -1,5 +1,8 @@
 package pl.zarajczyk.familyrules.shared
 
+import kotlinx.datetime.Clock
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.todayIn
 import java.security.MessageDigest
 import java.util.*
 
@@ -21,6 +24,11 @@ fun String?.decodeBasicAuth(): BasicAuth {
 fun String.sha256() = MessageDigest
     .getInstance("SHA-256")
     .digest(toByteArray()).joinToString("") { "%02x".format(it) }
+
+fun today() = Clock.System.todayIn(TimeZone.currentSystemDefault())
+
+fun randomSeed() = UUID.randomUUID().toString()
+
 
 
 data class BasicAuth(

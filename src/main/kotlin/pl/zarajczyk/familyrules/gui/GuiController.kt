@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RestController
 class GuiController {
 
     @GetMapping("/")
-    fun root(response: HttpServletResponse) = response.sendRedirect("/gui/index.html")
+    fun root(response: HttpServletResponse) = response.sendRedirect("/gui/login.html")
 
     @GetMapping("/gui/{file}")
     fun get(
