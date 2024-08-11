@@ -12,5 +12,6 @@ class SchemaInitializer : ApplicationRunner {
 
     override fun run(args: ApplicationArguments?) {
         SchemaUtils.create(DbConnector.Users, DbConnector.Instances, DbConnector.ScreenTimes)
+//        SchemaUtils.addMissingColumnsStatements(DbConnector.Users, DbConnector.Instances, DbConnector.ScreenTimes)
     }
 }

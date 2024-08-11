@@ -9,14 +9,14 @@ import pl.zarajczyk.familyrules.shared.*
 @RestController
 class InitialSetupController(private val dbConnector: DbConnector) {
 
-    @PostMapping("/register-instance")
+    @PostMapping("/api/register-instance")
     fun registerInstance(
         @RequestBody data: RegisterInstanceRequest,
         @RequestHeader("Authorization") authHeader: String
     ): RegisterInstanceResponse = try {
         val auth = authHeader.decodeBasicAuth()
         dbConnector.validatePassword(auth.user, auth.pass)
-        val token = dbConnector.setupNewInstance(auth.user, data.instanceName)
+        val token = dbConnector.setupNewInstance(auth.user, data.instanceName, data.os)
         RegisterInstanceResponse(RegisterInstanceStatus.SUCCESS, token)
     } catch (e: InvalidPassword) {
         RegisterInstanceResponse(RegisterInstanceStatus.INVALID_PASSWORD)
@@ -26,7 +26,7 @@ class InitialSetupController(private val dbConnector: DbConnector) {
         RegisterInstanceResponse(RegisterInstanceStatus.ILLEGAL_INSTANCE_NAME)
     }
 
-    @PostMapping("/unregister-instance")
+    @PostMapping("/api/unregister-instance")
     fun unregisterInstance(
         @RequestBody data: UnregisterInstanceRequest,
         @RequestHeader("Authorization") authHeader: String
@@ -40,8 +40,13 @@ class InitialSetupController(private val dbConnector: DbConnector) {
 
 }
 
+enum class SupportedOs {
+    MAC_OS
+}
+
 data class RegisterInstanceRequest(
-    val instanceName: String
+    val instanceName: String,
+    val os: SupportedOs
 )
 
 enum class RegisterInstanceStatus {
