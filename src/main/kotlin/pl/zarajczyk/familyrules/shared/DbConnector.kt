@@ -44,6 +44,7 @@ class DbConnector {
         val id: Column<Long> = long("id").autoIncrement()
         val instanceId: Column<InstanceId> = long("instance_id")
         val locked: Column<Boolean> = bool("locked")
+        val loggedOut: Column<Boolean> = bool("loggedOut")
     }
 
     @Throws(InvalidPassword::class)
@@ -149,21 +150,22 @@ class DbConnector {
             States.insert {
                 it[States.instanceId] = id
                 it[States.locked] = state.locked
+                it[States.loggedOut] = state.loggedOut
             }
         } else {
             States.update({ States.id eq existingId }) {
                 it[States.locked] = state.locked
+                it[States.loggedOut] = state.loggedOut
             }
         }
     }
 
     fun getInstanceState(id: InstanceId) =
         States
-            .select(States.locked)
+            .select(States.locked, States.loggedOut)
             .where { States.instanceId eq id }
-            .map { it[States.locked] }
+            .map { StateDto(it[States.locked], it[States.loggedOut]) }
             .firstOrNull()
-            ?.let { StateDto(it) }
 
     companion object {
         const val TOTAL_TIME = "## screentime ##"
@@ -184,5 +186,6 @@ data class InstanceDto(
 )
 
 data class StateDto(
-    val locked: Boolean
+    val locked: Boolean,
+    val loggedOut: Boolean
 )

@@ -1,5 +1,6 @@
 package pl.zarajczyk.familyrules.gui
 
+import com.fasterxml.jackson.annotation.JsonProperty
 import kotlinx.datetime.LocalDate
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.*
@@ -37,7 +38,7 @@ class BffController(private val dbConnector: DbConnector) {
                 instanceName = it.name,
                 screenTimeSeconds = appUsageMap.getOrDefault(DbConnector.TOTAL_TIME, 0L),
                 appUsageSeconds = appUsageMap - DbConnector.TOTAL_TIME,
-                state = InstanceState(dbConnector.getInstanceState(it.id)?.locked ?: false)
+                state = dbConnector.getInstanceState(it.id)?.toInstanceState() ?: InstanceState.empty()
             )
         })
     } catch (e: InvalidPassword) {
@@ -56,8 +57,18 @@ class BffController(private val dbConnector: DbConnector) {
         val instanceId = dbConnector.getInstances(auth.user).find { it.name == instanceName }?.id
         if (instanceId == null)
             throw ResponseStatusException(HttpStatus.NOT_FOUND)
-        dbConnector.setInstanceState(instanceId, StateDto(state.locked))
+        dbConnector.setInstanceState(instanceId, state.toStateDto())
     }
+
+    private fun StateDto.toInstanceState() = InstanceState(
+        locked = this.locked,
+        loggedOut = this.loggedOut
+    )
+
+    private fun InstanceState.toStateDto() = StateDto(
+        locked = this.locked,
+        loggedOut = this.loggedOut
+    )
 
 
 }
@@ -81,5 +92,10 @@ data class InstanceStatus(
 )
 
 data class InstanceState(
-    val locked: Boolean
-)
+    val locked: Boolean,
+    @JsonProperty("logged-out") val loggedOut: Boolean
+) {
+    companion object {
+        fun empty() = InstanceState(false, false)
+    }
+}

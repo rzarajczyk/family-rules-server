@@ -15,7 +15,7 @@ import pl.zarajczyk.familyrules.shared.*
 @RestController
 class ReportController(private val dbConnector: DbConnector) {
 
-    @PostMapping("/report")
+    @PostMapping("/api/report")
     fun report(
         @RequestBody report: ReportRequest,
         @RequestHeader("Authorization", required = false) authHeader: String?
@@ -32,7 +32,8 @@ class ReportController(private val dbConnector: DbConnector) {
     }
 
     private fun StateDto.toReportResponse() = ReportResponse(
-        locked = this.locked
+        locked = this.locked,
+        loggedOut = this.loggedOut
     )
 
 }
@@ -44,9 +45,10 @@ data class ReportRequest(
 )
 
 data class ReportResponse(
-    val locked: Boolean
+    @JsonProperty("locked") val locked: Boolean,
+    @JsonProperty("logged-out") val loggedOut: Boolean
 ) {
     companion object {
-        fun empty() = ReportResponse(false)
+        fun empty() = ReportResponse(false, false)
     }
 }

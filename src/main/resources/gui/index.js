@@ -58,6 +58,19 @@ document.addEventListener("DOMContentLoaded", (event) => {
                             </div>
                         </span>
                     </li>
+                    <li class="collection-item">
+                        Logout from device
+                        <span class="secondary-content">
+                            <div class="switch">
+                                <label>
+                                    Off
+                                    <input type="checkbox" ${it.state['logged-out'] ? "checked" : ""} class="logout-checkbox" data-instance-name="${it.instanceName}">
+                                    <span class="lever"></span>
+                                    On
+                                </label>
+                            </div>
+                        </span>
+                    </li>
                     <li class="collection-item"></li> 
                 `
             li += Object.keys(it.appUsageSeconds).map(app => {
@@ -76,18 +89,23 @@ document.addEventListener("DOMContentLoaded", (event) => {
         let instances = document.querySelector("#instances")
         instances.innerHTML = html
         M.Collapsible.init(instances, {});
-        document.querySelectorAll(".lock-checkbox").forEach(it => {
-            it.addEventListener("change", (e) => onLockChanged(e))
+        document.querySelectorAll(".lock-checkbox, .logout-checkbox").forEach(it => {
+            it.addEventListener("change", (e) => onInstanceStateChanged(e))
         })
     }
 
-    function onLockChanged(evt) {        
+    function onInstanceStateChanged(evt) {        
         let instanceName = evt.target.dataset["instanceName"]
-        let shouldBeLocked = evt.target.checked
+        let shouldBeLocked = document.querySelector(`#report-${instanceName} .lock-checkbox`).checked
+        let shouldBeLoggedOut = document.querySelector(`#report-${instanceName} .logout-checkbox`).checked
 
-        console.log(instanceName)
-        console.log(shouldBeLocked)
+        updateState(instanceName, {
+            "locked": shouldBeLocked,
+            "logged-out": shouldBeLoggedOut
+        })
+    }
 
+    function updateState(instanceName, state) {
         let headers = new Headers()
         headers.set('Authorization', 'Basic ' + btoa(getCookie("fr_username") + ":" + getCookie("fr_token")))
         headers.set('x-seed', getCookie("fr_seed"))
@@ -95,9 +113,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
         fetch(`/bff/state?instanceName=${instanceName}`, {
             method: 'POST',
             headers: headers,
-            body: JSON.stringify({
-                "locked": shouldBeLocked
-            })
+            body: JSON.stringify(state)
         })
     }
 
