@@ -31,6 +31,7 @@ class DbConnector {
 
     object ScreenTimes : Table() {
         val id: Column<Long> = long("id").autoIncrement()
+        val app: Column<String> = text("app")
         val instanceId: Column<InstanceId> = long("instance_id")
         val day: Column<LocalDate> = date("day")
         val screenTimeSeconds: Column<Long> = long("screen_time_seconds")
@@ -104,19 +105,23 @@ class DbConnector {
         screenTimeSeconds: Long,
         applicationsSeconds: Map<String, Long>
     ) {
-        val existingEntryId = ScreenTimes.select(ScreenTimes.id)
-            .where { (ScreenTimes.instanceId eq instanceId) and (ScreenTimes.day eq day) }
-            .firstOrNull()
-            ?.get(ScreenTimes.id)
-        if (existingEntryId == null) {
-            ScreenTimes.insert {
-                it[ScreenTimes.instanceId] = instanceId
-                it[ScreenTimes.day] = day
-                it[ScreenTimes.screenTimeSeconds] = screenTimeSeconds
-            }
-        } else {
-            ScreenTimes.update({ ScreenTimes.id eq existingEntryId }) {
-                it[ScreenTimes.screenTimeSeconds] = screenTimeSeconds
+        val total = applicationsSeconds + mapOf(TOTAL_TIME to screenTimeSeconds)
+        total.forEach { (app, seconds) ->
+            val existingEntryId = ScreenTimes.select(ScreenTimes.id)
+                .where { (ScreenTimes.instanceId eq instanceId) and (ScreenTimes.day eq day) and (ScreenTimes.app eq app) }
+                .firstOrNull()
+                ?.get(ScreenTimes.id)
+            if (existingEntryId == null) {
+                ScreenTimes.insert {
+                    it[ScreenTimes.instanceId] = instanceId
+                    it[ScreenTimes.day] = day
+                    it[ScreenTimes.screenTimeSeconds] = seconds
+                    it[ScreenTimes.app] = app
+                }
+            } else {
+                ScreenTimes.update({ (ScreenTimes.id eq existingEntryId) and (ScreenTimes.app eq app) }) {
+                    it[ScreenTimes.screenTimeSeconds] = seconds
+                }
             }
         }
     }
@@ -126,12 +131,14 @@ class DbConnector {
         .where { Instances.username eq username }
         .map { InstanceDto(id = it[Instances.id], name = it[Instances.instanceName]) }
 
-    fun getScreenTimeSeconds(id: InstanceId, day: LocalDate): Long = ScreenTimes
-        .select(ScreenTimes.screenTimeSeconds)
+    fun getScreenTimeSeconds(id: InstanceId, day: LocalDate): Map<String, Long> = ScreenTimes
+        .select(ScreenTimes.app, ScreenTimes.screenTimeSeconds)
         .where { (ScreenTimes.instanceId eq id) and (ScreenTimes.day eq day) }
-        .firstOrNull()
-        ?.get(ScreenTimes.screenTimeSeconds)
-        ?: 0L
+        .associate { it[ScreenTimes.app] to it[ScreenTimes.screenTimeSeconds] }
+
+    companion object {
+        const val TOTAL_TIME = "## screentime ##"
+    }
 
 }
 

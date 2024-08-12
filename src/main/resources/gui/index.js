@@ -40,11 +40,19 @@ document.addEventListener("DOMContentLoaded", (event) => {
             let li = `<li>
             <div class="collapsible-header">
                 <i class="material-icons">devices</i>
-                <div class="instance-name">${it.instanceName}</div>
+                <div class="instance-name"><span class="new badge" data-badge-caption="">${formatScreenTime(it.screenTimeSeconds)}</span>${it.instanceName}</div>
             </div>
             <div class="collapsible-body">
                 <div class="instance-report">
-                <div>Screen Time: <span id="screen-time-${it.instanceName}">${formatScreenTime(it.screenTimeSeconds)}</span></div>
+                <ul class="collection">`
+            li += Object.keys(it.appUsageSeconds).map(app => {
+                    return `<li class="collection-item">
+                        ${app}
+                        <span class="secondary-content">${formatScreenTime(it.appUsageSeconds[app])}</span>
+                    </li>`
+            }).join("")
+            li += `
+                </ul>
                 </div>
             </div>
         </li>`

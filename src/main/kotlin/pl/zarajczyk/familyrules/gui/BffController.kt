@@ -31,10 +31,12 @@ class BffController(private val dbConnector: DbConnector) {
         dbConnector.validateOneTimeToken(auth.user, auth.pass, seed)
         val instances = dbConnector.getInstances(auth.user)
         DailyAppUsageResponse(instances.map {
+            val appUsageMap = dbConnector.getScreenTimeSeconds(it.id, day)
             InstanceDailyAppUsage(
                 instanceId = it.id,
                 instanceName = it.name,
-                screenTimeSeconds = dbConnector.getScreenTimeSeconds(it.id, day)
+                screenTimeSeconds = appUsageMap.getOrDefault(DbConnector.TOTAL_TIME, 0L),
+                appUsageSeconds = appUsageMap - DbConnector.TOTAL_TIME
             )
         })
     } catch (e: InvalidPassword) {
@@ -57,5 +59,6 @@ data class DailyAppUsageResponse(
 data class InstanceDailyAppUsage(
     val instanceId: InstanceId,
     val instanceName: String,
-    val screenTimeSeconds: Long
+    val screenTimeSeconds: Long,
+    val appUsageSeconds: Map<String, Long>
 )
