@@ -37,14 +37,29 @@ document.addEventListener("DOMContentLoaded", (event) => {
     function initialRenderer(response) {
         let html = ''
         response.instances.forEach(it => {
-            let li = `<li>
+            let li = `<li id="report-${it.instanceName}">
             <div class="collapsible-header">
                 <i class="material-icons">devices</i>
-                <div class="instance-name"><span class="new badge" data-badge-caption="">${formatScreenTime(it.screenTimeSeconds)}</span>${it.instanceName}</div>
+                <div class="instance-name"><span class="new badge total-screen-time" data-badge-caption="">${formatScreenTime(it.screenTimeSeconds)}</span>${it.instanceName}</div>
             </div>
             <div class="collapsible-body">
                 <div class="instance-report">
-                <ul class="collection">`
+                <ul class="collection">
+                    <li class="collection-item">
+                        Lock device
+                        <span class="secondary-content">
+                            <div class="switch">
+                                <label>
+                                    Off
+                                    <input type="checkbox" ${it.state.locked ? "checked" : ""} class="lock-checkbox" data-instance-name="${it.instanceName}">
+                                    <span class="lever"></span>
+                                    On
+                                </label>
+                            </div>
+                        </span>
+                    </li>
+                    <li class="collection-item"></li> 
+                `
             li += Object.keys(it.appUsageSeconds).map(app => {
                     return `<li class="collection-item">
                         ${app}
@@ -61,6 +76,29 @@ document.addEventListener("DOMContentLoaded", (event) => {
         let instances = document.querySelector("#instances")
         instances.innerHTML = html
         M.Collapsible.init(instances, {});
+        document.querySelectorAll(".lock-checkbox").forEach(it => {
+            it.addEventListener("change", (e) => onLockChanged(e))
+        })
+    }
+
+    function onLockChanged(evt) {        
+        let instanceName = evt.target.dataset["instanceName"]
+        let shouldBeLocked = evt.target.checked
+
+        console.log(instanceName)
+        console.log(shouldBeLocked)
+
+        let headers = new Headers()
+        headers.set('Authorization', 'Basic ' + btoa(getCookie("fr_username") + ":" + getCookie("fr_token")))
+        headers.set('x-seed', getCookie("fr_seed"))
+        headers.set('Content-Type', "application/json");
+        fetch(`/bff/state?instanceName=${instanceName}`, {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify({
+                "locked": shouldBeLocked
+            })
+        })
     }
 
     function onDateChanged() {
@@ -70,7 +108,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
 
     function intervalRefresher(response) {
         response.instances.forEach(it => {
-            document.querySelector(`#screen-time-${it.instanceName}`).innerHTML = formatScreenTime(it.screenTimeSeconds)
+            document.querySelector(`#report-${it.instanceName} .total-screen-time`).innerHTML = formatScreenTime(it.screenTimeSeconds)
         })
     }
 
@@ -79,11 +117,11 @@ document.addEventListener("DOMContentLoaded", (event) => {
         let headers = new Headers();
         headers.set('Authorization', 'Basic ' + btoa(getCookie("fr_username") + ":" + getCookie("fr_token")));
         headers.set('x-seed', getCookie("fr_seed"));
-        fetch(`/bff/dailyAppUsage?date=${date}`, { headers: headers })
+        fetch(`/bff/status?date=${date}`, { headers: headers })
             .then(response => response.json())
             .then(response => handler(response))
     }
 
     update(initialRenderer)
-    setInterval(() => { update(intervalRefresher) }, 15000)
+    // setInterval(() => { update(intervalRefresher) }, 15000)
 });

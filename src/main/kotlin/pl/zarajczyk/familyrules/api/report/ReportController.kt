@@ -10,10 +10,7 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestHeader
 import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.server.ResponseStatusException
-import pl.zarajczyk.familyrules.shared.DbConnector
-import pl.zarajczyk.familyrules.shared.InvalidPassword
-import pl.zarajczyk.familyrules.shared.decodeBasicAuth
-import pl.zarajczyk.familyrules.shared.today
+import pl.zarajczyk.familyrules.shared.*
 
 @RestController
 class ReportController(private val dbConnector: DbConnector) {
@@ -27,10 +24,16 @@ class ReportController(private val dbConnector: DbConnector) {
         val instanceId = dbConnector.validateInstanceToken(auth.user, report.instanceName, auth.pass)
         dbConnector.saveReport(instanceId, today(), report.screenTimeSeconds, report.applicationsSeconds)
         println(report)
-        ReportResponse(NoAction)
+        dbConnector.getInstanceState(instanceId)
+            ?.toReportResponse()
+            ?: ReportResponse.empty()
     } catch (e: InvalidPassword) {
         throw ResponseStatusException(HttpStatus.FORBIDDEN)
     }
+
+    private fun StateDto.toReportResponse() = ReportResponse(
+        locked = this.locked
+    )
 
 }
 
@@ -40,20 +43,10 @@ data class ReportRequest(
     @JsonProperty("applications") val applicationsSeconds: Map<String, Long>
 )
 
-enum class ActionType { NO_ACTION, LOCK_SYSTEM }
-
-sealed interface Action {
-    val type: ActionType
-}
-
-data object NoAction : Action {
-    override val type: ActionType = ActionType.NO_ACTION
-}
-
-data object LockSystem : Action {
-    override val type: ActionType = ActionType.LOCK_SYSTEM
-}
-
 data class ReportResponse(
-    val action: Action
-)
+    val locked: Boolean
+) {
+    companion object {
+        fun empty() = ReportResponse(false)
+    }
+}

@@ -5,8 +5,9 @@ import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.kotlin.datetime.date
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import pl.zarajczyk.familyrules.api.installer.SupportedOs
+import pl.zarajczyk.familyrules.gui.InstanceState
 import java.util.*
+import javax.swing.plaf.nimbus.State
 
 @Service
 @Transactional
@@ -37,6 +38,12 @@ class DbConnector {
         val screenTimeSeconds: Column<Long> = long("screen_time_seconds")
 
         override val primaryKey = PrimaryKey(Instances.id)
+    }
+
+    object States : Table() {
+        val id: Column<Long> = long("id").autoIncrement()
+        val instanceId: Column<InstanceId> = long("instance_id")
+        val locked: Column<Boolean> = bool("locked")
     }
 
     @Throws(InvalidPassword::class)
@@ -136,6 +143,28 @@ class DbConnector {
         .where { (ScreenTimes.instanceId eq id) and (ScreenTimes.day eq day) }
         .associate { it[ScreenTimes.app] to it[ScreenTimes.screenTimeSeconds] }
 
+    fun setInstanceState(id: InstanceId, state: StateDto) {
+        val existingId = States.select(States.id).where { States.instanceId eq id }.map { it[States.id] }.firstOrNull()
+        if (existingId == null) {
+            States.insert {
+                it[States.instanceId] = id
+                it[States.locked] = state.locked
+            }
+        } else {
+            States.update({ States.id eq existingId }) {
+                it[States.locked] = state.locked
+            }
+        }
+    }
+
+    fun getInstanceState(id: InstanceId) =
+        States
+            .select(States.locked)
+            .where { States.instanceId eq id }
+            .map { it[States.locked] }
+            .firstOrNull()
+            ?.let { StateDto(it) }
+
     companion object {
         const val TOTAL_TIME = "## screentime ##"
     }
@@ -152,4 +181,8 @@ class InstanceAlreadyExists(val instanceName: String) :
 data class InstanceDto(
     val id: InstanceId,
     val name: String
+)
+
+data class StateDto(
+    val locked: Boolean
 )

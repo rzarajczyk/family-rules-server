@@ -20,27 +20,43 @@ class BffController(private val dbConnector: DbConnector) {
             LoginResponse(false)
         }
 
-    @GetMapping("/bff/dailyAppUsage")
-    fun dailyAppUsage(
+    @GetMapping("/bff/status")
+    fun status(
         @RequestParam("date") date: String,
         @RequestHeader("x-seed") seed: String,
         @RequestHeader("Authorization") authHeader: String
-    ): DailyAppUsageResponse = try {
+    ): StatusResponse = try {
         val day = LocalDate.parse(date)
         val auth = authHeader.decodeBasicAuth()
         dbConnector.validateOneTimeToken(auth.user, auth.pass, seed)
         val instances = dbConnector.getInstances(auth.user)
-        DailyAppUsageResponse(instances.map {
+        StatusResponse(instances.map {
             val appUsageMap = dbConnector.getScreenTimeSeconds(it.id, day)
-            InstanceDailyAppUsage(
+            InstanceStatus(
                 instanceId = it.id,
                 instanceName = it.name,
                 screenTimeSeconds = appUsageMap.getOrDefault(DbConnector.TOTAL_TIME, 0L),
-                appUsageSeconds = appUsageMap - DbConnector.TOTAL_TIME
+                appUsageSeconds = appUsageMap - DbConnector.TOTAL_TIME,
+                state = InstanceState(dbConnector.getInstanceState(it.id)?.locked ?: false)
             )
         })
     } catch (e: InvalidPassword) {
         throw ResponseStatusException(HttpStatus.FORBIDDEN)
+    }
+
+    @PostMapping("/bff/state")
+    fun state(
+        @RequestHeader("x-seed") seed: String,
+        @RequestHeader("Authorization") authHeader: String,
+        @RequestParam("instanceName") instanceName: String,
+        @RequestBody state: InstanceState
+    ) {
+        val auth = authHeader.decodeBasicAuth()
+        dbConnector.validateOneTimeToken(auth.user, auth.pass, seed)
+        val instanceId = dbConnector.getInstances(auth.user).find { it.name == instanceName }?.id
+        if (instanceId == null)
+            throw ResponseStatusException(HttpStatus.NOT_FOUND)
+        dbConnector.setInstanceState(instanceId, StateDto(state.locked))
     }
 
 
@@ -52,13 +68,18 @@ data class LoginResponse(
     val token: String? = null
 )
 
-data class DailyAppUsageResponse(
-    val instances: List<InstanceDailyAppUsage>
+data class StatusResponse(
+    val instances: List<InstanceStatus>
 )
 
-data class InstanceDailyAppUsage(
+data class InstanceStatus(
     val instanceId: InstanceId,
     val instanceName: String,
     val screenTimeSeconds: Long,
-    val appUsageSeconds: Map<String, Long>
+    val appUsageSeconds: Map<String, Long>,
+    val state: InstanceState
+)
+
+data class InstanceState(
+    val locked: Boolean
 )

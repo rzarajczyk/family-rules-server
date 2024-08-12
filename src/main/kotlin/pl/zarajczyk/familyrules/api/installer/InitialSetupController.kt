@@ -40,10 +40,6 @@ class InitialSetupController(private val dbConnector: DbConnector) {
 
 }
 
-enum class SupportedOs {
-    MAC_OS
-}
-
 data class RegisterInstanceRequest(
     val instanceName: String,
     val os: SupportedOs
