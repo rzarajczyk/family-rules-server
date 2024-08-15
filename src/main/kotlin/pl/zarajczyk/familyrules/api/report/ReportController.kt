@@ -1,9 +1,7 @@
 package pl.zarajczyk.familyrules.api.report
 
 import com.fasterxml.jackson.annotation.JsonProperty
-import kotlinx.datetime.Clock
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.todayIn
+import kotlinx.datetime.toJavaInstant
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
@@ -11,17 +9,17 @@ import org.springframework.web.bind.annotation.RequestHeader
 import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.server.ResponseStatusException
 import pl.zarajczyk.familyrules.shared.*
+import java.time.Instant
 
 @RestController
-class ReportController(private val dbConnector: DbConnector) {
+class ReportController(private val dbConnector: DbConnector, private val securityService: SecurityService) {
 
     @PostMapping("/api/report")
     fun report(
         @RequestBody report: ReportRequest,
-        @RequestHeader("Authorization", required = false) authHeader: String?
+        @RequestHeader("Authorization") authHeader: String?
     ): ReportResponse = try {
-        val auth = authHeader.decodeBasicAuth()
-        val instanceId = dbConnector.validateInstanceToken(auth.user, report.instanceName, auth.pass)
+        val instanceId = securityService.validateInstanceTokenAndGetInstanceId(authHeader, report.instanceName)
         dbConnector.saveReport(instanceId, today(), report.screenTimeSeconds, report.applicationsSeconds)
         println(report)
         dbConnector.getInstanceState(instanceId)
@@ -32,8 +30,8 @@ class ReportController(private val dbConnector: DbConnector) {
     }
 
     private fun StateDto.toReportResponse() = ReportResponse(
-        locked = this.locked,
-        loggedOut = this.loggedOut
+        lockedSince = this.lockedSince?.toJavaInstant(),
+        loggedOutSince = this.loggedOutSince?.toJavaInstant()
     )
 
 }
@@ -45,10 +43,10 @@ data class ReportRequest(
 )
 
 data class ReportResponse(
-    @JsonProperty("locked") val locked: Boolean,
-    @JsonProperty("logged-out") val loggedOut: Boolean
+    val lockedSince: Instant?,
+    val loggedOutSince: Instant?
 ) {
     companion object {
-        fun empty() = ReportResponse(false, false)
+        fun empty() = ReportResponse(null, null)
     }
 }

@@ -7,17 +7,17 @@ import org.springframework.web.bind.annotation.RestController
 import pl.zarajczyk.familyrules.shared.*
 
 @RestController
-class InitialSetupController(private val dbConnector: DbConnector) {
+class InitialSetupController(private val dbConnector: DbConnector, private val securityService: SecurityService) {
 
     @PostMapping("/api/register-instance")
     fun registerInstance(
         @RequestBody data: RegisterInstanceRequest,
         @RequestHeader("Authorization") authHeader: String
     ): RegisterInstanceResponse = try {
-        val auth = authHeader.decodeBasicAuth()
-        dbConnector.validatePassword(auth.user, auth.pass)
-        val token = dbConnector.setupNewInstance(auth.user, data.instanceName, data.os)
-        RegisterInstanceResponse(RegisterInstanceStatus.SUCCESS, token)
+        val user = securityService.validatePassword(authHeader)
+        val token = securityService.createInstanceToken()
+        dbConnector.setupNewInstance(user, data.instanceName, token.hash, data.os)
+        RegisterInstanceResponse(RegisterInstanceStatus.SUCCESS, token.plain)
     } catch (e: InvalidPassword) {
         RegisterInstanceResponse(RegisterInstanceStatus.INVALID_PASSWORD)
     } catch (e: InstanceAlreadyExists) {
@@ -31,8 +31,7 @@ class InitialSetupController(private val dbConnector: DbConnector) {
         @RequestBody data: UnregisterInstanceRequest,
         @RequestHeader("Authorization") authHeader: String
     ): UnregisterInstanceResponse = try {
-        val auth = authHeader.decodeBasicAuth()
-        dbConnector.validatePassword(auth.user, auth.pass)
+        securityService.validatePassword(authHeader)
         UnregisterInstanceResponse(UnregisterInstanceStatus.SUCCESS)
     } catch (e: InvalidPassword) {
         UnregisterInstanceResponse(UnregisterInstanceStatus.INVALID_PASSWORD)

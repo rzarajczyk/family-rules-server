@@ -1,7 +1,4 @@
 spring:
-  profiles:
-    active:
-      - ${SPRING_PROFILES_ACTIVE:local}
   datasource:
     url: jdbc:postgresql://${PG_HOSTNAME}:${PG_PORT}/${PG_DBNAME}
     driverClassName: org.postgresql.Driver
@@ -18,3 +15,7 @@ management:
         include: "*"
 server:
   port: 8080
+
+configuration:
+  security:
+    enable: true

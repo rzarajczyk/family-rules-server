@@ -37,6 +37,10 @@ document.addEventListener("DOMContentLoaded", (event) => {
     function initialRenderer(response) {
         let html = ''
         response.instances.forEach(it => {
+            let locked = it.state.lockedSince != null
+            let lockedSince = locked ? it.state.lockedSince : ""
+            let loggedOut = it.state.loggedOutSince != null
+            let loggedOutSince = loggedOut ? it.state.loggedOutSince : ""
             let li = `<li id="report-${it.instanceName}">
             <div class="collapsible-header">
                 <i class="material-icons">devices</i>
@@ -44,34 +48,45 @@ document.addEventListener("DOMContentLoaded", (event) => {
             </div>
             <div class="collapsible-body">
                 <div class="instance-report">
-                <ul class="collection">
-                    <li class="collection-item">
-                        Lock device
-                        <span class="secondary-content">
-                            <div class="switch">
-                                <label>
-                                    Off
-                                    <input type="checkbox" ${it.state.locked ? "checked" : ""} class="lock-checkbox" data-instance-name="${it.instanceName}">
-                                    <span class="lever"></span>
-                                    On
-                                </label>
+                    <ul class="collection">
+                        <li class="collection-item">
+                            Lock device
+                            <span class="secondary-content">
+                                <div class="switch">
+                                    <label>
+                                        Off
+                                        <input type="checkbox" ${locked ? "checked" : ""}
+                                            class="lock-checkbox" data-instance-name="${it.instanceName}" data-since="${lockedSince}">
+                                        <span class="lever"></span>
+                                        On
+                                    </label>
+                                </div>
+                            </span>
+                        </li>
+                        <li class="collection-item">
+                            Logout
+                            <span class="secondary-content">
+                                <div class="switch">
+                                    <label>
+                                        Off
+                                        <input type="checkbox" ${loggedOut ? "checked" : ""}
+                                            class="logout-checkbox" data-instance-name="${it.instanceName}" data-since="${loggedOutSince}">
+                                        <span class="lever"></span>
+                                        On
+                                    </label>
+                                </div>
+                            </span>
+                        </li>
+                        <li class="collection-item">
+                            <label>
+                                <input type="checkbox" checked class="filled-in countdown-checkbox" />
+                                <span>Enable countdown</span>
+                            </label>
+                            <div class="countdown-text pl-6 pt-2">
+                                This settings enables 60 seconds countdown every time I turn on "Lock" or "Logout"
                             </div>
-                        </span>
-                    </li>
-                    <li class="collection-item">
-                        Logout from device
-                        <span class="secondary-content">
-                            <div class="switch">
-                                <label>
-                                    Off
-                                    <input type="checkbox" ${it.state['logged-out'] ? "checked" : ""} class="logout-checkbox" data-instance-name="${it.instanceName}">
-                                    <span class="lever"></span>
-                                    On
-                                </label>
-                            </div>
-                        </span>
-                    </li>
-                    <li class="collection-item"></li> 
+                        </li>
+                        <li class="collection-item"></li> 
                 `
             li += Object.keys(it.appUsageSeconds).map(app => {
                     return `<li class="collection-item">
@@ -96,12 +111,30 @@ document.addEventListener("DOMContentLoaded", (event) => {
 
     function onInstanceStateChanged(evt) {        
         let instanceName = evt.target.dataset["instanceName"]
-        let shouldBeLocked = document.querySelector(`#report-${instanceName} .lock-checkbox`).checked
-        let shouldBeLoggedOut = document.querySelector(`#report-${instanceName} .logout-checkbox`).checked
+        let countdown = document.querySelector(`#report-${instanceName} .countdown-checkbox`).checked
+
+        let modifyStateAndFetchSince = (name) => {
+            let checkbox = document.querySelector(`#report-${instanceName} ${name}`)
+            if (checkbox.checked) {
+                let since = checkbox.dataset["since"]
+                if (!since) {
+                    since = Date.now()
+                    if (countdown) {
+                        since += 60 * 1000
+                    
+                    }
+                    checkbox.dataset["since"] = new Date(since).toISOString()
+                }
+            } else {
+                checkbox.dataset["since"] = ""
+            }
+            return checkbox.dataset["since"] ? checkbox.dataset["since"] : null
+        }
+        
 
         updateState(instanceName, {
-            "locked": shouldBeLocked,
-            "logged-out": shouldBeLoggedOut
+            "lockedSince": modifyStateAndFetchSince('.lock-checkbox'),
+            "loggedOutSince": modifyStateAndFetchSince('.logout-checkbox')
         })
     }
 
@@ -110,23 +143,27 @@ document.addEventListener("DOMContentLoaded", (event) => {
         headers.set('Authorization', 'Basic ' + btoa(getCookie("fr_username") + ":" + getCookie("fr_token")))
         headers.set('x-seed', getCookie("fr_seed"))
         headers.set('Content-Type', "application/json");
+        document.querySelectorAll(".switch input[type=checkbox]").forEach(it => { it.disabled = true })
         fetch(`/bff/state?instanceName=${instanceName}`, {
             method: 'POST',
             headers: headers,
             body: JSON.stringify(state)
+        }).then(response => {
+            document.querySelectorAll(".switch input[type=checkbox]").forEach(it => { it.disabled = false })
+            M.toast({text: "Saved!"})
         })
     }
 
     function onDateChanged() {
         console.log('date changed')
-        update(intervalRefresher)
+        update(initialRenderer)
     }
 
-    function intervalRefresher(response) {
-        response.instances.forEach(it => {
-            document.querySelector(`#report-${it.instanceName} .total-screen-time`).innerHTML = formatScreenTime(it.screenTimeSeconds)
-        })
-    }
+    // function intervalRefresher(response) {
+    //     response.instances.forEach(it => {
+    //         document.querySelector(`#report-${it.instanceName} .total-screen-time`).innerHTML = formatScreenTime(it.screenTimeSeconds)
+    //     })
+    // }
 
     function update(handler) {
         let date = document.querySelector("#datepicker").value

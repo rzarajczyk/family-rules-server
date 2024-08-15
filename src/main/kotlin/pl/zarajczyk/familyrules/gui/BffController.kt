@@ -1,25 +1,26 @@
 package pl.zarajczyk.familyrules.gui
 
-import com.fasterxml.jackson.annotation.JsonProperty
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.toJavaInstant
+import kotlinx.datetime.toKotlinInstant
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.server.ResponseStatusException
 import pl.zarajczyk.familyrules.shared.*
+import java.time.Instant
 
 @RestController
-class BffController(private val dbConnector: DbConnector) {
+class BffController(private val dbConnector: DbConnector, private val securityService: SecurityService) {
 
     @PostMapping("/bff/login")
     fun login(@RequestHeader("Authorization") authHeader: String): LoginResponse =
         try {
-            val auth = authHeader.decodeBasicAuth()
-            val seed = randomSeed()
-            val token = dbConnector.validatePasswordAndCreateOneTimeToken(auth.user, auth.pass, seed)
-            LoginResponse(true, seed, token)
+            securityService.createOneTimeToken(authHeader).toLoginResponse()
         } catch (e: InvalidPassword) {
             LoginResponse(false)
         }
+
+    fun OneTimeToken.toLoginResponse() = LoginResponse(true, seed, token)
 
     @GetMapping("/bff/status")
     fun status(
@@ -28,9 +29,8 @@ class BffController(private val dbConnector: DbConnector) {
         @RequestHeader("Authorization") authHeader: String
     ): StatusResponse = try {
         val day = LocalDate.parse(date)
-        val auth = authHeader.decodeBasicAuth()
-        dbConnector.validateOneTimeToken(auth.user, auth.pass, seed)
-        val instances = dbConnector.getInstances(auth.user)
+        val user = securityService.validateOneTimeToken(authHeader, seed)
+        val instances = dbConnector.getInstances(user)
         StatusResponse(instances.map {
             val appUsageMap = dbConnector.getScreenTimeSeconds(it.id, day)
             InstanceStatus(
@@ -38,7 +38,7 @@ class BffController(private val dbConnector: DbConnector) {
                 instanceName = it.name,
                 screenTimeSeconds = appUsageMap.getOrDefault(DbConnector.TOTAL_TIME, 0L),
                 appUsageSeconds = appUsageMap - DbConnector.TOTAL_TIME,
-                state = dbConnector.getInstanceState(it.id)?.toInstanceState() ?: InstanceState.empty()
+                state = (dbConnector.getInstanceState(it.id) ?: StateDto.empty()).toInstanceState()
             )
         })
     } catch (e: InvalidPassword) {
@@ -52,22 +52,21 @@ class BffController(private val dbConnector: DbConnector) {
         @RequestParam("instanceName") instanceName: String,
         @RequestBody state: InstanceState
     ) {
-        val auth = authHeader.decodeBasicAuth()
-        dbConnector.validateOneTimeToken(auth.user, auth.pass, seed)
-        val instanceId = dbConnector.getInstances(auth.user).find { it.name == instanceName }?.id
+        val user = securityService.validateOneTimeToken(authHeader, seed)
+        val instanceId = dbConnector.getInstances(user).find { it.name == instanceName }?.id
         if (instanceId == null)
             throw ResponseStatusException(HttpStatus.NOT_FOUND)
         dbConnector.setInstanceState(instanceId, state.toStateDto())
     }
 
     private fun StateDto.toInstanceState() = InstanceState(
-        locked = this.locked,
-        loggedOut = this.loggedOut
+        lockedSince = this.lockedSince?.toJavaInstant(),
+        loggedOutSince = this.loggedOutSince?.toJavaInstant()
     )
 
     private fun InstanceState.toStateDto() = StateDto(
-        locked = this.locked,
-        loggedOut = this.loggedOut
+        lockedSince = this.lockedSince?.toKotlinInstant(),
+        loggedOutSince = this.loggedOutSince?.toKotlinInstant()
     )
 
 
@@ -92,10 +91,6 @@ data class InstanceStatus(
 )
 
 data class InstanceState(
-    val locked: Boolean,
-    @JsonProperty("logged-out") val loggedOut: Boolean
-) {
-    companion object {
-        fun empty() = InstanceState(false, false)
-    }
-}
+    val lockedSince: Instant?,
+    val loggedOutSince: Instant?
+)

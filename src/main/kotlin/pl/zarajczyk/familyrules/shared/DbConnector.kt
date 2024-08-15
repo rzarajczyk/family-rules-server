@@ -1,13 +1,13 @@
 package pl.zarajczyk.familyrules.shared
 
+import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.kotlin.datetime.date
+import org.jetbrains.exposed.sql.kotlin.datetime.timestamp
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import pl.zarajczyk.familyrules.gui.InstanceState
 import java.util.*
-import javax.swing.plaf.nimbus.State
 
 @Service
 @Transactional
@@ -43,53 +43,25 @@ class DbConnector {
     object States : Table() {
         val id: Column<Long> = long("id").autoIncrement()
         val instanceId: Column<InstanceId> = long("instance_id")
-        val locked: Column<Boolean> = bool("locked")
-        val loggedOut: Column<Boolean> = bool("loggedOut")
+        val lockedSince: Column<Instant?> = timestamp("locked_since").nullable()
+        val loggedOutSince: Column<Instant?> = timestamp("logged_out_since").nullable()
     }
 
-    @Throws(InvalidPassword::class)
-    fun validatePassword(username: String, password: String) {
-        val count = Users.select(Users.username)
-            .where { (Users.username eq username) and (Users.passwordSha256 eq password.sha256()) }
-            .count()
-        if (count == 0L)
-            throw InvalidPassword()
-    }
-
-    @Throws(InvalidPassword::class)
-    fun validatePasswordAndCreateOneTimeToken(username: String, password: String, seed: String): String {
-        val user = Users.select(Users.passwordSha256)
-            .where { (Users.username eq username) and (Users.passwordSha256 eq password.sha256()) }
-        if (user.count() == 0L)
-            throw InvalidPassword()
-        return createOneTimeToken(user.first()[Users.passwordSha256], seed)
-    }
-
-    private fun createOneTimeToken(passwordSha256: String, seed: String) = "${seed}/${passwordSha256}".sha256()
-
-    @Throws(InvalidPassword::class)
-    fun validateOneTimeToken(username: String, token: String, seed: String) {
-        val user = Users
-            .select(Users.passwordSha256)
+    fun getPasswordHash(username: String): String? {
+        val users = Users.select(Users.passwordSha256)
             .where { Users.username eq username }
-        if (user.count() == 0L)
-            throw InvalidPassword()
-        val expectedToken = createOneTimeToken(user.first()[Users.passwordSha256], seed)
-        if (expectedToken != token)
-            throw InvalidPassword()
+        return users.firstOrNull()?.get(Users.passwordSha256)
     }
 
-    @Throws(InvalidPassword::class)
-    fun validateInstanceToken(username: String, instanceName: String, instanceToken: String): InstanceId {
-        val rows = Instances.select(Instances.id)
-            .where { (Instances.username eq username) and (Instances.instanceName eq instanceName) and (Instances.instanceTokenSha256 eq instanceToken.sha256()) }
-        if (rows.count() == 0L)
-            throw InvalidPassword()
-        return rows.first()[Instances.id]
+    fun getInstance(username: String, instanceName: String): InstanceDtoWithHash? {
+        val rows = Instances.select(Instances.id, Instances.instanceTokenSha256)
+            .where { (Instances.username eq username) and (Instances.instanceName eq instanceName) }
+        return rows.firstOrNull()
+            ?.let { InstanceDtoWithHash(it[Instances.id], instanceName, it[Instances.instanceTokenSha256]) }
     }
 
     @Throws(IllegalInstanceName::class, InstanceAlreadyExists::class)
-    fun setupNewInstance(username: String, instanceName: String, os: SupportedOs): String {
+    fun setupNewInstance(username: String, instanceName: String, instanceTokenHash: String, os: SupportedOs) {
         if (instanceName.length < 3)
             throw IllegalInstanceName(instanceName)
         val count = Instances.select(Instances.id)
@@ -97,14 +69,12 @@ class DbConnector {
             .count()
         if (count > 0)
             throw InstanceAlreadyExists(instanceName)
-        val instanceToken = UUID.randomUUID().toString()
         Instances.insert {
             it[Instances.username] = username
             it[Instances.instanceName] = instanceName
-            it[Instances.instanceTokenSha256] = instanceToken.sha256()
+            it[Instances.instanceTokenSha256] = instanceTokenHash
             it[Instances.os] = os
         }
-        return instanceToken
     }
 
     fun saveReport(
@@ -149,22 +119,22 @@ class DbConnector {
         if (existingId == null) {
             States.insert {
                 it[States.instanceId] = id
-                it[States.locked] = state.locked
-                it[States.loggedOut] = state.loggedOut
+                it[States.lockedSince] = state.lockedSince
+                it[States.loggedOutSince] = state.loggedOutSince
             }
         } else {
             States.update({ States.id eq existingId }) {
-                it[States.locked] = state.locked
-                it[States.loggedOut] = state.loggedOut
+                it[States.lockedSince] = state.lockedSince
+                it[States.loggedOutSince] = state.loggedOutSince
             }
         }
     }
 
     fun getInstanceState(id: InstanceId) =
         States
-            .select(States.locked, States.loggedOut)
+            .select(States.lockedSince, States.loggedOutSince)
             .where { States.instanceId eq id }
-            .map { StateDto(it[States.locked], it[States.loggedOut]) }
+            .map { StateDto(it[States.lockedSince], it[States.loggedOutSince]) }
             .firstOrNull()
 
     companion object {
@@ -174,8 +144,8 @@ class DbConnector {
 }
 
 typealias InstanceId = Long
+typealias UserName = String
 
-class InvalidPassword : RuntimeException("Invalid password")
 class IllegalInstanceName(val instanceName: String) : RuntimeException("Instance $instanceName already exists")
 class InstanceAlreadyExists(val instanceName: String) :
     RuntimeException("Instance $instanceName has incorrect name")
@@ -185,7 +155,17 @@ data class InstanceDto(
     val name: String
 )
 
-data class StateDto(
-    val locked: Boolean,
-    val loggedOut: Boolean
+data class InstanceDtoWithHash(
+    val id: InstanceId,
+    val name: String,
+    val tokenHash: String
 )
+
+data class StateDto(
+    val lockedSince: Instant?,
+    val loggedOutSince: Instant?
+) {
+    companion object {
+        fun empty() = StateDto(null, null)
+    }
+}
