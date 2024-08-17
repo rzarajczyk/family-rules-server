@@ -32,8 +32,8 @@ class ReportController(private val dbConnector: DbConnector) {
     }
 
     private fun StateDto.toReportResponse() = ReportResponse(
-        locked = this.locked,
-        loggedOut = this.loggedOut
+        deviceState = this.deviceState,
+        deviceStateCountdown = this.deviceStateCountdown
     )
 
 }
@@ -45,10 +45,10 @@ data class ReportRequest(
 )
 
 data class ReportResponse(
-    @JsonProperty("locked") val locked: Boolean,
-    @JsonProperty("logged-out") val loggedOut: Boolean
+    val deviceState: DeviceState,
+    val deviceStateCountdown: Int
 ) {
     companion object {
-        fun empty() = ReportResponse(false, false)
+        fun empty() = ReportResponse(DeviceState.ACTIVE, 0)
     }
 }

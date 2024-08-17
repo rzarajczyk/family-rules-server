@@ -61,13 +61,13 @@ class BffController(private val dbConnector: DbConnector) {
     }
 
     private fun StateDto.toInstanceState() = InstanceState(
-        locked = this.locked,
-        loggedOut = this.loggedOut
+        deviceState = this.deviceState,
+        deviceStateCountdown = this.deviceStateCountdown
     )
 
     private fun InstanceState.toStateDto() = StateDto(
-        locked = this.locked,
-        loggedOut = this.loggedOut
+        deviceState = this.deviceState,
+        deviceStateCountdown = this.deviceStateCountdown
     )
 
 
@@ -92,10 +92,10 @@ data class InstanceStatus(
 )
 
 data class InstanceState(
-    val locked: Boolean,
-    @JsonProperty("logged-out") val loggedOut: Boolean
+    val deviceState: DeviceState,
+    val deviceStateCountdown: Int
 ) {
     companion object {
-        fun empty() = InstanceState(false, false)
+        fun empty() = InstanceState(DeviceState.ACTIVE, 0)
     }
 }

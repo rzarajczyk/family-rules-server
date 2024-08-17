@@ -46,29 +46,27 @@ document.addEventListener("DOMContentLoaded", (event) => {
                 <div class="instance-report">
                 <ul class="collection">
                     <li class="collection-item">
-                        Lock device
-                        <span class="secondary-content">
-                            <div class="switch">
+                        Device state
+                        <span class="secondary-content device-state">
                                 <label>
-                                    Off
-                                    <input type="checkbox" ${it.state.locked ? "checked" : ""} class="lock-checkbox" data-instance-name="${it.instanceName}">
-                                    <span class="lever"></span>
-                                    On
+                                    <input data-instance="${it.instanceName}" name="${it.instanceName}" value="ACTIVE" type="radio" ${it.state.deviceState == "ACTIVE" ? "checked" : ""} />
+                                    <span>Active</span>
                                 </label>
-                            </div>
-                        </span>
-                    </li>
-                    <li class="collection-item">
-                        Logout from device
-                        <span class="secondary-content">
-                            <div class="switch">
                                 <label>
-                                    Off
-                                    <input type="checkbox" ${it.state['logged-out'] ? "checked" : ""} class="logout-checkbox" data-instance-name="${it.instanceName}">
-                                    <span class="lever"></span>
-                                    On
+                                    <input data-instance="${it.instanceName}" name="${it.instanceName}" value="LOCKED" type="radio" ${it.state.deviceState == "LOCKED" ? "checked" : ""} />
+                                    <span>Locked down</span>
                                 </label>
-                            </div>
+                                <label>
+                                    <input data-instance="${it.instanceName}" name="${it.instanceName}" value="LOGGED_OUT" type="radio" ${it.state.deviceState == "LOGGED_OUT" ? "checked" : ""} />
+                                    <span>Logged out</span>
+                                </label>
+                                <span id="countdown-${it.instanceName}" style="visibility: ${it.state.deviceState == "ACTIVE" ? "hidden" : "visible"}">
+                                    <hr />
+                                    <label>
+                                        <input name="countdown-${it.instanceName}" data-instance="${it.instanceName}" type="checkbox" ${it.state.deviceStateCountdown > 0 ? "checked" : ""} />
+                                        <span>With countdown</span>
+                                    </label>
+                                </span>
                         </span>
                     </li>
                     <li class="collection-item"></li> 
@@ -89,19 +87,22 @@ document.addEventListener("DOMContentLoaded", (event) => {
         let instances = document.querySelector("#instances")
         instances.innerHTML = html
         M.Collapsible.init(instances, {});
-        document.querySelectorAll(".lock-checkbox, .logout-checkbox").forEach(it => {
+        document.querySelectorAll("select").forEach(it => M.FormSelect.init(it, {}))
+        document.querySelectorAll(".device-state input").forEach(it => {
             it.addEventListener("change", (e) => onInstanceStateChanged(e))
         })
     }
 
     function onInstanceStateChanged(evt) {        
-        let instanceName = evt.target.dataset["instanceName"]
-        let shouldBeLocked = document.querySelector(`#report-${instanceName} .lock-checkbox`).checked
-        let shouldBeLoggedOut = document.querySelector(`#report-${instanceName} .logout-checkbox`).checked
+        let instanceName = evt.target.dataset["instance"]
+        let deviceState = document.querySelector(`input[name="${instanceName}"]:checked`).value
+        let countdown = document.querySelector(`input[name=countdown-${instanceName}]`).checked ? 60 : 0
+
+        document.querySelector(`#countdown-${instanceName}`).style.visibility = deviceState == "ACTIVE" ? "hidden" : "visible"
 
         updateState(instanceName, {
-            "locked": shouldBeLocked,
-            "logged-out": shouldBeLoggedOut
+            "deviceState": deviceState,
+            "deviceStateCountdown": countdown
         })
     }
 
@@ -114,6 +115,8 @@ document.addEventListener("DOMContentLoaded", (event) => {
             method: 'POST',
             headers: headers,
             body: JSON.stringify(state)
+        }).then(response => {
+            M.toast({text: "Saved"})
         })
     }
 

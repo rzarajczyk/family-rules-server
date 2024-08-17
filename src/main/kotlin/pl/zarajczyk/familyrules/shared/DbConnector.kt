@@ -5,9 +5,7 @@ import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.kotlin.datetime.date
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import pl.zarajczyk.familyrules.gui.InstanceState
 import java.util.*
-import javax.swing.plaf.nimbus.State
 
 @Service
 @Transactional
@@ -43,8 +41,8 @@ class DbConnector {
     object States : Table() {
         val id: Column<Long> = long("id").autoIncrement()
         val instanceId: Column<InstanceId> = long("instance_id")
-        val locked: Column<Boolean> = bool("locked")
-        val loggedOut: Column<Boolean> = bool("loggedOut")
+        val deviceState: Column<DeviceState> = enumeration("device_state", DeviceState::class)
+        val deviceStateCountdown: Column<Int> = integer("device_state_countdown")
     }
 
     @Throws(InvalidPassword::class)
@@ -149,22 +147,22 @@ class DbConnector {
         if (existingId == null) {
             States.insert {
                 it[States.instanceId] = id
-                it[States.locked] = state.locked
-                it[States.loggedOut] = state.loggedOut
+                it[States.deviceState] = state.deviceState
+                it[States.deviceStateCountdown] = state.deviceStateCountdown
             }
         } else {
             States.update({ States.id eq existingId }) {
-                it[States.locked] = state.locked
-                it[States.loggedOut] = state.loggedOut
+                it[States.deviceState] = state.deviceState
+                it[States.deviceStateCountdown] = state.deviceStateCountdown
             }
         }
     }
 
     fun getInstanceState(id: InstanceId) =
         States
-            .select(States.locked, States.loggedOut)
+            .select(States.deviceState, States.deviceStateCountdown)
             .where { States.instanceId eq id }
-            .map { StateDto(it[States.locked], it[States.loggedOut]) }
+            .map { StateDto(it[States.deviceState], it[States.deviceStateCountdown]) }
             .firstOrNull()
 
     companion object {
@@ -186,6 +184,10 @@ data class InstanceDto(
 )
 
 data class StateDto(
-    val locked: Boolean,
-    val loggedOut: Boolean
+    val deviceState: DeviceState,
+    val deviceStateCountdown: Int
 )
+
+enum class DeviceState {
+    ACTIVE, LOCKED, LOGGED_OUT
+}
