@@ -1,0 +1,7 @@
+nav .brand-logo {
+    padding-left: 1em;
+}
+
+nav li.active {
+    background-color: var(--md-sys-color-on-primary-container-light);
+}
