@@ -1,6 +1,5 @@
 package pl.zarajczyk.familyrules.gui
 
-import com.fasterxml.jackson.annotation.JsonProperty
 import kotlinx.datetime.LocalDate
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.*
@@ -37,7 +36,7 @@ class BffController(private val dbConnector: DbConnector) {
                 instanceId = it.id,
                 instanceName = it.name,
                 screenTimeSeconds = appUsageMap.getOrDefault(DbConnector.TOTAL_TIME, 0L),
-                appUsageSeconds = appUsageMap - DbConnector.TOTAL_TIME,
+                appUsageSeconds = (appUsageMap - DbConnector.TOTAL_TIME).map { (k, v) -> AppUsage(k, v) },
                 state = dbConnector.getInstanceState(it.id)?.toInstanceState() ?: InstanceState.empty()
             )
         })
@@ -87,8 +86,13 @@ data class InstanceStatus(
     val instanceId: InstanceId,
     val instanceName: String,
     val screenTimeSeconds: Long,
-    val appUsageSeconds: Map<String, Long>,
+    val appUsageSeconds: List<AppUsage>,
     val state: InstanceState
+)
+
+data class AppUsage(
+    val name: String,
+    val usageSeconds: Long
 )
 
 data class InstanceState(

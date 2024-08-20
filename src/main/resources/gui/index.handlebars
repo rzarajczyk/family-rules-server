@@ -1,0 +1,43 @@
+<li id="report-{{instanceName}}">
+    <div class="collapsible-header">
+        <i class="material-icons">devices</i>
+        <div class="instance-name"><span class="new badge total-screen-time" data-badge-caption="">{{#formatScreenTime}}{{screenTimeSeconds}}{{/formatScreenTime}}</span>{{instanceName}}</div>
+    </div>
+    <div class="collapsible-body">
+        <div class="instance-report">
+        <ul class="collection">
+            <li class="collection-item">
+                Device state
+                <span class="secondary-content device-state">
+                        <label>
+                            <input data-instance="{{instanceName}}" name="{{instanceName}}" value="ACTIVE" type="radio" {{#ifEquals state.deviceState  "ACTIVE"}}checked{{/ifEquals}} />
+                            <span>Active</span>
+                        </label>
+                        <label>
+                            <input data-instance="{{instanceName}}" name="{{instanceName}}" value="LOCKED" type="radio" {{#ifEquals state.deviceState  "LOCKED"}}checked{{/ifEquals}} />
+                            <span>Locked down</span>
+                        </label>
+                        <label>
+                            <input data-instance="{{instanceName}}" name="{{instanceName}}" value="LOGGED_OUT" type="radio" {{#ifEquals state.deviceState  "LOGGED_OUT"}}checked{{/ifEquals}} />
+                            <span>Logged out</span>
+                        </label>
+                        <span id="countdown-{{instanceName}}" style="visibility: {{#ifEquals state.deviceState "ACTIVE"}}hidden{{/ifEquals}}">
+                            <hr />
+                            <label>
+                                <input name="countdown-{{instanceName}}" data-instance="{{instanceName}}" type="checkbox" {{#ifGt state.deviceStateCountdown 0}}"checked"{{/ifGt}} />
+                                <span>With countdown</span>
+                            </label>
+                        </span>
+                </span>
+            </li>
+            <li class="collection-item"></li> 
+            {{#each appUsageSeconds}}
+                <li class="collection-item">
+                    {{name}}
+                    <span class="secondary-content">{{#formatScreenTime}}{{usageSeconds}}{{/formatScreenTime}}</span>
+                </li>
+            {{/each}}
+        </ul>
+        </div>
+    </div>
+</li>
