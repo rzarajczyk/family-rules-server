@@ -1,5 +1,13 @@
 nav .brand-logo {
     padding-left: 1em;
+    font-size: 2rem;
+    text-wrap: nowrap;
+}
+
+@media only screen and (max-width: 992.99px) {
+    nav .brand-logo {
+        padding: 0;
+    }
 }
 
 nav li.active {
