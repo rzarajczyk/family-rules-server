@@ -20,7 +20,16 @@
                     <input name="device-state-{{instanceName}}" value="LOGGED_OUT" type="radio" {{#ifEquals state.deviceState  "LOGGED_OUT"}}checked{{/ifEquals}} />
                     <span>Logged out</span>
                 </label>
-                <span id="countdown-{{instanceName}}" style="visibility: {{#ifEquals state.deviceState "ACTIVE"}}hidden{{/ifEquals}}">
+                <label>
+                    <input name="device-state-{{instanceName}}" value="APP_DISABLED" type="radio" {{#ifEquals state.deviceState  "APP_DISABLED"}}checked{{/ifEquals}} />
+                    <span>
+                        <i class="material-icons tiny">warning</i> App disabled<br>
+                        <i>If you select this state, the app on child's device will be turned off and removed from the "Autorun"/"Autostart".</i><br>
+                        <i>Use this state if you want to update the app.</i><br>
+                        <i>Remember to manually turn the app on after de-selecting this state.</i>
+                    </span>
+                </label>
+                <span id="countdown-{{instanceName}}" style="{{#ifEquals state.deviceState "ACTIVE"}}visibility: hidden{{/ifEquals}}{{#ifEquals state.deviceState "APP_DISABLED"}}visibility: hidden{{/ifEquals}}">
                     <hr />
                     <label>
                         <input name="countdown-{{instanceName}}" type="checkbox" {{#ifGt state.deviceStateCountdown 0}}"checked"{{/ifGt}} />

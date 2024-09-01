@@ -189,5 +189,5 @@ data class StateDto(
 )
 
 enum class DeviceState {
-    ACTIVE, LOCKED, LOGGED_OUT
+    ACTIVE, LOCKED, LOGGED_OUT, APP_DISABLED
 }

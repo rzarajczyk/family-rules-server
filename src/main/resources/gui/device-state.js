@@ -22,7 +22,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
                 let instanceName = evt.target.closest(".collection-item").dataset["instance"]
                 let deviceState = document.querySelector(`input[name="device-state-${instanceName}"]:checked`).value
                 
-                document.querySelector(`#countdown-${instanceName}`).style.visibility = deviceState == "ACTIVE" ? "hidden" : "visible"
+                document.querySelector(`#countdown-${instanceName}`).style.visibility = ["APP_DISABLED", "ACTIVE"].includes(deviceState) ? "hidden" : "visible"
             }
 
             function onSave(evt) {        
