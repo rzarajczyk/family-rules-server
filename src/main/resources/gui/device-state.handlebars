@@ -1,7 +1,7 @@
-<li id="report-{{instanceName}}">
+<li id="state-{{instanceName}}">
     <div class="collapsible-header">
         <i class="material-icons">devices</i>
-        <div class="instance-name"><span class="new badge total-screen-time" data-badge-caption="">Today: {{#formatScreenTime}}{{screenTimeSeconds}}{{/formatScreenTime}}</span>{{instanceName}}</div>
+        <div class="instance-name"><span class="new badge total-screen-time" data-badge-caption="">{{#formatState}}{{state.deviceState}}{{/formatState}}</span>{{instanceName}}</div>
     </div>
     <div class="collapsible-body">
         <div class="instance-report">
@@ -10,20 +10,20 @@
                 Device state
                 <label>
                     <input name="device-state-{{instanceName}}" value="ACTIVE" type="radio" {{#ifEquals state.deviceState  "ACTIVE"}}checked{{/ifEquals}} />
-                    <span>Active</span>
+                    <span>{{#formatState}}ACTIVE{{/formatState}}</span>
                 </label>
                 <label>
                     <input name="device-state-{{instanceName}}" value="LOCKED" type="radio" {{#ifEquals state.deviceState  "LOCKED"}}checked{{/ifEquals}} />
-                    <span>Locked down</span>
+                    <span>{{#formatState}}LOCKED{{/formatState}}</span>
                 </label>
                 <label>
                     <input name="device-state-{{instanceName}}" value="LOGGED_OUT" type="radio" {{#ifEquals state.deviceState  "LOGGED_OUT"}}checked{{/ifEquals}} />
-                    <span>Logged out</span>
+                    <span>{{#formatState}}LOGGED_OUT{{/formatState}}</span>
                 </label>
                 <label>
                     <input name="device-state-{{instanceName}}" value="APP_DISABLED" type="radio" {{#ifEquals state.deviceState  "APP_DISABLED"}}checked{{/ifEquals}} />
                     <span>
-                        <i class="material-icons tiny">warning</i> App disabled<br>
+                        {{#formatState}}APP_DISABLED{{/formatState}}<br>
                         <i>If you select this state, the app on child's device will be turned off and removed from the "Autorun"/"Autostart".</i><br>
                         <i>Use this state if you want to update the app.</i><br>
                         <i>Remember to manually turn the app on after de-selecting this state.</i>

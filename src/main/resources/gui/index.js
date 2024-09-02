@@ -1,6 +1,6 @@
 document.addEventListener("DOMContentLoaded", (event) => {
     Handlebars.fetchTemplate("./index.handlebars")
-        .then(template => {
+        .then(([template]) => {
             M.Datepicker.init(document.querySelector("#datepicker"), {
                 defaultDate: new Date(),
                 setDefaultDate: true,
@@ -8,29 +8,26 @@ document.addEventListener("DOMContentLoaded", (event) => {
                 onClose: onDateChanged
             })
 
-            function initialRenderer(response) {
-                let html = ''
-                response.instances.forEach(it => {
-                    html += template(it)
-                })
-                let instances = document.querySelector("#instances")
+            function render(response) {
+                const html = response.instances.map(it => template(it)).join('')
+                const instances = document.querySelector("#instances")
                 instances.innerHTML = html
                 M.Collapsible.init(instances, {});
             }
 
             function onDateChanged() {
                 console.log('date changed')
-                update(initialRenderer)
+                update()
             }
 
-            function update(handler) {
+            function update() {
                 document.querySelector("#instances").innerHTML = ""
                 let date = document.querySelector("#datepicker").value
                 ServerRequest.fetch(`/bff/status?date=${date}`)
                     .then(response => response.json())
-                    .then(response => handler(response))
+                    .then(response => render(response))
             }
 
-            update(initialRenderer)
+            update()
     })
 });

@@ -2,6 +2,7 @@ package pl.zarajczyk.familyrules.shared
 
 import kotlinx.datetime.LocalDate
 import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.kotlin.datetime.date
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -41,6 +42,16 @@ class DbConnector {
     object States : Table() {
         val id: Column<Long> = long("id").autoIncrement()
         val instanceId: Column<InstanceId> = long("instance_id")
+        val deviceState: Column<DeviceState> = enumeration("device_state", DeviceState::class)
+        val deviceStateCountdown: Column<Int> = integer("device_state_countdown")
+    }
+
+    object Periods : Table() {
+        val id: Column<Long> = long("id").autoIncrement()
+        val instanceId: Column<InstanceId> = long("instance_id")
+        val day: Column<Day> = enumeration("day", Day::class)
+        val fromSeconds: Column<Long> = long("from_seconds")
+        val toSeconds: Column<Long> = long("to_seconds")
         val deviceState: Column<DeviceState> = enumeration("device_state", DeviceState::class)
         val deviceStateCountdown: Column<Int> = integer("device_state_countdown")
     }
@@ -165,6 +176,47 @@ class DbConnector {
             .map { StateDto(it[States.deviceState], it[States.deviceStateCountdown]) }
             .firstOrNull()
 
+    fun getInstanceSchedule(id: InstanceId): ScheduleDto =
+        Periods
+            .select(
+                Periods.day,
+                Periods.fromSeconds,
+                Periods.toSeconds,
+                Periods.deviceState,
+                Periods.deviceStateCountdown
+            )
+            .where { Periods.instanceId eq id }
+            .map {
+                it[Periods.day] to PeriodDto(
+                    it[Periods.fromSeconds],
+                    it[Periods.toSeconds],
+                    it[Periods.deviceState],
+                    it[Periods.deviceStateCountdown]
+                )
+            }
+            .groupBy { it.first }
+            .mapValues { (_, v) -> PeriodsDto(v.map { it.second }) }
+            .let { ScheduleDto(it) }
+
+    fun setInstanceSchedule(id: InstanceId, scheduleDto: ScheduleDto) {
+        Periods.deleteWhere { Periods.instanceId eq id }
+        scheduleDto.schedule.forEach { (day, periods) ->
+            periods.periods.forEach { period ->
+                Periods.insert {
+                    it[Periods.instanceId] = id
+                    it[Periods.day] = day
+                    it[Periods.fromSeconds] = period.fromSeconds
+                    it[Periods.toSeconds] = period.toSeconds
+                    it[Periods.deviceState] = period.deviceState
+                    it[Periods.deviceStateCountdown] = period.deviceStateCountdown
+                }
+            }
+        }
+
+
+    }
+
+
     companion object {
         const val TOTAL_TIME = "## screentime ##"
     }
@@ -190,4 +242,23 @@ data class StateDto(
 
 enum class DeviceState {
     ACTIVE, LOCKED, LOGGED_OUT, APP_DISABLED
+}
+
+data class ScheduleDto(
+    val schedule: Map<Day, PeriodsDto>
+)
+
+data class PeriodsDto(
+    val periods: List<PeriodDto>
+)
+
+data class PeriodDto(
+    val fromSeconds: Long,
+    val toSeconds: Long,
+    val deviceState: DeviceState,
+    val deviceStateCountdown: Int
+)
+
+enum class Day {
+    MON, TUE, WED, THU, FRI, SAT, SUN
 }

@@ -1,14 +1,12 @@
 document.addEventListener("DOMContentLoaded", (event) => {
     Handlebars.fetchTemplate("./device-state.handlebars")
-        .then(template => {
-            function initialRenderer(response) {
-                let html = ''
-                response.instances.forEach(it => {
-                    html += template(it)
-                })
-                let instances = document.querySelector("#instances")
+        .then(([template]) => {
+            function render(response) {
+                const html = response.instances.map(it => template(it)).join('')
+                const instances = document.querySelector("#instances")
                 instances.innerHTML = html
                 M.Collapsible.init(instances, {});
+
                 document.querySelectorAll("select").forEach(it => M.FormSelect.init(it, {}))
                 document.querySelectorAll(".device-state input[type=radio]").forEach(it => {
                     it.addEventListener("change", (e) => onInstanceStateChanged(e))
@@ -45,21 +43,13 @@ document.addEventListener("DOMContentLoaded", (event) => {
                 })
             }
 
-            function today() {
-                let date = new Date()
-                const yyyy = date.getFullYear();
-                const mm = String(date.getMonth() + 1).padStart(2, '0');
-                const dd = String(date.getDate()).padStart(2, '0');
-                return `${yyyy}-${mm}-${dd}`;
-              };
-
-            function update(handler) {
+            function update() {
                 let date = today()
                 ServerRequest.fetch(`/bff/status?date=${date}`)
                     .then(response => response.json())
-                    .then(response => handler(response))
+                    .then(response => render(response))
             }
 
-            update(initialRenderer)
+            update()
     })
 });

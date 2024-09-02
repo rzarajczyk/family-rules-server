@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <!--Import Google Icon Font-->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <!--Import materialize.css-->
+
+    <link type="text/css" rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/@materializecss/materialize@2.1.1/dist/css/materialize.min.css"
+          media="screen,projection"/>
+    <link type="text/css" rel="stylesheet" href="theme.css" media="screen,projection"/>
+    <link type="text/css" rel="stylesheet" href="common.css" media="screen,projection"/>
+    <style>
+        .instance-name {
+            width: 100%;
+        }
+        .collapsible-header::after {
+            display: none;
+        }
+
+        .collection-item {
+            display: flow-root;
+        }
+
+        .add-period-modal-state>label {
+            display: block;
+            position: relative;
+        }
+
+        .add-state {
+            width: 200px;
+        }
+
+        #edit-schedule-modal label {
+            display: block;
+        }
+    </style>
+    <!--Let browser know website is optimized for mobile-->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+</head>
+<body>
+
+<header data-source="./header.handlebars"></header>
+
+<div class="container">
+    <div class="row">
+        <div class="col s12">
+            <ul class="collapsible no-autoinit popout" id="instances">
+            </ul>
+        </div>
+    </div>
+</div>
+
+<div id="edit-schedule-modal" class="modal modal-fixed-footer">
+    <div class="modal-content">
+        <div class="card">
+            <div class="card-content">
+                <label>
+                    <input type="checkbox" id="MON" />
+                    <span>Monday</span>
+                </label>
+                <label>
+                    <input type="checkbox" id="TUE" />
+                    <span>Tuesday</span>
+                </label>
+                <label>
+                    <input type="checkbox" id="WED" />
+                    <span>Wednesday</span>
+                </label>
+                <label>
+                    <input type="checkbox" id="THU" />
+                    <span>Thursday</span>
+                </label>
+                <label>
+                    <input type="checkbox" id="FRI" />
+                    <span>Friday</span>
+                </label>
+                <label>
+                    <input type="checkbox" id="SAT" />
+                    <span>Saturday</span>
+                </label>
+                <label>
+                    <input type="checkbox" id="SUN" />
+                    <span>Sunday</span>
+                </label>
+
+            </div>
+        </div>
+        <table class="highlight">
+            <thead>
+            <tr>
+                <th>Time</th>
+                <th>State</th>
+            </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+    </div>
+    <div class="modal-footer">
+        <a href="#!" class="modal-close waves-effect btn-flat">Cancel</a>
+        <a href="#!" class="waves-effect btn-flat" id="edit-schedule-modal-ok">Save</a>
+    </div>
+</div>
+
+<div id="add-period-modal" class="modal modal-fixed-footer">
+    <div class="modal-content">
+        <div class="input-field">
+            <input type="text" id="add-period-modal-start" class="timepicker no-autoinit" value="00:00">
+            <label for="add-period-modal-start">Start time</label>
+        </div>
+        <div class="input-field">
+            <input type="text" id="add-period-modal-end" class="timepicker no-autoinit" value="24:00">
+            <label for="add-period-modal-end">End time</label>
+        </div>
+        <div class="input-field add-period-modal-state">
+            <label>
+                <input name="add-period-modal-device-state" value="ACTIVE" type="radio" checked />
+                <span class="format-state">ACTIVE</span>
+            </label>
+            <label>
+                <input name="add-period-modal-device-state" value="LOCKED" type="radio" />
+                <span class="format-state">LOCKED</span>
+            </label>
+            <label>
+                <input name="add-period-modal-device-state" value="LOGGED_OUT" type="radio" />
+                <span class="format-state">LOGGED_OUT</span>
+            </label>
+            <label>
+                <input name="add-period-modal-device-state" value="APP_DISABLED" type="radio" />
+                <span>
+                        <span class="format-state">APP_DISABLED</span><br>
+                        <i>If you select this state, the app on child's device will be turned off and removed from the "Autorun"/"Autostart".</i><br>
+                        <i>Use this state if you want to update the app.</i><br>
+                        <i>Remember to manually turn the app on after de-selecting this state.</i>
+                    </span>
+            </label>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <a href="#!" class="modal-close waves-effect btn-flat">Cancel</a>
+        <a href="#!" class="waves-effect btn-flat" id="add-period-modal-ok">Add period</a>
+    </div>
+</div>
+
+<!--JavaScript at end of body for optimized loading-->
+<script type="text/javascript"
+        src="https://cdn.jsdelivr.net/npm/@materializecss/materialize@2.1.1/dist/js/materialize.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/handlebars@latest/dist/handlebars.js"></script>
+<script src="common.js"></script>
+<script src="schedule.js"></script>
+
+</body>
+</html>

@@ -13,3 +13,16 @@ nav .brand-logo {
 nav li.active {
     background-color: var(--md-sys-color-on-primary-container-light);
 }
+
+.timepicker-text-container input[type=text] {
+    background-color: transparent;
+    border: none;
+    font-size: smaller;
+}
+
+.collapsible-header i.tiny {
+    font-size: 1rem;
+    position: relative;
+    top: 0.2rem;
+    margin-right: 0;
+}
