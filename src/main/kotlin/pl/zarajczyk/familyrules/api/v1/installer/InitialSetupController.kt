@@ -1,4 +1,4 @@
-package pl.zarajczyk.familyrules.api.installer
+package pl.zarajczyk.familyrules.api.v1.installer
 
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
@@ -9,14 +9,14 @@ import pl.zarajczyk.familyrules.shared.*
 @RestController
 class InitialSetupController(private val dbConnector: DbConnector) {
 
-    @PostMapping("/api/register-instance")
+    @PostMapping(value = ["/api/register-instance", "/api/v1/register-instance"])
     fun registerInstance(
         @RequestBody data: RegisterInstanceRequest,
         @RequestHeader("Authorization") authHeader: String
     ): RegisterInstanceResponse = try {
         val auth = authHeader.decodeBasicAuth()
         dbConnector.validatePassword(auth.user, auth.pass)
-        val token = dbConnector.setupNewInstance(auth.user, data.instanceName, data.os)
+        val token = dbConnector.setupNewInstance(auth.user, data.instanceName, data.clientType)
         RegisterInstanceResponse(RegisterInstanceStatus.SUCCESS, token)
     } catch (e: InvalidPassword) {
         RegisterInstanceResponse(RegisterInstanceStatus.INVALID_PASSWORD)
@@ -42,7 +42,7 @@ class InitialSetupController(private val dbConnector: DbConnector) {
 
 data class RegisterInstanceRequest(
     val instanceName: String,
-    val os: SupportedOs
+    val clientType: String
 )
 
 enum class RegisterInstanceStatus {

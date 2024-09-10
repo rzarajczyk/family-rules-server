@@ -1,4 +1,4 @@
-package pl.zarajczyk.familyrules.api.report
+package pl.zarajczyk.familyrules.api.v1.report
 
 import com.fasterxml.jackson.annotation.JsonProperty
 import kotlinx.datetime.Clock
@@ -15,7 +15,7 @@ import pl.zarajczyk.familyrules.shared.*
 @RestController
 class ReportController(private val dbConnector: DbConnector) {
 
-    @PostMapping("/api/report")
+    @PostMapping(value = ["/api/report", "/api/v1/report"])
     fun report(
         @RequestBody report: ReportRequest,
         @RequestHeader("Authorization", required = false) authHeader: String?

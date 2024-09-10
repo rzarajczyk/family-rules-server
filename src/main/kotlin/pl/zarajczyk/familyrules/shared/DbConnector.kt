@@ -24,7 +24,7 @@ class DbConnector {
         val username: Column<String> = text("username")
         val instanceName: Column<String> = text("instance_name")
         val instanceTokenSha256: Column<String> = text("instance_token_sha256")
-        val os: Column<SupportedOs> = enumeration("os", SupportedOs::class)
+        val clientType: Column<String> = text("client_type")
 
         override val primaryKey = PrimaryKey(id)
     }
@@ -98,7 +98,7 @@ class DbConnector {
     }
 
     @Throws(IllegalInstanceName::class, InstanceAlreadyExists::class)
-    fun setupNewInstance(username: String, instanceName: String, os: SupportedOs): String {
+    fun setupNewInstance(username: String, instanceName: String, clientType: String): String {
         if (instanceName.length < 3)
             throw IllegalInstanceName(instanceName)
         val count = Instances.select(Instances.id)
@@ -111,7 +111,7 @@ class DbConnector {
             it[Instances.username] = username
             it[Instances.instanceName] = instanceName
             it[Instances.instanceTokenSha256] = instanceToken.sha256()
-            it[Instances.os] = os
+            it[Instances.clientType] = clientType
         }
         return instanceToken
     }
