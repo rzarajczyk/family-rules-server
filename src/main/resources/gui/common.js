@@ -41,6 +41,8 @@ function formatState(state) {
         return `<i class="material-icons tiny">lock</i> Locked`
     } else if (state == "APP_DISABLED") {
         return `<i class="material-icons tiny">warning</i> App disabled!`
+    } else if (state == "") {
+        return `<i class="material-icons tiny">star</i> <span style="font-style: italic">Automatic</span>`
     } else {
         return state
     }

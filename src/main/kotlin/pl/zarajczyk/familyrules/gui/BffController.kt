@@ -27,7 +27,7 @@ class BffController(private val dbConnector: DbConnector) {
                 instanceName = it.name,
                 screenTimeSeconds = appUsageMap.getOrDefault(DbConnector.TOTAL_TIME, 0L),
                 appUsageSeconds = (appUsageMap - DbConnector.TOTAL_TIME).map { (k, v) -> AppUsage(k, v) },
-                state = dbConnector.getInstanceState(it.id)?.toInstanceState() ?: InstanceState.empty(),
+                state = dbConnector.getForcedInstanceState(it.id).toInstanceState(),
                 weeklySchedule = dbConnector.getInstanceSchedule(it.id).toWeeklySchedule()
             )
         })
@@ -47,7 +47,7 @@ class BffController(private val dbConnector: DbConnector) {
         val instanceId = dbConnector.getInstances(auth.user).find { it.name == instanceName }?.id
         if (instanceId == null)
             throw ResponseStatusException(HttpStatus.NOT_FOUND)
-        dbConnector.setInstanceState(instanceId, state.toStateDto())
+        dbConnector.setForcedInstanceState(instanceId, state.forcedDeviceState)
     }
 
     @PostMapping("/bff/schedule")
@@ -65,14 +65,8 @@ class BffController(private val dbConnector: DbConnector) {
         dbConnector.setInstanceSchedule(instanceId, weeklySchedule.toScheduleDto())
     }
 
-    private fun StateDto.toInstanceState() = InstanceState(
-        deviceState = this.deviceState,
-        deviceStateCountdown = this.deviceStateCountdown
-    )
-
-    private fun InstanceState.toStateDto() = StateDto(
-        deviceState = this.deviceState,
-        deviceStateCountdown = this.deviceStateCountdown
+    private fun DeviceState?.toInstanceState() = InstanceState(
+        forcedDeviceState = this
     )
 
     private fun ScheduleDto.toWeeklySchedule(): WeeklySchedule = WeeklySchedule(
@@ -128,13 +122,8 @@ data class AppUsage(
 )
 
 data class InstanceState(
-    val deviceState: DeviceState,
-    val deviceStateCountdown: Int
-) {
-    companion object {
-        fun empty() = InstanceState(DeviceState.ACTIVE, 0)
-    }
-}
+    val forcedDeviceState: DeviceState?
+)
 
 data class WeeklySchedule(
     val schedules: Map<Day, DailySchedule>

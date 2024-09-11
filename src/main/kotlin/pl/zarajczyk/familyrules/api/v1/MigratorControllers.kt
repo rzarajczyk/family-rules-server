@@ -1,4 +1,4 @@
-package pl.zarajczyk.familyrules.api.v1.migrator
+package pl.zarajczyk.familyrules.api.v1
 
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody

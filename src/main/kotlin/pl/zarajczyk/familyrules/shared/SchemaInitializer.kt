@@ -15,7 +15,6 @@ class SchemaInitializer : ApplicationRunner {
             DbConnector.Users,
             DbConnector.Instances,
             DbConnector.ScreenTimes,
-            DbConnector.States,
             DbConnector.Periods
         )
     }

@@ -25,6 +25,7 @@ class DbConnector {
         val instanceName: Column<String> = text("instance_name")
         val instanceTokenSha256: Column<String> = text("instance_token_sha256")
         val clientType: Column<String> = text("client_type")
+        val forcedDeviceState: Column<DeviceState?> = text("forced_device_state").nullable()
 
         override val primaryKey = PrimaryKey(instanceId)
     }
@@ -39,20 +40,13 @@ class DbConnector {
         override val primaryKey = PrimaryKey(id)
     }
 
-    object States : Table() {
-        val id: Column<Long> = long("id").autoIncrement()
-        val instanceId: Column<InstanceId> = uuid("instance_id")
-        val deviceState: Column<DeviceState> = enumeration("device_state", DeviceState::class)
-        val deviceStateCountdown: Column<Int> = integer("device_state_countdown")
-    }
-
     object Periods : Table() {
         val id: Column<Long> = long("id").autoIncrement()
         val instanceId: Column<InstanceId> = uuid("instance_id")
         val day: Column<Day> = enumeration("day", Day::class)
         val fromSeconds: Column<Long> = long("from_seconds")
         val toSeconds: Column<Long> = long("to_seconds")
-        val deviceState: Column<DeviceState> = enumeration("device_state", DeviceState::class)
+        val deviceState: Column<DeviceState> = text("device_state_str")
         val deviceStateCountdown: Column<Int> = integer("device_state_countdown")
     }
 
@@ -164,27 +158,17 @@ class DbConnector {
         .where { (ScreenTimes.instanceId eq id) and (ScreenTimes.day eq day) }
         .associate { it[ScreenTimes.app] to it[ScreenTimes.screenTimeSeconds] }
 
-    fun setInstanceState(id: InstanceId, state: StateDto) {
-        val existingId = States.select(States.id).where { States.instanceId eq id }.map { it[States.id] }.firstOrNull()
-        if (existingId == null) {
-            States.insert {
-                it[States.instanceId] = id
-                it[States.deviceState] = state.deviceState
-                it[States.deviceStateCountdown] = state.deviceStateCountdown
-            }
-        } else {
-            States.update({ States.id eq existingId }) {
-                it[States.deviceState] = state.deviceState
-                it[States.deviceStateCountdown] = state.deviceStateCountdown
-            }
+    fun setForcedInstanceState(id: InstanceId, state: DeviceState?) {
+        Instances.update({ Instances.instanceId eq id }) {
+            it[forcedDeviceState] = state
         }
     }
 
-    fun getInstanceState(id: InstanceId) =
-        States
-            .select(States.deviceState, States.deviceStateCountdown)
-            .where { States.instanceId eq id }
-            .map { StateDto(it[States.deviceState], it[States.deviceStateCountdown]) }
+    fun getForcedInstanceState(id: InstanceId) =
+        Instances
+            .select(Instances.forcedDeviceState)
+            .where { Instances.instanceId eq id }
+            .map { it[Instances.forcedDeviceState] }
             .firstOrNull()
 
     fun getInstanceSchedule(id: InstanceId): ScheduleDto =
@@ -251,14 +235,7 @@ data class InstanceDto(
     val name: String
 )
 
-data class StateDto(
-    val deviceState: DeviceState,
-    val deviceStateCountdown: Int
-)
-
-enum class DeviceState {
-    ACTIVE, LOCKED, LOGGED_OUT, APP_DISABLED
-}
+typealias DeviceState = String
 
 data class ScheduleDto(
     val schedule: Map<Day, PeriodsDto>

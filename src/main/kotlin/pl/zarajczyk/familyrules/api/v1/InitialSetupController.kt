@@ -1,4 +1,4 @@
-package pl.zarajczyk.familyrules.api.v1.installer
+package pl.zarajczyk.familyrules.api.v1
 
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
@@ -30,7 +30,7 @@ class InitialSetupController(private val dbConnector: DbConnector) {
         RegisterInstanceResponse(RegisterInstanceStatus.ILLEGAL_INSTANCE_NAME)
     }
 
-    @PostMapping("/api/unregister-instance")
+    @PostMapping(value = ["/api/unregister-instance", "/api/v1/unregister-instance"])
     fun unregisterInstance(
         @RequestBody data: UnregisterInstanceRequest,
         @RequestHeader("Authorization") authHeader: String

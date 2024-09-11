@@ -1,9 +1,6 @@
-package pl.zarajczyk.familyrules.api.v1.report
+package pl.zarajczyk.familyrules.api.v1
 
 import com.fasterxml.jackson.annotation.JsonProperty
-import kotlinx.datetime.Clock
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.todayIn
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
@@ -11,33 +8,37 @@ import org.springframework.web.bind.annotation.RequestHeader
 import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.server.ResponseStatusException
 import pl.zarajczyk.familyrules.shared.*
-import java.util.UUID
 
 @RestController
-class ReportController(private val dbConnector: DbConnector) {
+class ReportController(
+    private val dbConnector: DbConnector,
+    private val stateService: StateService
+) {
 
     @PostMapping(value = ["/api/report", "/api/v1/report"])
     fun report(
         @RequestBody report: ReportRequest,
-        @RequestHeader("Authorization", required = false) authHeader: String
+        @RequestHeader("Authorization") authHeader: String
     ): ReportResponse = try {
         val auth = authHeader.decodeBasicAuth()
-        val instanceId =  when {
-            report.instanceId != null -> dbConnector.validateInstanceToken(auth.user, InstanceId.fromString(report.instanceId), auth.pass)
+        val instanceId = when {
+            report.instanceId != null -> dbConnector.validateInstanceToken(
+                auth.user,
+                InstanceId.fromString(report.instanceId),
+                auth.pass
+            )
+
             report.instanceName != null -> dbConnector.validateInstanceToken(auth.user, report.instanceName, auth.pass)
             else -> throw RuntimeException("Both `instanceName` and `instanceId` are null")
         }
         dbConnector.saveReport(instanceId, today(), report.screenTimeSeconds, report.applicationsSeconds)
-        dbConnector.getInstanceState(instanceId)
-            ?.toReportResponse()
-            ?: ReportResponse.empty()
+        stateService.getFinalDeviceState(instanceId).toReportResponse()
     } catch (e: InvalidPassword) {
         throw ResponseStatusException(HttpStatus.FORBIDDEN)
     }
 
-    private fun StateDto.toReportResponse() = ReportResponse(
-        deviceState = this.deviceState,
-        deviceStateCountdown = this.deviceStateCountdown
+    private fun DeviceState.toReportResponse() = ReportResponse(
+        deviceState = this
     )
 
 }
@@ -51,9 +52,5 @@ data class ReportRequest(
 
 data class ReportResponse(
     val deviceState: DeviceState,
-    val deviceStateCountdown: Int
-) {
-    companion object {
-        fun empty() = ReportResponse(DeviceState.ACTIVE, 0)
-    }
-}
+    val deviceStateCountdown: Long = 0
+)
