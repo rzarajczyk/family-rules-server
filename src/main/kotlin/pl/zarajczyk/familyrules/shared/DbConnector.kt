@@ -97,6 +97,15 @@ class DbConnector {
         return rows.first()[Instances.instanceId]
     }
 
+    @Throws(InvalidPassword::class)
+    fun validateInstanceToken(username: String, instanceId: InstanceId, instanceToken: String): InstanceId {
+        val rows = Instances.select(Instances.instanceId)
+            .where { (Instances.username eq username) and (Instances.instanceId eq instanceId) and (Instances.instanceTokenSha256 eq instanceToken.sha256()) }
+        if (rows.count() == 0L)
+            throw InvalidPassword()
+        return rows.first()[Instances.instanceId]
+    }
+
     @Throws(IllegalInstanceName::class, InstanceAlreadyExists::class)
     fun setupNewInstance(username: String, instanceName: String, clientType: String): NewInstanceDto {
         if (instanceName.length < 3)

@@ -37,6 +37,7 @@ class InitialSetupController(private val dbConnector: DbConnector) {
     ): UnregisterInstanceResponse = try {
         val auth = authHeader.decodeBasicAuth()
         dbConnector.validatePassword(auth.user, auth.pass)
+        // TODO - should we remove data from the db?
         UnregisterInstanceResponse(UnregisterInstanceStatus.SUCCESS)
     } catch (e: InvalidPassword) {
         UnregisterInstanceResponse(UnregisterInstanceStatus.INVALID_PASSWORD)
@@ -60,7 +61,7 @@ data class RegisterInstanceResponse(
 )
 
 data class UnregisterInstanceRequest(
-    val instanceName: String
+    val instanceId: String
 )
 
 enum class UnregisterInstanceStatus {
