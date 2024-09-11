@@ -20,35 +20,35 @@ class DbConnector {
     }
 
     object Instances : Table() {
-        val id: Column<InstanceId> = long("id").autoIncrement()
+        val instanceId: Column<UUID> = uuid("instance_id")
         val username: Column<String> = text("username")
         val instanceName: Column<String> = text("instance_name")
         val instanceTokenSha256: Column<String> = text("instance_token_sha256")
         val clientType: Column<String> = text("client_type")
 
-        override val primaryKey = PrimaryKey(id)
+        override val primaryKey = PrimaryKey(instanceId)
     }
 
     object ScreenTimes : Table() {
         val id: Column<Long> = long("id").autoIncrement()
         val app: Column<String> = text("app")
-        val instanceId: Column<InstanceId> = long("instance_id")
+        val instanceId: Column<InstanceId> = uuid("instance_id")
         val day: Column<LocalDate> = date("day")
         val screenTimeSeconds: Column<Long> = long("screen_time_seconds")
 
-        override val primaryKey = PrimaryKey(Instances.id)
+        override val primaryKey = PrimaryKey(id)
     }
 
     object States : Table() {
         val id: Column<Long> = long("id").autoIncrement()
-        val instanceId: Column<InstanceId> = long("instance_id")
+        val instanceId: Column<InstanceId> = uuid("instance_id")
         val deviceState: Column<DeviceState> = enumeration("device_state", DeviceState::class)
         val deviceStateCountdown: Column<Int> = integer("device_state_countdown")
     }
 
     object Periods : Table() {
         val id: Column<Long> = long("id").autoIncrement()
-        val instanceId: Column<InstanceId> = long("instance_id")
+        val instanceId: Column<InstanceId> = uuid("instance_id")
         val day: Column<Day> = enumeration("day", Day::class)
         val fromSeconds: Column<Long> = long("from_seconds")
         val toSeconds: Column<Long> = long("to_seconds")
@@ -90,30 +90,32 @@ class DbConnector {
 
     @Throws(InvalidPassword::class)
     fun validateInstanceToken(username: String, instanceName: String, instanceToken: String): InstanceId {
-        val rows = Instances.select(Instances.id)
+        val rows = Instances.select(Instances.instanceId)
             .where { (Instances.username eq username) and (Instances.instanceName eq instanceName) and (Instances.instanceTokenSha256 eq instanceToken.sha256()) }
         if (rows.count() == 0L)
             throw InvalidPassword()
-        return rows.first()[Instances.id]
+        return rows.first()[Instances.instanceId]
     }
 
     @Throws(IllegalInstanceName::class, InstanceAlreadyExists::class)
-    fun setupNewInstance(username: String, instanceName: String, clientType: String): String {
+    fun setupNewInstance(username: String, instanceName: String, clientType: String): NewInstanceDto {
         if (instanceName.length < 3)
             throw IllegalInstanceName(instanceName)
-        val count = Instances.select(Instances.id)
+        val count = Instances.select(Instances.instanceId)
             .where { (Instances.username eq username) and (Instances.instanceName eq instanceName) }
             .count()
         if (count > 0)
             throw InstanceAlreadyExists(instanceName)
+        val instanceId = UUID.randomUUID()
         val instanceToken = UUID.randomUUID().toString()
         Instances.insert {
             it[Instances.username] = username
+            it[Instances.instanceId] = instanceId
             it[Instances.instanceName] = instanceName
             it[Instances.instanceTokenSha256] = instanceToken.sha256()
             it[Instances.clientType] = clientType
         }
-        return instanceToken
+        return NewInstanceDto(instanceId, instanceToken)
     }
 
     fun saveReport(
@@ -144,9 +146,9 @@ class DbConnector {
     }
 
     fun getInstances(username: String) = Instances
-        .select(Instances.id, Instances.instanceName)
+        .select(Instances.instanceId, Instances.instanceName)
         .where { Instances.username eq username }
-        .map { InstanceDto(id = it[Instances.id], name = it[Instances.instanceName]) }
+        .map { InstanceDto(id = it[Instances.instanceId], name = it[Instances.instanceName]) }
 
     fun getScreenTimeSeconds(id: InstanceId, day: LocalDate): Map<String, Long> = ScreenTimes
         .select(ScreenTimes.app, ScreenTimes.screenTimeSeconds)
@@ -223,12 +225,17 @@ class DbConnector {
 
 }
 
-typealias InstanceId = Long
+typealias InstanceId = UUID
 
 class InvalidPassword : RuntimeException("Invalid password")
 class IllegalInstanceName(val instanceName: String) : RuntimeException("Instance $instanceName already exists")
 class InstanceAlreadyExists(val instanceName: String) :
     RuntimeException("Instance $instanceName has incorrect name")
+
+data class NewInstanceDto(
+    val instanceId: InstanceId,
+    val token: String
+)
 
 data class InstanceDto(
     val id: InstanceId,

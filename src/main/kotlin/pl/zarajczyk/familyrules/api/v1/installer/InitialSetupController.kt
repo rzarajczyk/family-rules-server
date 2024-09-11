@@ -16,8 +16,12 @@ class InitialSetupController(private val dbConnector: DbConnector) {
     ): RegisterInstanceResponse = try {
         val auth = authHeader.decodeBasicAuth()
         dbConnector.validatePassword(auth.user, auth.pass)
-        val token = dbConnector.setupNewInstance(auth.user, data.instanceName, data.clientType)
-        RegisterInstanceResponse(RegisterInstanceStatus.SUCCESS, token)
+        val result = dbConnector.setupNewInstance(auth.user, data.instanceName, data.clientType)
+        RegisterInstanceResponse(
+            RegisterInstanceStatus.SUCCESS,
+            instanceId = result.instanceId.toString(),
+            token = result.token
+        )
     } catch (e: InvalidPassword) {
         RegisterInstanceResponse(RegisterInstanceStatus.INVALID_PASSWORD)
     } catch (e: InstanceAlreadyExists) {
@@ -51,6 +55,7 @@ enum class RegisterInstanceStatus {
 
 data class RegisterInstanceResponse(
     val status: RegisterInstanceStatus,
+    val instanceId: String? = null,
     val token: String? = null
 )
 

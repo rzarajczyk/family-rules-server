@@ -1,4 +1,6 @@
-## Example of registering new instance using `curl`
+# API flow
+
+## Registering instance
 ```shell
 HOST="http://localhost:8080"
 INSTANCE_NAME="new-instance"
