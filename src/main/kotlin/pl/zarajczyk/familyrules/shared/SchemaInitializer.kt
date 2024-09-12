@@ -14,8 +14,8 @@ class SchemaInitializer : ApplicationRunner {
         SchemaUtils.create(
             DbConnector.Users,
             DbConnector.Instances,
-            DbConnector.ScreenTimes,
-            DbConnector.Periods
+            DbConnector.DeviceStates,
+            DbConnector.ScreenTimes
         )
     }
 }
