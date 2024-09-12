@@ -34,8 +34,9 @@ class BffOverviewController(private val dbConnector: DbConnector) {
                 title = "App disabled",
                 icon = "<path d=\"m40-120 440-760 440 760H40Zm138-80h604L480-720 178-200Zm302-40q17 0 28.5-11.5T520-280q0-17-11.5-28.5T480-320q-17 0-28.5 11.5T440-280q0 17 11.5 28.5T480-240Zm-40-120h80v-200h-80v200Zm40-100Z\"/>",
                 description = """
-                        If you select this state, the app on child's device will be turned off and removed from the "Autorun"/"Autostart".
-                        Use this state if you want to update the app.
+                        The app on the device will be turned off and removed from the "Autorun"/"Autostart".
+                        Helpful for update'ing the app.
+                        
                         Remember to manually turn the app on after de-selecting this state.
                     """.trimIndent()
             ),

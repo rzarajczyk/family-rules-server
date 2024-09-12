@@ -1,6 +1,8 @@
 document.addEventListener("DOMContentLoaded", (event) => {
     Handlebars.fetchTemplate("./index.handlebars")
         .then(([template]) => {
+            const LOADING = '<center>... loading ...</center>'
+
             M.Datepicker.init(document.querySelector("#datepicker"), {
                 defaultDate: new Date(),
                 setDefaultDate: true,
@@ -29,7 +31,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
                 console.log(instanceId)
                 let div = document.querySelector("#instance-state-modal")
                 let content = div.querySelector(".modal-content")
-                content.innerHTML = '<center>... loading ...</center>'
+                content.innerHTML = LOADING
                 let modal = M.Modal.getInstance(div)
                 modal.open()
                 let templatePromise = Handlebars.fetchTemplate("./index-set-state.handlebars").then(([it]) => it)
@@ -40,7 +42,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
                             title: "Automatic",
                             deviceState: null,
                             icon: "<path d=\"m354-287 126-76 126 77-33-144 111-96-146-13-58-136-58 135-146 13 111 97-33 143ZM233-120l65-281L80-590l288-25 112-265 112 265 288 25-218 189 65 281-247-149-247 149Zm247-350Z\"/>",
-                            description: "Automatic - based on schedule."
+                            description: "Based on schedule."
                         })
                         content.innerHTML = setStateTemplate(data)
                         content.querySelectorAll('a').forEach(it => {
@@ -61,7 +63,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
             }
 
             function update() {
-                document.querySelector("#instances").innerHTML = "<center>... fetching data ...</center>"
+                document.querySelector("#instances").innerHTML = LOADING
                 let date = document.querySelector("#datepicker").value
                 ServerRequest.fetch(`/bff/status?date=${date}`)
                     .then(response => response.json())
