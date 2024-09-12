@@ -52,7 +52,8 @@ document.addEventListener("DOMContentLoaded", (event) => {
     M.AutoInit();
 
     Handlebars.registerHelper('ifEquals', function(a, b, options) {
-        if (a === b) {
+        console.log(`comparing ${a} / ${b}`)
+        if (a == b) {
             return options.fn(this);
         } else {
             return options.inverse(this);
@@ -60,7 +61,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
     })
 
     Handlebars.registerHelper('ifNotEquals', function(a, b, options) {
-        if (a !== b) {
+        if (a != b) {
             return options.fn(this);
         } else {
             return options.inverse(this);
@@ -79,6 +80,12 @@ document.addEventListener("DOMContentLoaded", (event) => {
         let state = options.fn(this);
         return formatState(state)
     })
+
+    Handlebars.registerHelper('br', function(text) {
+        text = Handlebars.Utils.escapeExpression(text);
+        text = text.replace(/(\r\n|\n|\r)/gm, '<br>');
+        return new Handlebars.SafeString(text);
+    });
 
     Handlebars.registerHelper('formatScreenTime', function(options) {
         let seconds = options.fn(this);

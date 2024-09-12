@@ -1,18 +1,38 @@
-<li id="report-{{instanceName}}">
+<li class="instance-details" data-instanceid="{{instanceId}}">
     <div class="collapsible-header">
         <i class="material-icons">devices</i>
-        <div class="instance-name"><span class="new badge total-screen-time" data-badge-caption="">{{#formatScreenTime}}{{screenTimeSeconds}}{{/formatScreenTime}}</span>{{instanceName}}</div>
+        <div class="instance-name">
+            <span class="new badge" data-badge-caption="">{{#formatScreenTime}}{{screenTimeSeconds}}{{/formatScreenTime}}</span>
+            {{#if forcedDeviceState}}
+                <span class="new badge orange mr-2" data-badge-caption="">
+                    <svg xmlns="http://www.w3.org/2000/svg" height="12px" viewBox="0 -960 960 960" width="12px" fill="var(--md-sys-color-on-primary)">{{{forcedDeviceState.icon}}}</svg>
+                    {{forcedDeviceState.title}}
+                </span>
+            {{/if}}
+            {{#unless forcedDeviceState}}
+                <span class="new badge green mr-2" data-badge-caption="">
+                    <svg xmlns="http://www.w3.org/2000/svg" height="12px" viewBox="0 -960 960 960" width="12px" fill="var(--md-sys-color-on-primary)">
+                        <path d="m354-287 126-76 126 77-33-144 111-96-146-13-58-136-58 135-146 13 111 97-33 143ZM233-120l65-281L80-590l288-25 112-265 112 265 288 25-218 189 65 281-247-149-247 149Zm247-350Z" />
+                    </svg>
+                    Automatic
+                </span>
+            {{/unless}}
+            <span>{{instanceName}}</span>
+        </div>
     </div>
     <div class="collapsible-body">
         <div class="instance-report">
-        <ul class="collection">
-            {{#each appUsageSeconds}}
-                <li class="collection-item">
-                    {{name}}
-                    <span class="secondary-content">{{#formatScreenTime}}{{usageSeconds}}{{/formatScreenTime}}</span>
-                </li>
-            {{/each}}
-        </ul>
+            <ul class="collection">
+                {{#each appUsageSeconds}}
+                    <li class="collection-item">
+                        {{name}}
+                        <span class="secondary-content">{{#formatScreenTime}}{{usageSeconds}}{{/formatScreenTime}}</span>
+                    </li>
+                {{/each}}
+            </ul>
+        </div>
+        <div class="input-wrapper instance-buttons">
+            <a class="btn outlined right mb-2">Change device state</a>
         </div>
     </div>
 </li>

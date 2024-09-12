@@ -149,9 +149,28 @@ class DbConnector {
     }
 
     fun getInstances(username: String) = Instances
-        .select(Instances.instanceId, Instances.instanceName)
+        .select(Instances.instanceId, Instances.instanceName, Instances.forcedDeviceState)
         .where { Instances.username eq username }
-        .map { InstanceDto(id = it[Instances.instanceId], name = it[Instances.instanceName]) }
+        .orderBy(Instances.instanceName)
+        .map {
+            InstanceDto(
+                id = it[Instances.instanceId],
+                name = it[Instances.instanceName],
+                forcedDeviceState = it[Instances.forcedDeviceState]
+            )
+        }
+
+    fun getInstance(instanceId: InstanceId) = Instances
+        .select(Instances.instanceId, Instances.instanceName, Instances.forcedDeviceState)
+        .where { Instances.instanceId eq instanceId }
+        .map {
+            InstanceDto(
+                id = it[Instances.instanceId],
+                name = it[Instances.instanceName],
+                forcedDeviceState = it[Instances.forcedDeviceState]
+            )
+        }
+        .firstOrNull()
 
     fun getScreenTimeSeconds(id: InstanceId, day: LocalDate): Map<String, Long> = ScreenTimes
         .select(ScreenTimes.app, ScreenTimes.screenTimeSeconds)
@@ -163,13 +182,6 @@ class DbConnector {
             it[forcedDeviceState] = state
         }
     }
-
-    fun getForcedInstanceState(id: InstanceId) =
-        Instances
-            .select(Instances.forcedDeviceState)
-            .where { Instances.instanceId eq id }
-            .map { it[Instances.forcedDeviceState] }
-            .firstOrNull()
 
     fun getInstanceSchedule(id: InstanceId): ScheduleDto =
         Periods
@@ -232,7 +244,8 @@ data class NewInstanceDto(
 
 data class InstanceDto(
     val id: InstanceId,
-    val name: String
+    val name: String,
+    val forcedDeviceState: DeviceState?
 )
 
 typealias DeviceState = String

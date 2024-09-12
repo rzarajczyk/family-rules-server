@@ -10,7 +10,7 @@ class StateService(private val dbConnector: DbConnector) {
     }
 
     fun getFinalDeviceState(instanceId: InstanceId): DeviceState {
-        return dbConnector.getForcedInstanceState(instanceId) ?: DEFAULT_STATE
+        return dbConnector.getInstance(instanceId)?.forcedDeviceState ?: DEFAULT_STATE
     }
 
 }
