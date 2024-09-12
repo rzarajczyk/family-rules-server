@@ -31,13 +31,12 @@ class DbConnector {
     }
 
     object ScreenTimes : Table() {
-        val id: Column<Long> = long("id").autoIncrement()
         val app: Column<String> = text("app")
         val instanceId: Column<InstanceId> = uuid("instance_id")
         val day: Column<LocalDate> = date("day")
         val screenTimeSeconds: Column<Long> = long("screen_time_seconds")
 
-        override val primaryKey = PrimaryKey(id)
+        override val primaryKey = PrimaryKey(instanceId, day, app)
     }
 
     object Periods : Table() {
@@ -129,21 +128,11 @@ class DbConnector {
     ) {
         val total = applicationsSeconds + mapOf(TOTAL_TIME to screenTimeSeconds)
         total.forEach { (app, seconds) ->
-            val existingEntryId = ScreenTimes.select(ScreenTimes.id)
-                .where { (ScreenTimes.instanceId eq instanceId) and (ScreenTimes.day eq day) and (ScreenTimes.app eq app) }
-                .firstOrNull()
-                ?.get(ScreenTimes.id)
-            if (existingEntryId == null) {
-                ScreenTimes.insert {
-                    it[ScreenTimes.instanceId] = instanceId
-                    it[ScreenTimes.day] = day
-                    it[ScreenTimes.screenTimeSeconds] = seconds
-                    it[ScreenTimes.app] = app
-                }
-            } else {
-                ScreenTimes.update({ (ScreenTimes.id eq existingEntryId) and (ScreenTimes.app eq app) }) {
-                    it[ScreenTimes.screenTimeSeconds] = seconds
-                }
+            ScreenTimes.upsert {
+                it[ScreenTimes.instanceId] = instanceId
+                it[ScreenTimes.day] = day
+                it[ScreenTimes.screenTimeSeconds] = seconds
+                it[ScreenTimes.app] = app
             }
         }
     }
