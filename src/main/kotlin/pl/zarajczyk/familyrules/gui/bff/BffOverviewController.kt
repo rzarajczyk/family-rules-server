@@ -96,7 +96,7 @@ class BffOverviewController(private val dbConnector: DbConnector) {
         val auth = authHeader.decodeBasicAuth()
         dbConnector.validateOneTimeToken(auth.user, auth.pass, seed)
 
-        dbConnector.setForcedInstanceState(instanceId, data.forcedDeviceState)
+        dbConnector.setForcedInstanceState(instanceId, data.forcedDeviceState.emptyToNull())
     }
 
 //    @PostMapping("/bff/state")
@@ -161,6 +161,8 @@ class BffOverviewController(private val dbConnector: DbConnector) {
 //        Day.entries.associateWith { this[it] ?: DailySchedule(periods = emptyList()) }
 
 }
+
+private fun DeviceState?.emptyToNull(): DeviceState? = if (this.isNullOrBlank()) null else this
 
 data class InstanceStateResponse(
     val instanceId: InstanceId,
