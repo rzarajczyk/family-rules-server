@@ -1,5 +1,7 @@
 package pl.zarajczyk.familyrules.gui.bff
 
+import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.*
@@ -21,20 +23,43 @@ class BffOverviewController(private val dbConnector: DbConnector) {
 
         val instances = dbConnector.getInstances(auth.user)
         StatusResponse(instances.map { instance ->
-            val appUsageMap = dbConnector.getScreenTimeSeconds(instance.id, day)
+            val appUsageMap = dbConnector.getScreenTimes(instance.id, day)
+            println(appUsageMap)
+            println(appUsageMap.maxOfOrNull { (_,v) -> v.updatedAt })
+            println(appUsageMap.maxOfOrNull { (_,v) -> v.updatedAt }?.isOnline())
             Instance(
                 instanceId = instance.id,
                 instanceName = instance.name,
-                screenTimeSeconds = appUsageMap.getOrDefault(DbConnector.TOTAL_TIME, 0L),
-                appUsageSeconds = (appUsageMap - DbConnector.TOTAL_TIME).map { (k, v) -> AppUsage(k, v) },
+                screenTimeSeconds = appUsageMap[DbConnector.TOTAL_TIME]?.screenTimeSeconds ?: 0L,
+                appUsageSeconds = (appUsageMap - DbConnector.TOTAL_TIME).map { (k, v) -> AppUsage(k, v.screenTimeSeconds) },
                 forcedDeviceState = dbConnector.getAvailableDeviceStates(instance.id)
                     .firstOrNull { it.deviceState == instance.forcedDeviceState }
                     ?.toDeviceStateDescription(),
+                online = appUsageMap.maxOfOrNull { (_,v) -> v.updatedAt }?.isOnline() ?: false
 //                weeklySchedule = dbConnector.getInstanceSchedule(it.id).toWeeklySchedule()
             )
         })
     } catch (e: InvalidPassword) {
         throw ResponseStatusException(HttpStatus.FORBIDDEN)
+    }
+
+    @GetMapping("/bff/instance-info")
+    fun getInstanceInfo(
+        @RequestParam("instanceId") instanceId: InstanceId,
+        @RequestHeader("x-seed") seed: String,
+        @RequestHeader("Authorization") authHeader: String
+    ): InstanceInfoResponse {
+        val auth = authHeader.decodeBasicAuth()
+        dbConnector.validateOneTimeToken(auth.user, auth.pass, seed)
+
+        val instance = dbConnector.getInstance(instanceId) ?: throw RuntimeException("Instance not found $instanceId")
+        return InstanceInfoResponse(
+            instanceId = instanceId,
+            instanceName = instance.name,
+            forcedDeviceState = instance.forcedDeviceState,
+            clientType = instance.clientType,
+            clientVersion = instance.clientVersion
+        )
     }
 
     @GetMapping("/bff/instance-state")
@@ -67,6 +92,8 @@ class BffOverviewController(private val dbConnector: DbConnector) {
 
         dbConnector.setForcedInstanceState(instanceId, data.forcedDeviceState.emptyToNull())
     }
+
+    private fun Instant.isOnline() = (Clock.System.now() - this).inWholeSeconds <= 30
 
     private fun DescriptiveDeviceStateDto.toDeviceStateDescription() = DeviceStateDescription(
         deviceState = deviceState,
@@ -147,6 +174,14 @@ data class InstanceStateResponse(
     val availableStates: List<DeviceStateDescription>
 )
 
+data class InstanceInfoResponse(
+    val instanceId: InstanceId,
+    val instanceName: String,
+    val forcedDeviceState: DeviceState?,
+    val clientType: String,
+    val clientVersion: String
+)
+
 data class DeviceStateDescription(
     val deviceState: DeviceState,
     val title: String,
@@ -165,6 +200,7 @@ data class Instance(
     val screenTimeSeconds: Long,
     val appUsageSeconds: List<AppUsage>,
     val forcedDeviceState: DeviceStateDescription?,
+    val online: Boolean
 //    val weeklySchedule: WeeklySchedule
 )
 

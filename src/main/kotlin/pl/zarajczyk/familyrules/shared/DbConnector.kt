@@ -51,6 +51,7 @@ class DbConnector {
         val instanceId: Column<InstanceId> = uuid("instance_id") references Instances.instanceId
         val day: Column<LocalDate> = date("day")
         val screenTimeSeconds: Column<Long> = long("screen_time_seconds")
+        val updatedAt: Column<Instant> = timestamp("updated_at")
 
         override val primaryKey = PrimaryKey(instanceId, day, app)
     }
@@ -149,38 +150,43 @@ class DbConnector {
                 it[ScreenTimes.day] = day
                 it[ScreenTimes.screenTimeSeconds] = seconds
                 it[ScreenTimes.app] = app
+                it[ScreenTimes.updatedAt] = Clock.System.now()
             }
         }
     }
 
     fun getInstances(username: String) = Instances
-        .select(Instances.instanceId, Instances.instanceName, Instances.forcedDeviceState)
+        .select(Instances.instanceId, Instances.instanceName, Instances.forcedDeviceState, Instances.clientVersion, Instances.clientType)
         .where { Instances.username eq username }
         .orderBy(Instances.instanceName)
         .map {
             InstanceDto(
                 id = it[Instances.instanceId],
                 name = it[Instances.instanceName],
-                forcedDeviceState = it[Instances.forcedDeviceState]
+                forcedDeviceState = it[Instances.forcedDeviceState],
+                clientVersion = it[Instances.clientVersion],
+                clientType = it[Instances.clientType]
             )
         }
 
     fun getInstance(instanceId: InstanceId) = Instances
-        .select(Instances.instanceId, Instances.instanceName, Instances.forcedDeviceState)
+        .select(Instances.instanceId, Instances.instanceName, Instances.forcedDeviceState, Instances.clientVersion, Instances.clientType)
         .where { Instances.instanceId eq instanceId }
         .map {
             InstanceDto(
                 id = it[Instances.instanceId],
                 name = it[Instances.instanceName],
-                forcedDeviceState = it[Instances.forcedDeviceState]
+                forcedDeviceState = it[Instances.forcedDeviceState],
+                clientVersion = it[Instances.clientVersion],
+                clientType = it[Instances.clientType]
             )
         }
         .firstOrNull()
 
-    fun getScreenTimeSeconds(id: InstanceId, day: LocalDate): Map<String, Long> = ScreenTimes
-        .select(ScreenTimes.app, ScreenTimes.screenTimeSeconds)
+    fun getScreenTimes(id: InstanceId, day: LocalDate): Map<String, ScreenTimeDto> = ScreenTimes
+        .select(ScreenTimes.app, ScreenTimes.screenTimeSeconds, ScreenTimes.updatedAt)
         .where { (ScreenTimes.instanceId eq id) and (ScreenTimes.day eq day) }
-        .associate { it[ScreenTimes.app] to it[ScreenTimes.screenTimeSeconds] }
+        .associate { it[ScreenTimes.app] to ScreenTimeDto(it[ScreenTimes.screenTimeSeconds], it[ScreenTimes.updatedAt]) }
 
     fun setForcedInstanceState(id: InstanceId, state: DeviceState?) {
         Instances.update({ Instances.instanceId eq id }) {
@@ -279,10 +285,17 @@ data class NewInstanceDto(
     val token: String
 )
 
+data class ScreenTimeDto(
+    val screenTimeSeconds: Long,
+    val updatedAt: Instant
+)
+
 data class InstanceDto(
     val id: InstanceId,
     val name: String,
-    val forcedDeviceState: DeviceState?
+    val forcedDeviceState: DeviceState?,
+    val clientType: String,
+    val clientVersion: String
 )
 
 typealias DeviceState = String

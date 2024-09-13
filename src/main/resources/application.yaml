@@ -8,7 +8,7 @@ spring:
     username: ${PG_USER}
     password: ${PG_PASS}
   exposed:
-    show-sql: true
+    show-sql: false
 
 
 management:

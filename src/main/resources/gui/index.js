@@ -14,8 +14,11 @@ document.addEventListener("DOMContentLoaded", (event) => {
                 const html = response.instances.map(it => template(it)).join('')
                 const instances = document.querySelector("#instances")
                 instances.innerHTML = html
-                instances.querySelectorAll(".instance-buttons a").forEach(it => {
+                instances.querySelectorAll(".instance-buttons a.change-state").forEach(it => {
                     it.addEventListener('click', onChangeStateClicked)
+                })
+                instances.querySelectorAll(".instance-buttons a.client-info").forEach(it => {
+                    it.addEventListener('click', onClientInfoClicked)
                 })
                 M.Collapsible.init(instances, {});
             }
@@ -26,9 +29,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
             }
 
             function onChangeStateClicked(e) {
-                console.log('clicked')
                 let instanceId = e.target.closest('.instance-details').dataset["instanceid"]
-                console.log(instanceId)
                 let div = document.querySelector("#instance-state-modal")
                 let content = div.querySelector(".modal-content")
                 content.innerHTML = LOADING
@@ -59,6 +60,21 @@ document.addEventListener("DOMContentLoaded", (event) => {
                                 })
                             })
                         })
+                    })
+            }
+
+            function onClientInfoClicked(e) {
+                let instanceId = e.target.closest('.instance-details').dataset["instanceid"]
+                let div = document.querySelector("#instance-info-modal")
+                let content = div.querySelector(".modal-content")
+                content.innerHTML = LOADING
+                let modal = M.Modal.getInstance(div)
+                modal.open()
+                let templatePromise = Handlebars.fetchTemplate("./index-info.handlebars").then(([it]) => it)
+                let dataPromise = ServerRequest.fetch(`/bff/instance-info?instanceId=${instanceId}`).then(it => it.json())
+                Promise.all([templatePromise, dataPromise])
+                    .then(([tpl, data]) => {
+                        content.innerHTML = tpl(data)
                     })
             }
 

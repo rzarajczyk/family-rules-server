@@ -2,7 +2,7 @@
     <div class="collapsible-header">
         <i class="material-icons">devices</i>
         <div class="instance-name">
-            <span class="new badge" data-badge-caption="">{{#formatScreenTime}}{{screenTimeSeconds}}{{/formatScreenTime}}</span>
+            <span class="new badge screen-time" data-badge-caption="">{{#formatScreenTime}}{{screenTimeSeconds}}{{/formatScreenTime}}</span>
             {{#if forcedDeviceState}}
                 <span class="new badge orange mr-2" data-badge-caption="">
                     <svg xmlns="http://www.w3.org/2000/svg" height="12px" viewBox="0 -960 960 960" width="12px" fill="var(--md-sys-color-on-primary)">{{{forcedDeviceState.icon}}}</svg>
@@ -17,6 +17,9 @@
                     Automatic
                 </span>
             {{/unless}}
+            {{#if online}}
+                <span class="badge mr-2 is-online" data-badge-caption=""><i class="material-icons tiny">online_prediction</i></span>
+            {{/if}}
             <span>{{instanceName}}</span>
         </div>
     </div>
@@ -32,7 +35,8 @@
             </ul>
         </div>
         <div class="input-wrapper instance-buttons">
-            <a class="btn outlined right mb-2">Change device state</a>
+            <a class="btn outlined right mb-2 change-state">Change device state</a>
+            <a class="btn text mb-2 client-info"><i class="material-icons">info</i></a>
         </div>
     </div>
 </li>
