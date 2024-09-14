@@ -31,7 +31,21 @@ class ReportController(
             report.instanceName != null -> dbConnector.validateInstanceToken(auth.user, report.instanceName, auth.pass)
             else -> throw RuntimeException("Both `instanceName` and `instanceId` are null")
         }
-        dbConnector.saveReport(instanceId, today(), report.screenTimeSeconds, report.applicationsSeconds)
+        with(report) {
+            when {
+                screenTimeSeconds == null && applicationsSeconds == null -> Unit // nothing
+
+                screenTimeSeconds != null && applicationsSeconds == null ->
+                    throw ValidationError("screenTimeSeconds and applicationsSeconds must be both null or non-null")
+
+                screenTimeSeconds == null && applicationsSeconds != null ->
+                    throw ValidationError("screenTimeSeconds and applicationsSeconds must be both null or non-null")
+
+                screenTimeSeconds != null && applicationsSeconds != null ->
+                    dbConnector.saveReport(instanceId, today(), screenTimeSeconds, applicationsSeconds)
+            }
+        }
+
         stateService.getFinalDeviceState(instanceId).toReportResponse()
     } catch (e: InvalidPassword) {
         throw ResponseStatusException(HttpStatus.FORBIDDEN)
@@ -43,11 +57,13 @@ class ReportController(
 
 }
 
+class ValidationError(msg: String) : RuntimeException(msg)
+
 data class ReportRequest(
     @JsonProperty("instanceName") val instanceName: String?,
     @JsonProperty("instanceId") val instanceId: String?,
-    @JsonProperty("screenTime") val screenTimeSeconds: Long,
-    @JsonProperty("applications") val applicationsSeconds: Map<String, Long>
+    @JsonProperty("screenTime") val screenTimeSeconds: Long?,
+    @JsonProperty("applications") val applicationsSeconds: Map<String, Long>?
 )
 
 data class ReportResponse(
