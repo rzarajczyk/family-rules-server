@@ -24,9 +24,6 @@ class BffOverviewController(private val dbConnector: DbConnector) {
         val instances = dbConnector.getInstances(auth.user)
         StatusResponse(instances.map { instance ->
             val appUsageMap = dbConnector.getScreenTimes(instance.id, day)
-            println(appUsageMap)
-            println(appUsageMap.maxOfOrNull { (_,v) -> v.updatedAt })
-            println(appUsageMap.maxOfOrNull { (_,v) -> v.updatedAt }?.isOnline())
             Instance(
                 instanceId = instance.id,
                 instanceName = instance.name,
