@@ -1,6 +1,7 @@
 plugins {
     id("org.springframework.boot") version "3.3.1"
     id("io.spring.dependency-management") version "1.1.5"
+    id("org.jetbrains.kotlin.plugin.serialization") version "2.0.20"
     kotlin("jvm") version "1.9.24"
     kotlin("plugin.spring") version "1.9.24"
     application
@@ -41,6 +42,7 @@ dependencies {
 //    implementation("org.jetbrains.exposed:exposed-dao:$exposedVersion")
 //    implementation("org.jetbrains.exposed:exposed-jdbc:$exposedVersion")
     implementation("org.jetbrains.exposed:exposed-kotlin-datetime:$exposedVersion")
+    implementation("org.jetbrains.exposed:exposed-json:$exposedVersion")
 //    implementation("org.jetbrains.exposed:exposed-json:$exposedVersion")
 //    implementation("org.jetbrains.exposed:exposed-money:$exposedVersion")
     implementation("org.jetbrains.exposed:exposed-spring-boot-starter:$exposedVersion")

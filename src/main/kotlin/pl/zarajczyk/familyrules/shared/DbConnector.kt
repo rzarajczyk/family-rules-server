@@ -3,9 +3,12 @@ package pl.zarajczyk.familyrules.shared
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.notInList
+import org.jetbrains.exposed.sql.json.jsonb
 import org.jetbrains.exposed.sql.kotlin.datetime.date
 import org.jetbrains.exposed.sql.kotlin.datetime.timestamp
 import org.springframework.stereotype.Service
@@ -31,6 +34,7 @@ class DbConnector {
         val clientType: Column<String> = text("client_type")
         val forcedDeviceState: Column<DeviceState?> = text("forced_device_state").nullable() //(text("forced_device_state") references DeviceStates.deviceState).nullable()
         val clientVersion: Column<String> = text("client_version")
+        val schedule: Column<ScheduleDto> = jsonb<ScheduleDto>("schedule", Json.Default)
 
         override val primaryKey = PrimaryKey(instanceId)
     }
@@ -55,16 +59,6 @@ class DbConnector {
 
         override val primaryKey = PrimaryKey(instanceId, day, app)
     }
-
-//    object Periods : Table() {
-//        val id: Column<Long> = long("id").autoIncrement()
-//        val instanceId: Column<InstanceId> = uuid("instance_id")
-//        val day: Column<Day> = enumeration("day", Day::class)
-//        val fromSeconds: Column<Long> = long("from_seconds")
-//        val toSeconds: Column<Long> = long("to_seconds")
-//        val deviceState: Column<DeviceState> = text("device_state_str")
-//        val deviceStateCountdown: Column<Int> = integer("device_state_countdown")
-//    }
 
     @Throws(InvalidPassword::class)
     fun validatePassword(username: String, password: String) {
@@ -99,6 +93,7 @@ class DbConnector {
     }
 
     @Throws(InvalidPassword::class)
+    @Deprecated("use instanceid")
     fun validateInstanceToken(username: String, instanceName: String, instanceToken: String): InstanceId {
         val rows = Instances.select(Instances.instanceId)
             .where { (Instances.username eq username) and (Instances.instanceName eq instanceName) and (Instances.instanceTokenSha256 eq instanceToken.sha256()) }
@@ -133,6 +128,7 @@ class DbConnector {
             it[Instances.instanceName] = instanceName
             it[Instances.instanceTokenSha256] = instanceToken.sha256()
             it[Instances.clientType] = clientType
+            it[Instances.schedule] = ScheduleDto.empty().pack()
         }
         return NewInstanceDto(instanceId, instanceToken)
     }
@@ -156,7 +152,7 @@ class DbConnector {
     }
 
     fun getInstances(username: String) = Instances
-        .select(Instances.instanceId, Instances.instanceName, Instances.forcedDeviceState, Instances.clientVersion, Instances.clientType)
+        .selectAll()
         .where { Instances.username eq username }
         .orderBy(Instances.instanceName)
         .map {
@@ -165,12 +161,13 @@ class DbConnector {
                 name = it[Instances.instanceName],
                 forcedDeviceState = it[Instances.forcedDeviceState],
                 clientVersion = it[Instances.clientVersion],
-                clientType = it[Instances.clientType]
+                clientType = it[Instances.clientType],
+                scheduleDto = it[Instances.schedule].unpack()
             )
         }
 
     fun getInstance(instanceId: InstanceId) = Instances
-        .select(Instances.instanceId, Instances.instanceName, Instances.forcedDeviceState, Instances.clientVersion, Instances.clientType)
+        .selectAll()
         .where { Instances.instanceId eq instanceId }
         .map {
             InstanceDto(
@@ -178,7 +175,8 @@ class DbConnector {
                 name = it[Instances.instanceName],
                 forcedDeviceState = it[Instances.forcedDeviceState],
                 clientVersion = it[Instances.clientVersion],
-                clientType = it[Instances.clientType]
+                clientType = it[Instances.clientType],
+                scheduleDto = it[Instances.schedule].unpack()
             )
         }
         .firstOrNull()
@@ -226,50 +224,10 @@ class DbConnector {
         }
     }
 
-//    fun getInstanceSchedule(id: InstanceId): ScheduleDto =
-//        Periods
-//            .select(
-//                Periods.day,
-//                Periods.fromSeconds,
-//                Periods.toSeconds,
-//                Periods.deviceState,
-//                Periods.deviceStateCountdown
-//            )
-//            .where { Periods.instanceId eq id }
-//            .map {
-//                it[Periods.day] to PeriodDto(
-//                    it[Periods.fromSeconds],
-//                    it[Periods.toSeconds],
-//                    it[Periods.deviceState],
-//                    it[Periods.deviceStateCountdown]
-//                )
-//            }
-//            .groupBy { it.first }
-//            .mapValues { (_, v) -> PeriodsDto(v.map { it.second }) }
-//            .let { ScheduleDto(it) }
-//
-//    fun setInstanceSchedule(id: InstanceId, scheduleDto: ScheduleDto) {
-//        Periods.deleteWhere { Periods.instanceId eq id }
-//        scheduleDto.schedule.forEach { (day, periods) ->
-//            periods.periods.forEach { period ->
-//                Periods.insert {
-//                    it[Periods.instanceId] = id
-//                    it[Periods.day] = day
-//                    it[Periods.fromSeconds] = period.fromSeconds
-//                    it[Periods.toSeconds] = period.toSeconds
-//                    it[Periods.deviceState] = period.deviceState
-//                    it[Periods.deviceStateCountdown] = period.deviceStateCountdown
-//                }
-//            }
-//        }
-//
-//
-//    }
-//
-
     companion object {
         const val TOTAL_TIME = "## screentime ##"
     }
+
 
 }
 
@@ -295,7 +253,8 @@ data class InstanceDto(
     val name: String,
     val forcedDeviceState: DeviceState?,
     val clientType: String,
-    val clientVersion: String
+    val clientVersion: String,
+    val scheduleDto: ScheduleDto
 )
 
 typealias DeviceState = String
@@ -306,21 +265,40 @@ data class DescriptiveDeviceStateDto(
     val icon: String?,
     val description: String?
 )
-//data class ScheduleDto(
-//    val schedule: Map<Day, PeriodsDto>
-//)
-//
-//data class PeriodsDto(
-//    val periods: List<PeriodDto>
-//)
-//
-//data class PeriodDto(
-//    val fromSeconds: Long,
-//    val toSeconds: Long,
-//    val deviceState: DeviceState,
-//    val deviceStateCountdown: Int
-//)
-//
-//enum class Day {
-//    MON, TUE, WED, THU, FRI, SAT, SUN
-//}
+
+@Serializable
+data class ScheduleDto(
+    val schedule: Map<Day, PeriodsDto>
+) {
+    companion object {
+        fun empty() = ScheduleDto(Day.entries.associateWith { PeriodsDto(emptyList()) })
+    }
+
+    fun pack(): ScheduleDto = this
+
+    fun unpack(): ScheduleDto {
+        val updatedSchedule = schedule.toMutableMap()
+        Day.entries.forEach { day ->
+            if (!updatedSchedule.containsKey(day)) {
+                updatedSchedule[day] = PeriodsDto(emptyList())
+            }
+        }
+        return ScheduleDto(updatedSchedule)
+    }
+}
+
+@Serializable
+data class PeriodsDto(
+    val periods: List<PeriodDto>
+)
+
+@Serializable
+data class PeriodDto(
+    val fromSeconds: Long,
+    val toSeconds: Long,
+    val deviceState: DeviceState
+)
+
+enum class Day {
+    MON, TUE, WED, THU, FRI, SAT, SUN
+}

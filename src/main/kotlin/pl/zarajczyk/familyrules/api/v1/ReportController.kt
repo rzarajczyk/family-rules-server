@@ -21,16 +21,12 @@ class ReportController(
         @RequestHeader("Authorization") authHeader: String
     ): ReportResponse = try {
         val auth = authHeader.decodeBasicAuth()
-        val instanceId = when {
-            report.instanceId != null -> dbConnector.validateInstanceToken(
-                auth.user,
-                InstanceId.fromString(report.instanceId),
-                auth.pass
-            )
+        val instanceId = dbConnector.validateInstanceToken(
+            auth.user,
+            InstanceId.fromString(report.instanceId),
+            auth.pass
+        )
 
-            report.instanceName != null -> dbConnector.validateInstanceToken(auth.user, report.instanceName, auth.pass)
-            else -> throw RuntimeException("Both `instanceName` and `instanceId` are null")
-        }
         with(report) {
             when {
                 screenTimeSeconds == null && applicationsSeconds == null -> Unit // nothing
@@ -60,8 +56,7 @@ class ReportController(
 class ValidationError(msg: String) : RuntimeException(msg)
 
 data class ReportRequest(
-    @JsonProperty("instanceName") val instanceName: String?,
-    @JsonProperty("instanceId") val instanceId: String?,
+    @JsonProperty("instanceId") val instanceId: String,
     @JsonProperty("screenTime") val screenTimeSeconds: Long?,
     @JsonProperty("applications") val applicationsSeconds: Map<String, Long>?
 )

@@ -59,6 +59,26 @@ class BffOverviewController(private val dbConnector: DbConnector) {
         )
     }
 
+    @GetMapping("/bff/instance-schedule")
+    fun getInstanceSchedule(
+        @RequestParam("instanceId") instanceId: InstanceId,
+        @RequestHeader("x-seed") seed: String,
+        @RequestHeader("Authorization") authHeader: String
+    ): Map<String, String> {
+        val auth = authHeader.decodeBasicAuth()
+        dbConnector.validateOneTimeToken(auth.user, auth.pass, seed)
+
+        val instance = dbConnector.getInstance(instanceId) ?: throw RuntimeException("Instance not found $instanceId")
+        return emptyMap()
+//        return InstanceInfoResponse(
+//            instanceId = instanceId,
+//            instanceName = instance.name,
+//            forcedDeviceState = instance.forcedDeviceState,
+//            clientType = instance.clientType,
+//            clientVersion = instance.clientVersion
+//        )
+    }
+
     @GetMapping("/bff/instance-state")
     fun getInstanceState(
         @RequestParam("instanceId") instanceId: InstanceId,

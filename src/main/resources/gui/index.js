@@ -20,6 +20,9 @@ document.addEventListener("DOMContentLoaded", (event) => {
                 instances.querySelectorAll(".instance-buttons a.client-info").forEach(it => {
                     it.addEventListener('click', onClientInfoClicked)
                 })
+                instances.querySelectorAll("a.edit-schedule").forEach(it => {
+                    it.addEventListener('click', onEditScheduleClicked)
+                })
                 M.Collapsible.init(instances, {});
             }
 
@@ -29,16 +32,14 @@ document.addEventListener("DOMContentLoaded", (event) => {
             }
 
             function onChangeStateClicked(e) {
-                let instanceId = e.target.closest('.instance-details').dataset["instanceid"]
-                let div = document.querySelector("#instance-state-modal")
-                let content = div.querySelector(".modal-content")
-                content.innerHTML = LOADING
-                let modal = M.Modal.getInstance(div)
-                modal.open()
-                let templatePromise = Handlebars.fetchTemplate("./index-set-state.handlebars").then(([it]) => it)
-                let dataPromise = ServerRequest.fetch(`/bff/instance-state?instanceId=${instanceId}`).then(it => it.json())
-                Promise.all([templatePromise, dataPromise])
+                openModal({
+                    e: e,
+                    selector: "#instance-state-modal",
+                    templateUrl: "./index-set-state.handlebars",
+                    detailsUrlBuilder: instanceId => `/bff/instance-state?instanceId=${instanceId}`
+                })
                     .then(([setStateTemplate, data]) => {
+                        let content = document.querySelector("#instance-state-modal .modal-content")
                         data.availableStates.unshift({
                             title: "Automatic",
                             deviceState: null,
@@ -64,18 +65,42 @@ document.addEventListener("DOMContentLoaded", (event) => {
             }
 
             function onClientInfoClicked(e) {
+                openModal({
+                    e: e,
+                    selector: "#instance-info-modal",
+                    templateUrl: "./index-info.handlebars",
+                    detailsUrlBuilder: instanceId => `/bff/instance-info?instanceId=${instanceId}`
+                })
+                    .then(([tpl, data]) => {
+                        let content = document.querySelector("#instance-info-modal .modal-content")
+                        content.innerHTML = tpl(data)
+                    })
+            }
+
+            function onEditScheduleClicked(e) {
+                openModal({
+                    e: e,
+                    selector: "#instance-schedule-modal",
+                    templateUrl: "./index-schedule.handlebars",
+                    detailsUrlBuilder: instanceId => `/bff/instance-schedule?instanceId=${instanceId}`
+                })
+                    .then(([tpl, data]) => {
+                        let content = document.querySelector("#instance-schedule-modal .modal-content")
+                        content.innerHTML = tpl(data)
+                    })
+            }
+
+            function openModal(options) {
+                const { e, selector, templateUrl, detailsUrlBuilder } = options
                 let instanceId = e.target.closest('.instance-details').dataset["instanceid"]
-                let div = document.querySelector("#instance-info-modal")
+                let div = document.querySelector(selector)
                 let content = div.querySelector(".modal-content")
                 content.innerHTML = LOADING
                 let modal = M.Modal.getInstance(div)
                 modal.open()
-                let templatePromise = Handlebars.fetchTemplate("./index-info.handlebars").then(([it]) => it)
-                let dataPromise = ServerRequest.fetch(`/bff/instance-info?instanceId=${instanceId}`).then(it => it.json())
-                Promise.all([templatePromise, dataPromise])
-                    .then(([tpl, data]) => {
-                        content.innerHTML = tpl(data)
-                    })
+                let templatePromise = Handlebars.fetchTemplate(templateUrl).then(([it]) => it)
+                let dataPromise = ServerRequest.fetch(detailsUrlBuilder(instanceId)).then(it => it.json())
+                return Promise.all([templatePromise, dataPromise])
             }
 
             function update() {
