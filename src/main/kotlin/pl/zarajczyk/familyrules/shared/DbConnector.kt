@@ -13,11 +13,12 @@ import org.jetbrains.exposed.sql.kotlin.datetime.date
 import org.jetbrains.exposed.sql.kotlin.datetime.timestamp
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import pl.zarajczyk.familyrules.gui.bff.SchedulePacker
 import java.util.*
 
 @Service
 @Transactional
-class DbConnector {
+class DbConnector(private val schedulePacker: SchedulePacker) {
 
     object Users : Table() {
         val username: Column<String> = text("username")
@@ -34,7 +35,7 @@ class DbConnector {
         val clientType: Column<String> = text("client_type")
         val forcedDeviceState: Column<DeviceState?> = text("forced_device_state").nullable() //(text("forced_device_state") references DeviceStates.deviceState).nullable()
         val clientVersion: Column<String> = text("client_version")
-        val schedule: Column<ScheduleDto> = jsonb<ScheduleDto>("schedule", Json.Default)
+        val schedule: Column<WeeklyScheduleDto> = jsonb<WeeklyScheduleDto>("schedule", Json.Default)
 
         override val primaryKey = PrimaryKey(instanceId)
     }
@@ -128,7 +129,7 @@ class DbConnector {
             it[Instances.instanceName] = instanceName
             it[Instances.instanceTokenSha256] = instanceToken.sha256()
             it[Instances.clientType] = clientType
-            it[Instances.schedule] = ScheduleDto.empty().pack()
+            it[Instances.schedule] = schedulePacker.pack(WeeklyScheduleDto.empty())
         }
         return NewInstanceDto(instanceId, instanceToken)
     }
@@ -162,7 +163,7 @@ class DbConnector {
                 forcedDeviceState = it[Instances.forcedDeviceState],
                 clientVersion = it[Instances.clientVersion],
                 clientType = it[Instances.clientType],
-                scheduleDto = it[Instances.schedule].unpack()
+                scheduleDto = schedulePacker.unpack(it[Instances.schedule])
             )
         }
 
@@ -176,7 +177,7 @@ class DbConnector {
                 forcedDeviceState = it[Instances.forcedDeviceState],
                 clientVersion = it[Instances.clientVersion],
                 clientType = it[Instances.clientType],
-                scheduleDto = it[Instances.schedule].unpack()
+                scheduleDto =  schedulePacker.unpack(it[Instances.schedule])
             )
         }
         .firstOrNull()
@@ -254,7 +255,7 @@ data class InstanceDto(
     val forcedDeviceState: DeviceState?,
     val clientType: String,
     val clientVersion: String,
-    val scheduleDto: ScheduleDto
+    val scheduleDto: WeeklyScheduleDto
 )
 
 typealias DeviceState = String
@@ -267,28 +268,16 @@ data class DescriptiveDeviceStateDto(
 )
 
 @Serializable
-data class ScheduleDto(
-    val schedule: Map<Day, PeriodsDto>
+data class WeeklyScheduleDto(
+    val schedule: Map<Day, DailyScheduleDto>
 ) {
     companion object {
-        fun empty() = ScheduleDto(Day.entries.associateWith { PeriodsDto(emptyList()) })
-    }
-
-    fun pack(): ScheduleDto = this
-
-    fun unpack(): ScheduleDto {
-        val updatedSchedule = schedule.toMutableMap()
-        Day.entries.forEach { day ->
-            if (!updatedSchedule.containsKey(day)) {
-                updatedSchedule[day] = PeriodsDto(emptyList())
-            }
-        }
-        return ScheduleDto(updatedSchedule)
+        fun empty() = WeeklyScheduleDto(Day.entries.associateWith { DailyScheduleDto(emptyList()) })
     }
 }
 
 @Serializable
-data class PeriodsDto(
+data class DailyScheduleDto(
     val periods: List<PeriodDto>
 )
 

@@ -7,6 +7,7 @@ import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.server.ResponseStatusException
 import pl.zarajczyk.familyrules.shared.*
+import java.time.LocalTime
 
 @RestController
 class BffOverviewController(private val dbConnector: DbConnector) {
@@ -64,19 +65,22 @@ class BffOverviewController(private val dbConnector: DbConnector) {
         @RequestParam("instanceId") instanceId: InstanceId,
         @RequestHeader("x-seed") seed: String,
         @RequestHeader("Authorization") authHeader: String
-    ): Map<String, String> {
+    ): ScheduleResponse {
         val auth = authHeader.decodeBasicAuth()
         dbConnector.validateOneTimeToken(auth.user, auth.pass, seed)
 
         val instance = dbConnector.getInstance(instanceId) ?: throw RuntimeException("Instance not found $instanceId")
-        return emptyMap()
-//        return InstanceInfoResponse(
-//            instanceId = instanceId,
-//            instanceName = instance.name,
-//            forcedDeviceState = instance.forcedDeviceState,
-//            clientType = instance.clientType,
-//            clientVersion = instance.clientVersion
-//        )
+        return ScheduleResponse(
+            schedules = instance.scheduleDto.schedule.mapValues { (_, periods) ->
+                DailySchedule(periods = periods.periods.map { period ->
+                    Period(
+                        from = LocalTime.ofSecondOfDay(period.fromSeconds),
+                        to = LocalTime.ofSecondOfDay(period.toSeconds),
+                        state = period.deviceState
+                    )
+                })
+            }
+        )
     }
 
     @GetMapping("/bff/instance-state")
@@ -119,67 +123,6 @@ class BffOverviewController(private val dbConnector: DbConnector) {
         description = description
     )
 
-//    @PostMapping("/bff/state")
-//    fun state(
-//        @RequestHeader("x-seed") seed: String,
-//        @RequestHeader("Authorization") authHeader: String,
-//        @RequestParam("instanceName") instanceName: String,
-//        @RequestBody state: InstanceState
-//    ) {
-//        val auth = authHeader.decodeBasicAuth()
-//        dbConnector.validateOneTimeToken(auth.user, auth.pass, seed)
-//        val instanceId = dbConnector.getInstances(auth.user).find { it.name == instanceName }?.id
-//        if (instanceId == null)
-//            throw ResponseStatusException(HttpStatus.NOT_FOUND)
-//        dbConnector.setForcedInstanceState(instanceId, state.forcedDeviceState)
-//    }
-
-//    @PostMapping("/bff/schedule")
-//    fun schedule(
-//        @RequestHeader("x-seed") seed: String,
-//        @RequestHeader("Authorization") authHeader: String,
-//        @RequestParam("instanceName") instanceName: String,
-//        @RequestBody weeklySchedule: WeeklySchedule
-//    ) {
-//        val auth = authHeader.decodeBasicAuth()
-//        dbConnector.validateOneTimeToken(auth.user, auth.pass, seed)
-//        val instanceId = dbConnector.getInstances(auth.user).find { it.name == instanceName }?.id
-//        if (instanceId == null)
-//            throw ResponseStatusException(HttpStatus.NOT_FOUND)
-//        dbConnector.setInstanceSchedule(instanceId, weeklySchedule.toScheduleDto())
-//    }
-
-//    private fun ScheduleDto.toWeeklySchedule(): WeeklySchedule = WeeklySchedule(
-//        schedules = schedule
-//            .mapValues { (_, periods) ->
-//                DailySchedule(
-//                    periods = periods.periods.map { dto ->
-//                        Period(
-//                            from = LocalTime.ofSecondOfDay(dto.fromSeconds),
-//                            to = LocalTime.ofSecondOfDay(dto.toSeconds),
-//                            state = dto.deviceState
-//                        )
-//                    }
-//                )
-//            }.ensureAllKeysExist()
-//    )
-//
-//    private fun WeeklySchedule.toScheduleDto() = ScheduleDto(
-//        schedule = this.schedules.mapValues { (_, dailySchedule) ->
-//            PeriodsDto(periods = dailySchedule.periods.map { period ->
-//                PeriodDto(
-//                    fromSeconds = period.from.toSecondOfDay().toLong(),
-//                    toSeconds = period.to.toSecondOfDay().toLong(),
-//                    deviceState = period.state,
-//                    deviceStateCountdown = 0
-//                )
-//            })
-//        }
-//    )
-//
-//    private fun Map<Day, DailySchedule>.ensureAllKeysExist(): Map<Day, DailySchedule> =
-//        Day.entries.associateWith { this[it] ?: DailySchedule(periods = emptyList()) }
-
 }
 
 private fun DeviceState?.emptyToNull(): DeviceState? = if (this.isNullOrBlank()) null else this
@@ -218,7 +161,6 @@ data class Instance(
     val appUsageSeconds: List<AppUsage>,
     val forcedDeviceState: DeviceStateDescription?,
     val online: Boolean
-//    val weeklySchedule: WeeklySchedule
 )
 
 data class AppUsage(
@@ -229,17 +171,17 @@ data class AppUsage(
 data class InstanceState(
     val forcedDeviceState: DeviceState?
 )
-//
-//data class WeeklySchedule(
-//    val schedules: Map<Day, DailySchedule>
-//)
-//
-//data class DailySchedule(
-//    val periods: List<Period>
-//)
-//
-//data class Period(
-//    val from: LocalTime,
-//    val to: LocalTime,
-//    val state: DeviceState
-//)
+
+data class ScheduleResponse(
+    val schedules: Map<Day, DailySchedule>
+)
+
+data class DailySchedule(
+    val periods: List<Period>
+)
+
+data class Period(
+    val from: LocalTime,
+    val to: LocalTime,
+    val state: DeviceState
+)

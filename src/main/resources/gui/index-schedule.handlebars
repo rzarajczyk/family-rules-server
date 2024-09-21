@@ -1,1 +1,18 @@
-<b>TODO</b>
+<ul class="collapsible">
+{{#each schedules}}
+    <li>
+        <div class="collapsible-header">{{@key}}</div>
+        <div class="collapsible-body">
+            <div class="card-panel">
+            <ul>
+                {{#each this.periods}}
+                    <li>
+                    {{from}} - {{to}} - {{state}}
+                    </li>
+                {{/each}}
+            </ul>
+            </div>
+        </div>
+    </li>
+{{/each}}
+</ul>

@@ -87,6 +87,9 @@ document.addEventListener("DOMContentLoaded", (event) => {
                     .then(([tpl, data]) => {
                         let content = document.querySelector("#instance-schedule-modal .modal-content")
                         content.innerHTML = tpl(data)
+                        M.Collapsible.init(document.querySelector("#instance-schedule-modal .collapsible"), {
+                            accordion: false
+                        })
                     })
             }
 
