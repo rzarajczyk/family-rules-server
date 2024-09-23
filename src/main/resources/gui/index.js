@@ -40,6 +40,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
                 })
                     .then(([setStateTemplate, data]) => {
                         let content = document.querySelector("#instance-state-modal .modal-content")
+                        let instanceId = content.dataset['instanceid']
                         data.availableStates.unshift({
                             title: "Automatic",
                             deviceState: null,
@@ -56,7 +57,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
                                     body: JSON.stringify({forcedDeviceState: deviceState})
                                 }).then(response => {
                                     M.toast({text: "Saved"})
-                                    modal.close()
+                                    M.Modal.getInstance(document.querySelector("#instance-state-modal")).close()
                                     update()
                                 })
                             })
@@ -78,19 +79,38 @@ document.addEventListener("DOMContentLoaded", (event) => {
             }
 
             function onEditScheduleClicked(e) {
-                openModal({
-                    e: e,
-                    selector: "#instance-schedule-modal",
-                    templateUrl: "./index-schedule.handlebars",
-                    detailsUrlBuilder: instanceId => `/bff/instance-schedule?instanceId=${instanceId}`
-                })
-                    .then(([tpl, data]) => {
-                        let content = document.querySelector("#instance-schedule-modal .modal-content")
-                        content.innerHTML = tpl(data)
-                        M.Collapsible.init(document.querySelector("#instance-schedule-modal .collapsible"), {
-                            accordion: false
-                        })
-                    })
+//                openModal({
+//                    e: e,
+//                    selector: "#instance-schedule-modal",
+//                    templateUrl: "./index-schedule.handlebars",
+//                    detailsUrlBuilder: instanceId => `/bff/instance-schedule?instanceId=${instanceId}`
+//                })
+//                    .then(([tpl, data]) => {
+//                        let content = document.querySelector("#instance-schedule-modal .modal-content")
+//                        let templateData = {
+////                            hours: Array.from({ length: 96 }, (_, i) => {
+////                                       const hour = Math.floor(i / 4);  // There are 4 slots per hour (00, 15, 30, 45)
+////                                       const minute = (i % 4) * 15;     // Minutes are in increments of 15
+////                                       const time =  formatTime(hour, minute);
+////                                       return { hour, minute, time };
+////                                     }),
+//                            hours: sequence(new TimeOfDay(0, 0), new TimeOfDay(24, 0)).map(it => it.toPrettyString()),
+//                            days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+//                        }
+//                        content.innerHTML = tpl(templateData)
+//
+//                        console.log(data)
+//                        Object.keys(data.schedules).forEach(day => {
+//                            data.schedules[day].periods.forEach(period => {
+//                                if (period.state != 'ACTIVE') {
+//                                    let state = day.toLowerCase()
+//                                    let hour = formatTime(period.from.hour, period.from.minute)
+//                                    let id = `#schedule-${state}-${hour}`
+//                                    document.querySelector(id).style.backgroundColor = 'red'
+//                                }
+//                            })
+//                        })
+//                    })
             }
 
             function openModal(options) {
@@ -98,6 +118,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
                 let instanceId = e.target.closest('.instance-details').dataset["instanceid"]
                 let div = document.querySelector(selector)
                 let content = div.querySelector(".modal-content")
+                content.dataset['instanceid'] = instanceId
                 content.innerHTML = LOADING
                 let modal = M.Modal.getInstance(div)
                 modal.open()

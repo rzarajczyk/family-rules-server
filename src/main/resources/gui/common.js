@@ -81,6 +81,10 @@ document.addEventListener("DOMContentLoaded", (event) => {
         return formatState(state)
     })
 
+    Handlebars.registerHelper('toLowerCase', function(str) {
+      return str.toLowerCase();
+    });
+
     Handlebars.registerHelper('br', function(text) {
         text = Handlebars.Utils.escapeExpression(text);
         text = text.replace(/(\r\n|\n|\r)/gm, '<br>');

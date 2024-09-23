@@ -1,18 +1,20 @@
-<ul class="collapsible">
-{{#each schedules}}
-    <li>
-        <div class="collapsible-header">{{@key}}</div>
-        <div class="collapsible-body">
-            <div class="card-panel">
-            <ul>
-                {{#each this.periods}}
-                    <li>
-                    {{from}} - {{to}} - {{state}}
-                    </li>
-                {{/each}}
-            </ul>
-            </div>
-        </div>
-    </li>
-{{/each}}
-</ul>
+<table id="schedule">
+    <thead>
+        <tr>
+            <th></th>
+            {{#each days}}
+                <th>{{this}}</th>
+            {{/each}}
+        </tr>
+    </thead>
+    <tbody>
+    {{#each hours}}
+        <tr>
+            {{#ifEquals minute 0}}<td rowspan="4">{{time}}</td>{{/ifEquals}}
+            {{#each ../days}}
+                <td id="schedule-{{toLowerCase this}}-{{../time}}"></td>
+            {{/each}}
+        </tr>
+    {{/each}}
+    </tbody>
+</table>

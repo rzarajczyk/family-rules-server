@@ -13,7 +13,7 @@ class SchedulePacker {
         var result = schedule.verify()
         result = result.removeActivePeriods()
         result = result.removeEmptyWeekDays()
-        return schedule
+        return result
     }
 
     fun unpack(schedule: WeeklyScheduleDto): WeeklyScheduleDto {
@@ -24,7 +24,7 @@ class SchedulePacker {
     }
 
     fun WeeklyScheduleDto.addActivePeriods(): WeeklyScheduleDto {
-        val MAX: Long = 60 * 60 * 24 - 1
+        val MAX: Long = 60 * 60 * 24
         return WeeklyScheduleDto(
             schedule = schedule.mapValues { (_, daily) ->
                 val updatedPeriods = mutableListOf<PeriodDto>()

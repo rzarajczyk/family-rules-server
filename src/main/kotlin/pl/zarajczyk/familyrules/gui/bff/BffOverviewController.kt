@@ -74,13 +74,19 @@ class BffOverviewController(private val dbConnector: DbConnector) {
             schedules = instance.scheduleDto.schedule.mapValues { (_, periods) ->
                 DailySchedule(periods = periods.periods.map { period ->
                     Period(
-                        from = LocalTime.ofSecondOfDay(period.fromSeconds),
-                        to = LocalTime.ofSecondOfDay(period.toSeconds),
+                        from = period.fromSeconds.toRoundedTimeOfDay(),
+                        to = period.toSeconds.toRoundedTimeOfDay(),
                         state = period.deviceState
                     )
                 })
             }
         )
+    }
+
+    private fun Long.toRoundedTimeOfDay(roundToMinutes: Int = 15): TimeOfDay {
+        val hour = ( this / (60 * 60) ).toInt()
+        val minute = ( ( ( this / 60 ) / roundToMinutes) * roundToMinutes ).toInt()
+        return TimeOfDay(hour, minute)
     }
 
     @GetMapping("/bff/instance-state")
@@ -181,7 +187,12 @@ data class DailySchedule(
 )
 
 data class Period(
-    val from: LocalTime,
-    val to: LocalTime,
+    val from: TimeOfDay,
+    val to: TimeOfDay,
     val state: DeviceState
+)
+
+data class TimeOfDay(
+    val hour: Int,
+    val minute: Int
 )
