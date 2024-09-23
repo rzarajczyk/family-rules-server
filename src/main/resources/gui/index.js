@@ -79,38 +79,60 @@ document.addEventListener("DOMContentLoaded", (event) => {
             }
 
             function onEditScheduleClicked(e) {
-//                openModal({
-//                    e: e,
-//                    selector: "#instance-schedule-modal",
-//                    templateUrl: "./index-schedule.handlebars",
-//                    detailsUrlBuilder: instanceId => `/bff/instance-schedule?instanceId=${instanceId}`
-//                })
-//                    .then(([tpl, data]) => {
-//                        let content = document.querySelector("#instance-schedule-modal .modal-content")
-//                        let templateData = {
-////                            hours: Array.from({ length: 96 }, (_, i) => {
-////                                       const hour = Math.floor(i / 4);  // There are 4 slots per hour (00, 15, 30, 45)
-////                                       const minute = (i % 4) * 15;     // Minutes are in increments of 15
-////                                       const time =  formatTime(hour, minute);
-////                                       return { hour, minute, time };
-////                                     }),
-//                            hours: sequence(new TimeOfDay(0, 0), new TimeOfDay(24, 0)).map(it => it.toPrettyString()),
-//                            days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-//                        }
-//                        content.innerHTML = tpl(templateData)
-//
-//                        console.log(data)
-//                        Object.keys(data.schedules).forEach(day => {
-//                            data.schedules[day].periods.forEach(period => {
-//                                if (period.state != 'ACTIVE') {
-//                                    let state = day.toLowerCase()
-//                                    let hour = formatTime(period.from.hour, period.from.minute)
-//                                    let id = `#schedule-${state}-${hour}`
-//                                    document.querySelector(id).style.backgroundColor = 'red'
-//                                }
-//                            })
-//                        })
-//                    })
+                openModal({
+                    e: e,
+                    selector: "#instance-schedule-modal",
+                    templateUrl: "./index-schedule.handlebars",
+                    detailsUrlBuilder: instanceId => `/bff/instance-schedule?instanceId=${instanceId}`
+                })
+                    .then(([tpl, data]) => {
+                        let content = document.querySelector("#instance-schedule-modal .modal-content")
+                        let templateData = createTimetableData()
+                        content.innerHTML = tpl(templateData)
+
+                        console.log(data)
+                        Object.keys(data.schedules).forEach(day => {
+                            data.schedules[day].periods.forEach(period => {
+                                if (period.state.deviceState != 'ACTIVE') {
+                                    let d = day.toLowerCase()
+//                                    sequence(period.from, period.to).forEach(time => {
+//                                        let t = timeId(time)
+//                                        let id = `schedule-${d}-${t}`
+//                                        let cell = document.querySelector(`#${id}`)
+//                                        cell.style.backgroundColor = 'red'
+//                                        cell.classList.add('tooltipped')
+//                                        cell.dataset['tooltip'] = period.state
+//                                    })
+                                    let fromId = `schedule-${d}-${timeId(period.from)}`
+                                    let toId = `schedule-${d}-${timeId(period.to)}`
+
+                                    let fromElement = document.querySelector(`#${fromId}`)
+                                    let toElement = document.querySelector(`#${toId}`)
+
+                                    let top = fromElement.offsetTop + 24
+                                    let left = fromElement.offsetLeft + 24
+                                    let height = toElement.offsetTop + toElement.clientHeight - fromElement.offsetTop
+                                    let width = toElement.offsetLeft + toElement.clientWidth - fromElement.offsetLeft
+
+                                    let div = document.createElement('div')
+                                    div.style.position = 'absolute'
+                                    div.style.left = `${left}px`
+                                    div.style.top = `${top}px`
+                                    div.style.padding = `0.5rem`
+                                    div.style.backgroundColor = `var(--md-ref-palette-primary80)`
+                                    div.style.width = `${width}px`
+                                    div.style.height = `${height}px`
+                                    div.style.borderRadius = '10px'
+                                    div.style.textAlign = 'center'
+                                    div.title = `${period.state.title}\n${formatTime(period.from)}-${formatTime(period.to)}`
+                                    div.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" fill="var(--md-sys-color-on-background)" style="width: 100%; max-width: 48px; height: 100%; max-height: 48px;">${period.state.icon}</svg>`
+
+                                    content.appendChild(div)
+                                }
+                            })
+                        })
+                        M.Tooltip.init(document.querySelectorAll('#instance-schedule-modal .tooltipped'), {})
+                    })
             }
 
             function openModal(options) {

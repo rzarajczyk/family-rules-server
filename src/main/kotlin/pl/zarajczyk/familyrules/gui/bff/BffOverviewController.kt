@@ -7,7 +7,6 @@ import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.server.ResponseStatusException
 import pl.zarajczyk.familyrules.shared.*
-import java.time.LocalTime
 
 @RestController
 class BffOverviewController(private val dbConnector: DbConnector) {
@@ -29,12 +28,16 @@ class BffOverviewController(private val dbConnector: DbConnector) {
                 instanceId = instance.id,
                 instanceName = instance.name,
                 screenTimeSeconds = appUsageMap[DbConnector.TOTAL_TIME]?.screenTimeSeconds ?: 0L,
-                appUsageSeconds = (appUsageMap - DbConnector.TOTAL_TIME).map { (k, v) -> AppUsage(k, v.screenTimeSeconds) },
+                appUsageSeconds = (appUsageMap - DbConnector.TOTAL_TIME).map { (k, v) ->
+                    AppUsage(
+                        k,
+                        v.screenTimeSeconds
+                    )
+                },
                 forcedDeviceState = dbConnector.getAvailableDeviceStates(instance.id)
                     .firstOrNull { it.deviceState == instance.forcedDeviceState }
                     ?.toDeviceStateDescription(),
-                online = appUsageMap.maxOfOrNull { (_,v) -> v.updatedAt }?.isOnline() ?: false
-//                weeklySchedule = dbConnector.getInstanceSchedule(it.id).toWeeklySchedule()
+                online = appUsageMap.maxOfOrNull { (_, v) -> v.updatedAt }?.isOnline() ?: false
             )
         })
     } catch (e: InvalidPassword) {
@@ -70,13 +73,15 @@ class BffOverviewController(private val dbConnector: DbConnector) {
         dbConnector.validateOneTimeToken(auth.user, auth.pass, seed)
 
         val instance = dbConnector.getInstance(instanceId) ?: throw RuntimeException("Instance not found $instanceId")
+        val availableStates = dbConnector.getAvailableDeviceStates(instanceId)
         return ScheduleResponse(
             schedules = instance.scheduleDto.schedule.mapValues { (_, periods) ->
                 DailySchedule(periods = periods.periods.map { period ->
                     Period(
                         from = period.fromSeconds.toRoundedTimeOfDay(),
                         to = period.toSeconds.toRoundedTimeOfDay(),
-                        state = period.deviceState
+                        state = availableStates.first { it.deviceState == period.deviceState }
+                            .toDeviceStateDescription(),
                     )
                 })
             }
@@ -84,9 +89,13 @@ class BffOverviewController(private val dbConnector: DbConnector) {
     }
 
     private fun Long.toRoundedTimeOfDay(roundToMinutes: Int = 15): TimeOfDay {
-        val hour = ( this / (60 * 60) ).toInt()
-        val minute = ( ( ( this / 60 ) / roundToMinutes) * roundToMinutes ).toInt()
-        return TimeOfDay(hour, minute)
+        val SECONDS_IN_MINUTE = 60
+        val SECONDS_IN_HOUR = 60 * SECONDS_IN_MINUTE
+
+        val hour = (this / SECONDS_IN_HOUR).toInt()
+        val minute = ((this % SECONDS_IN_HOUR) / SECONDS_IN_MINUTE).toInt()
+        val roundedMinute = (minute / roundToMinutes) * roundToMinutes
+        return TimeOfDay(hour, roundedMinute)
     }
 
     @GetMapping("/bff/instance-state")
@@ -189,7 +198,7 @@ data class DailySchedule(
 data class Period(
     val from: TimeOfDay,
     val to: TimeOfDay,
-    val state: DeviceState
+    val state: DeviceStateDescription,
 )
 
 data class TimeOfDay(

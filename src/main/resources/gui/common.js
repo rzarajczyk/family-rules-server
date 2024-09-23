@@ -52,7 +52,6 @@ document.addEventListener("DOMContentLoaded", (event) => {
     M.AutoInit();
 
     Handlebars.registerHelper('ifEquals', function(a, b, options) {
-        console.log(`comparing ${a} / ${b}`)
         if (a == b) {
             return options.fn(this);
         } else {

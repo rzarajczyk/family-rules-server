@@ -10,9 +10,9 @@
     <tbody>
     {{#each hours}}
         <tr>
-            {{#ifEquals minute 0}}<td rowspan="4">{{time}}</td>{{/ifEquals}}
+            {{#ifEquals minute 0}}<td rowspan="4">{{timeFormatted}}</td>{{/ifEquals}}
             {{#each ../days}}
-                <td id="schedule-{{toLowerCase this}}-{{../time}}"></td>
+                <td id="schedule-{{toLowerCase this}}-{{../timeId}}"></td>
             {{/each}}
         </tr>
     {{/each}}
