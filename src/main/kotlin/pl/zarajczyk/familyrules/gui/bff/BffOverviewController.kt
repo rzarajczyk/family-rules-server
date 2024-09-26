@@ -84,7 +84,8 @@ class BffOverviewController(private val dbConnector: DbConnector) {
                             .toDeviceStateDescription(),
                     )
                 })
-            }
+            },
+            availableStates = availableStates.map { it.toDeviceStateDescription() }
         )
     }
 
@@ -188,7 +189,8 @@ data class InstanceState(
 )
 
 data class ScheduleResponse(
-    val schedules: Map<Day, DailySchedule>
+    val schedules: Map<Day, DailySchedule>,
+    val availableStates: List<DeviceStateDescription>
 )
 
 data class DailySchedule(

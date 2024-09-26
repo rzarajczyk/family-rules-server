@@ -19,22 +19,90 @@ function createTimetableData() {
     }
 }
 
-function sequence(from, to) {
-    const result = [];
+function renderTimetable(tpl, content) {
+    let templateData = createTimetableData()
+    content.innerHTML = tpl(templateData)
+    content.querySelectorAll(".schedule-cell").forEach(it => {
+        it.addEventListener('mouseover', (e) => {
+            e.target.style.backgroundColor = 'var(--md-ref-palette-tertiary90)'
+        })
+        it.addEventListener('mouseout', (e) => {
+            e.target.style.backgroundColor = ''
+        })
+        it.addEventListener('click', (e) => {
+            let day = e.target.dataset.day
+            let time = { hour: e.target.dataset.hour, minute: e.target.dataset.minute }
+            document.querySelector('#add-period-modal-start').value = formatTime(time)
+            document.querySelector('#add-period-modal-end').value = formatTime({hour: parseInt(time.hour) + 1, minute: time.minute})
+            document.querySelector('#add-period-modal-day').selectedIndex = templateData.days.indexOf(day)
+            M.FormSelect.init(document.querySelector('#add-period-modal-day'), {})
+            M.Modal.getInstance(document.querySelector('#add-period-modal')).open()
+        })
+    })
+    let daysSelector = document.querySelector('#add-period-modal-day')
+    daysSelector.innerHTML = ''
+    templateData.days.forEach(day => {
+        daysSelector.innerHTML += `<option value="${day}">${day}</option>`
+    })
+    M.FormSelect.init(daysSelector, {})
+    document.querySelector('#add-period-modal-ok').addEventListener('click', addPeriod)
+}
 
-    let currentHour = from.hour;
-    let currentMinute = from.minute;
+function renderSchedule(data, content) {
+    Object.keys(data.schedules).forEach(day => {
+        data.schedules[day].periods.forEach(period => {
+            if (period.state.deviceState != 'ACTIVE') {
+                let d = day.toLowerCase()
+                let fromId = `schedule-${d}-${timeId(period.from)}`
+                let toId = `schedule-${d}-${timeId(period.to)}`
 
-    while (currentHour < to.hour || (currentHour === to.hour && currentMinute < to.minute)) {
-        result.push({ hour: currentHour, minute: currentMinute });
+                let fromElement = document.querySelector(`#${fromId}`)
+                let toElement = document.querySelector(`#${toId}`)
 
-        // Add 15 minutes
-        currentMinute += 15;
-        if (currentMinute >= 60) {
-            currentMinute -= 60;
-            currentHour += 1;
-        }
-    }
+                let top = fromElement.offsetTop + 24
+                let left = fromElement.offsetLeft + 24
+                let height = toElement.offsetTop + toElement.clientHeight - fromElement.offsetTop
+                let width = toElement.offsetLeft + toElement.clientWidth - fromElement.offsetLeft
 
-    return result;
+                let div = document.createElement('div')
+                div.style.position = 'absolute'
+                div.style.left = `${left}px`
+                div.style.top = `${top}px`
+                div.style.padding = `0.5rem`
+                div.style.backgroundColor = `var(--md-ref-palette-primary80)`
+                div.style.width = `${width}px`
+                div.style.height = `${height}px`
+                div.style.borderRadius = '10px'
+                div.style.textAlign = 'center'
+                div.title = `${period.state.title}\n${formatTime(period.from)}-${formatTime(period.to)}`
+                div.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" fill="var(--md-sys-color-on-background)" style="width: 100%; max-width: 48px; height: 100%; max-height: 48px;">${period.state.icon}</svg>`
+
+                content.appendChild(div)
+            }
+        })
+    })
+    document.querySelector("#add-period-modal-states").innerHTML = ''
+    data.availableStates.forEach(state => {
+        document.querySelector("#add-period-modal-states").innerHTML += `
+        <label>
+            <input name="add-period-modal-device-state" value="${state.deviceState}" type="radio" />
+            <span>
+                <span class="format-state">
+                    <svg xmlns="http://www.w3.org/2000/svg" height="12px" viewBox="0 -960 960 960" width="12px" fill="#5f6368">${state.icon}</svg>
+                    ${state.title}
+                </span>
+                ${state.description ?  `<br><i>${state.description}</i>` : ""}
+            </span>
+        </label>
+        `
+    })
+}
+
+function addPeriod() {
+    let from = document.querySelector('#add-period-modal-start').value
+    let to = document.querySelector('#add-period-modal-end').value
+    let days = M.FormSelect.getInstance(document.querySelector('#add-period-modal-day')).getSelectedValues()
+    let state = document.querySelector(`input[name="add-period-modal-device-state"]:checked`).value
+
+    alert(`${days} - ${from} - ${to} - ${state}`)
 }

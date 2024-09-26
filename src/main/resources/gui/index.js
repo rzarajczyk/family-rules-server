@@ -10,6 +10,12 @@ document.addEventListener("DOMContentLoaded", (event) => {
                 onClose: onDateChanged
             })
 
+            M.Timepicker.init(document.querySelectorAll(".timepicker"), {
+                twelveHour: false,
+                container: "body",
+                autoClose: true
+            })
+
             function render(response) {
                 const html = response.instances.map(it => template(it)).join('')
                 const instances = document.querySelector("#instances")
@@ -87,51 +93,8 @@ document.addEventListener("DOMContentLoaded", (event) => {
                 })
                     .then(([tpl, data]) => {
                         let content = document.querySelector("#instance-schedule-modal .modal-content")
-                        let templateData = createTimetableData()
-                        content.innerHTML = tpl(templateData)
-
-                        console.log(data)
-                        Object.keys(data.schedules).forEach(day => {
-                            data.schedules[day].periods.forEach(period => {
-                                if (period.state.deviceState != 'ACTIVE') {
-                                    let d = day.toLowerCase()
-//                                    sequence(period.from, period.to).forEach(time => {
-//                                        let t = timeId(time)
-//                                        let id = `schedule-${d}-${t}`
-//                                        let cell = document.querySelector(`#${id}`)
-//                                        cell.style.backgroundColor = 'red'
-//                                        cell.classList.add('tooltipped')
-//                                        cell.dataset['tooltip'] = period.state
-//                                    })
-                                    let fromId = `schedule-${d}-${timeId(period.from)}`
-                                    let toId = `schedule-${d}-${timeId(period.to)}`
-
-                                    let fromElement = document.querySelector(`#${fromId}`)
-                                    let toElement = document.querySelector(`#${toId}`)
-
-                                    let top = fromElement.offsetTop + 24
-                                    let left = fromElement.offsetLeft + 24
-                                    let height = toElement.offsetTop + toElement.clientHeight - fromElement.offsetTop
-                                    let width = toElement.offsetLeft + toElement.clientWidth - fromElement.offsetLeft
-
-                                    let div = document.createElement('div')
-                                    div.style.position = 'absolute'
-                                    div.style.left = `${left}px`
-                                    div.style.top = `${top}px`
-                                    div.style.padding = `0.5rem`
-                                    div.style.backgroundColor = `var(--md-ref-palette-primary80)`
-                                    div.style.width = `${width}px`
-                                    div.style.height = `${height}px`
-                                    div.style.borderRadius = '10px'
-                                    div.style.textAlign = 'center'
-                                    div.title = `${period.state.title}\n${formatTime(period.from)}-${formatTime(period.to)}`
-                                    div.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" fill="var(--md-sys-color-on-background)" style="width: 100%; max-width: 48px; height: 100%; max-height: 48px;">${period.state.icon}</svg>`
-
-                                    content.appendChild(div)
-                                }
-                            })
-                        })
-                        M.Tooltip.init(document.querySelectorAll('#instance-schedule-modal .tooltipped'), {})
+                        renderTimetable(tpl, content)
+                        renderSchedule(data, content)
                     })
             }
 

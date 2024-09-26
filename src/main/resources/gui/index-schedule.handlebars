@@ -12,7 +12,7 @@
         <tr>
             {{#ifEquals minute 0}}<td rowspan="4">{{timeFormatted}}</td>{{/ifEquals}}
             {{#each ../days}}
-                <td id="schedule-{{toLowerCase this}}-{{../timeId}}"></td>
+                <td id="schedule-{{toLowerCase this}}-{{../timeId}}" class="schedule-cell" data-hour="{{../hour}}" data-minute="{{../minute}}" data-day="{{this}}"></td>
             {{/each}}
         </tr>
     {{/each}}
