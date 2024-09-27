@@ -6,6 +6,11 @@ function timeId(t) {
     return formatTime(t).replace(':', '')
 }
 
+function parseTime(t) {
+    const [hour, minute] = t.split(":").map(Number);
+    return  { hour, minute };
+}
+
 function createTimetableData() {
     return {
         hours: Array.from({ length: 96 }, (_, i) => {
@@ -24,10 +29,12 @@ function renderTimetable(tpl, content) {
     content.innerHTML = tpl(templateData)
     content.querySelectorAll(".schedule-cell").forEach(it => {
         it.addEventListener('mouseover', (e) => {
-            e.target.style.backgroundColor = 'var(--md-ref-palette-tertiary90)'
+//            e.target.style.backgroundColor = 'var(--md-ref-palette-tertiary90)'
+            e.target.classList.add('add-period')
         })
         it.addEventListener('mouseout', (e) => {
-            e.target.style.backgroundColor = ''
+//            e.target.style.backgroundColor = ''
+            e.target.classList.remove('add-period')
         })
         it.addEventListener('click', (e) => {
             let day = e.target.dataset.day
@@ -45,7 +52,6 @@ function renderTimetable(tpl, content) {
         daysSelector.innerHTML += `<option value="${day}">${day}</option>`
     })
     M.FormSelect.init(daysSelector, {})
-    document.querySelector('#add-period-modal-ok').addEventListener('click', addPeriod)
 }
 
 function renderSchedule(data, content) {
@@ -55,6 +61,9 @@ function renderSchedule(data, content) {
                 let d = day.toLowerCase()
                 let fromId = `schedule-${d}-${timeId(period.from)}`
                 let toId = `schedule-${d}-${timeId(period.to)}`
+                if (period.to.minute == 0) {
+                    toId = `schedule-${d}-${timeId({hour: period.to.hour - 1, minute: 45})}`
+                }
 
                 let fromElement = document.querySelector(`#${fromId}`)
                 let toElement = document.querySelector(`#${toId}`)
@@ -65,17 +74,13 @@ function renderSchedule(data, content) {
                 let width = toElement.offsetLeft + toElement.clientWidth - fromElement.offsetLeft
 
                 let div = document.createElement('div')
-                div.style.position = 'absolute'
                 div.style.left = `${left}px`
                 div.style.top = `${top}px`
-                div.style.padding = `0.5rem`
-                div.style.backgroundColor = `var(--md-ref-palette-primary80)`
                 div.style.width = `${width}px`
                 div.style.height = `${height}px`
-                div.style.borderRadius = '10px'
-                div.style.textAlign = 'center'
                 div.title = `${period.state.title}\n${formatTime(period.from)}-${formatTime(period.to)}`
                 div.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" fill="var(--md-sys-color-on-background)" style="width: 100%; max-width: 48px; height: 100%; max-height: 48px;">${period.state.icon}</svg>`
+                div.classList.add('period')
 
                 content.appendChild(div)
             }
@@ -96,13 +101,39 @@ function renderSchedule(data, content) {
         </label>
         `
     })
+    document.querySelector(`input[name="add-period-modal-device-state"]:first-child`).checked = true
+    document.querySelector('#add-period-modal-ok').addEventListener('click', addPeriod)
 }
 
 function addPeriod() {
+    let instanceId = document.querySelector("#instance-schedule-modal .modal-content").dataset['instanceid']
     let from = document.querySelector('#add-period-modal-start').value
     let to = document.querySelector('#add-period-modal-end').value
     let days = M.FormSelect.getInstance(document.querySelector('#add-period-modal-day')).getSelectedValues()
     let state = document.querySelector(`input[name="add-period-modal-device-state"]:checked`).value
 
-    alert(`${days} - ${from} - ${to} - ${state}`)
+    ServerRequest.fetch(`/bff/instance-schedule/add-period?instanceId=${instanceId}`, {
+        method: 'POST',
+        body: JSON.stringify({
+            days: days.map(it => it.toUpperCase()),
+            from: parseTime(from),
+            to: parseTime(to),
+            state
+        })
+    }).then(response => {
+        M.toast({text: "Saved"})
+        M.Modal.getInstance(document.querySelector("#add-period-modal")).close()
+        refresh(instanceId)
+    })
+}
+
+function refresh(instanceId) {
+    ServerRequest
+        .fetch(`/bff/instance-schedule?instanceId=${instanceId}`)
+        .then(it => it.json())
+        .then(data => {
+            document.querySelectorAll('.period').forEach(it => it.remove())
+            let content = document.querySelector("#instance-schedule-modal .modal-content")
+            renderSchedule(data, content)
+        })
 }

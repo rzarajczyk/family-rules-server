@@ -187,6 +187,12 @@ class DbConnector(private val schedulePacker: SchedulePacker) {
         .where { (ScreenTimes.instanceId eq id) and (ScreenTimes.day eq day) }
         .associate { it[ScreenTimes.app] to ScreenTimeDto(it[ScreenTimes.screenTimeSeconds], it[ScreenTimes.updatedAt]) }
 
+    fun setInstanceSchedule(id: InstanceId, schedule: WeeklyScheduleDto) {
+        Instances.update({ Instances.instanceId eq id}) {
+            it[Instances.schedule] = schedulePacker.pack(schedule)
+        }
+    }
+
     fun setForcedInstanceState(id: InstanceId, state: DeviceState?) {
         Instances.update({ Instances.instanceId eq id }) {
             it[forcedDeviceState] = state

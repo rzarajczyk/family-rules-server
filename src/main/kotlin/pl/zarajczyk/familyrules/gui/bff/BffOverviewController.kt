@@ -9,7 +9,7 @@ import org.springframework.web.server.ResponseStatusException
 import pl.zarajczyk.familyrules.shared.*
 
 @RestController
-class BffOverviewController(private val dbConnector: DbConnector) {
+class BffOverviewController(private val dbConnector: DbConnector, private val scheduleUpdater: ScheduleUpdater) {
 
     @GetMapping("/bff/status")
     fun status(
@@ -78,10 +78,10 @@ class BffOverviewController(private val dbConnector: DbConnector) {
             schedules = instance.scheduleDto.schedule.mapValues { (_, periods) ->
                 DailySchedule(periods = periods.periods.map { period ->
                     Period(
-                        from = period.fromSeconds.toRoundedTimeOfDay(),
-                        to = period.toSeconds.toRoundedTimeOfDay(),
-                        state = availableStates.first { it.deviceState == period.deviceState }
-                            .toDeviceStateDescription(),
+                        from = period.fromSeconds.toRoundedTimeOfDay(zeroMeansStepBack = false),
+                        to = period.toSeconds.toRoundedTimeOfDay(zeroMeansStepBack = true),
+                        state = availableStates.firstOrNull { it.deviceState == period.deviceState }
+                            ?.toDeviceStateDescription(),
                     )
                 })
             },
@@ -89,7 +89,37 @@ class BffOverviewController(private val dbConnector: DbConnector) {
         )
     }
 
-    private fun Long.toRoundedTimeOfDay(roundToMinutes: Int = 15): TimeOfDay {
+    @PostMapping("/bff/instance-schedule/add-period")
+    fun addInstanceSchedulePeriod(
+        @RequestParam("instanceId") instanceId: InstanceId,
+        @RequestHeader("x-seed") seed: String,
+        @RequestHeader("Authorization") authHeader: String,
+        @RequestBody data: AddPeriodRequest
+    ) {
+        val auth = authHeader.decodeBasicAuth()
+        dbConnector.validateOneTimeToken(auth.user, auth.pass, seed)
+
+        val instance = dbConnector.getInstance(instanceId) ?: throw RuntimeException("Instance not found $instanceId")
+        val schedule = instance.scheduleDto
+        val period = PeriodDto(
+            fromSeconds = (data.from.hour * 3600 + data.from.minute * 60).toLong(),
+            toSeconds = (data.to.hour * 3600 + data.to.minute * 60).toLong(),
+            deviceState = data.state
+        )
+        val updatedSchedule = data.days.fold(schedule) { currentSchedule, day ->
+            scheduleUpdater.addPeriod(currentSchedule, day, period)
+        }
+        dbConnector.setInstanceSchedule(instanceId, updatedSchedule)
+    }
+
+    data class AddPeriodRequest(
+        val days: List<Day>,
+        val from: TimeOfDay,
+        val to: TimeOfDay,
+        val state: DeviceState,
+    )
+
+    private fun Long.toRoundedTimeOfDay(roundToMinutes: Int = 15, zeroMeansStepBack: Boolean): TimeOfDay {
         val SECONDS_IN_MINUTE = 60
         val SECONDS_IN_HOUR = 60 * SECONDS_IN_MINUTE
 
@@ -200,7 +230,7 @@ data class DailySchedule(
 data class Period(
     val from: TimeOfDay,
     val to: TimeOfDay,
-    val state: DeviceStateDescription,
+    val state: DeviceStateDescription?,
 )
 
 data class TimeOfDay(

@@ -58,8 +58,34 @@
             width: 75%;
         }
 
+        #schedule th {
+            width: 1%;
+            min-width: 4em;
+        }
+
         #schedule tbody tr {
             border-bottom: none;
+        }
+
+        #schedule td[data-day="Mon"],
+        #schedule td[data-day="Wed"],
+        #schedule td[data-day="Fri"]
+        {
+            background-color: #00000014;
+        }
+
+        #schedule td[data-day="Sat"]
+        {
+            background-color: #f5eedc;
+        }
+
+        #schedule td[data-day="Sun"]
+        {
+            background-color: #fff0db;
+        }
+
+        #schedule td.add-period {
+            background-color: #dd4a48;
         }
 
        #schedule tbody tr:nth-child(4n) {
@@ -73,12 +99,32 @@
             border-top: none;
             border-bottom: none;
             cursor: pointer;
-            border-radius: 10px;
         }
 
         .add-period-modal-state>label {
             display: block;
             position: relative;
+        }
+
+        .period {
+            position: absolute;
+            padding: 0.5rem;
+            background-color: var(--md-ref-palette-primary80);
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .explanation {
+            margin-top: 4rem;
+            font-style: italic;
+        }
+
+        @media only screen and (max-width: 600.99px) {
+            .edit-schedule {
+                width: 13rem;
+                display: inline-grid;
+                text-align: center;
+            }
         }
     </style>
     <!--Let browser know website is optimized for mobile-->
@@ -110,7 +156,6 @@
     <div class="modal-content"></div>
     <div class="modal-footer">
         <a href="#!" class="modal-close waves-effect btn-flat">Cancel</a>
-<!--        <a href="#!" class="waves-effect btn outlined edit-schedule left ml-5"><i class="material-icons">calendar_month</i> Edit schedule</a>-->
     </div>
 </div>
 
@@ -144,6 +189,7 @@
             <input type="text" id="add-period-modal-end" class="timepicker no-autoinit" value="24:00">
             <label for="add-period-modal-end">End time</label>
         </div>
+        <div class="explanation">Note: periods with the state ACTIVE are not visible on the timetable (it's the default state)</div>
         <div class="input-field add-period-modal-state" id="add-period-modal-states"></div>
     </div>
     <div class="modal-footer">
