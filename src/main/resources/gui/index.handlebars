@@ -2,6 +2,7 @@
     <div class="collapsible-header">
         <i class="material-icons">devices</i>
         <div class="instance-name">
+            <span>{{instanceName}}</span>
             <span class="new badge screen-time" data-badge-caption="">{{#formatScreenTime}}{{screenTimeSeconds}}{{/formatScreenTime}}</span>
             {{#if forcedDeviceState}}
                 <span class="new badge orange mr-2" data-badge-caption="">
@@ -20,7 +21,6 @@
             {{#if online}}
                 <span class="badge mr-2 is-online" data-badge-caption=""><i class="material-icons tiny">online_prediction</i></span>
             {{/if}}
-            <span>{{instanceName}}</span>
         </div>
     </div>
     <div class="collapsible-body">
@@ -35,10 +35,13 @@
             </ul>
         </div>
         <div class="input-wrapper instance-buttons">
-            <a class="btn text mb-2 client-info"><i class="material-icons">info</i></a>
-            <a class="btn outlined right mb-2 change-state">Change device state</a>
-            <a class="btn outlined right mb-2 mr-1 edit-schedule hide-on-small-only"><i class="material-icons">calendar_month</i></a>
-            <a class="btn outlined right mb-2 mr-1 edit-schedule hide-on-med-and-up">Edit schedule</a>
+            <a class="btn outlined right mb-2 mr-1 client-info hide-on-med-and-up">Client information</a>
+            <a class="btn text mb-2 client-info hide-on-small-only"><i class="material-icons">info</i></a>
+            <a class="btn outlined right mb-2 mr-1 change-state">Change device state</a>
+            <a class="btn outlined right mb-2 mr-1 edit-schedule">
+                <i class="material-icons hide-on-small-only">calendar_month</i>
+                <span class="hide-on-med-and-up">Edit schedule</span>
+            </a>
         </div>
     </div>
 </li>
