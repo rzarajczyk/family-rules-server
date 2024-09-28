@@ -1,6 +1,7 @@
 package pl.zarajczyk.familyrules.shared
 
 import kotlinx.datetime.Clock
+import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.Serializable
@@ -33,7 +34,8 @@ class DbConnector(private val schedulePacker: SchedulePacker) {
         val instanceName: Column<String> = text("instance_name")
         val instanceTokenSha256: Column<String> = text("instance_token_sha256")
         val clientType: Column<String> = text("client_type")
-        val forcedDeviceState: Column<DeviceState?> = text("forced_device_state").nullable() //(text("forced_device_state") references DeviceStates.deviceState).nullable()
+        val forcedDeviceState: Column<DeviceState?> =
+            text("forced_device_state").nullable() //(text("forced_device_state") references DeviceStates.deviceState).nullable()
         val clientVersion: Column<String> = text("client_version")
         val schedule: Column<WeeklyScheduleDto> = jsonb<WeeklyScheduleDto>("schedule", Json.Default)
 
@@ -163,7 +165,7 @@ class DbConnector(private val schedulePacker: SchedulePacker) {
                 forcedDeviceState = it[Instances.forcedDeviceState],
                 clientVersion = it[Instances.clientVersion],
                 clientType = it[Instances.clientType],
-                scheduleDto = schedulePacker.unpack(it[Instances.schedule])
+                schedule = schedulePacker.unpack(it[Instances.schedule])
             )
         }
 
@@ -177,7 +179,7 @@ class DbConnector(private val schedulePacker: SchedulePacker) {
                 forcedDeviceState = it[Instances.forcedDeviceState],
                 clientVersion = it[Instances.clientVersion],
                 clientType = it[Instances.clientType],
-                scheduleDto =  schedulePacker.unpack(it[Instances.schedule])
+                schedule = schedulePacker.unpack(it[Instances.schedule])
             )
         }
         .firstOrNull()
@@ -185,10 +187,15 @@ class DbConnector(private val schedulePacker: SchedulePacker) {
     fun getScreenTimes(id: InstanceId, day: LocalDate): Map<String, ScreenTimeDto> = ScreenTimes
         .select(ScreenTimes.app, ScreenTimes.screenTimeSeconds, ScreenTimes.updatedAt)
         .where { (ScreenTimes.instanceId eq id) and (ScreenTimes.day eq day) }
-        .associate { it[ScreenTimes.app] to ScreenTimeDto(it[ScreenTimes.screenTimeSeconds], it[ScreenTimes.updatedAt]) }
+        .associate {
+            it[ScreenTimes.app] to ScreenTimeDto(
+                it[ScreenTimes.screenTimeSeconds],
+                it[ScreenTimes.updatedAt]
+            )
+        }
 
     fun setInstanceSchedule(id: InstanceId, schedule: WeeklyScheduleDto) {
-        Instances.update({ Instances.instanceId eq id}) {
+        Instances.update({ Instances.instanceId eq id }) {
             it[Instances.schedule] = schedulePacker.pack(schedule)
         }
     }
@@ -214,6 +221,20 @@ class DbConnector(private val schedulePacker: SchedulePacker) {
                 description = it[DeviceStates.description]
             )
         }
+        .ensureActiveIsPresent()
+
+    fun List<DescriptiveDeviceStateDto>.ensureActiveIsPresent(): List<DescriptiveDeviceStateDto> {
+        return if (this.find { it.deviceState == DEFAULT_STATE } == null) {
+            this + DescriptiveDeviceStateDto(
+                deviceState = DEFAULT_STATE,
+                title = "Active",
+                icon = null,
+                description = null
+            )
+        } else {
+            this
+        }
+    }
 
     fun updateAvailableDeviceStates(id: InstanceId, states: List<DescriptiveDeviceStateDto>) {
         states.forEachIndexed { index, state ->
@@ -261,10 +282,12 @@ data class InstanceDto(
     val forcedDeviceState: DeviceState?,
     val clientType: String,
     val clientVersion: String,
-    val scheduleDto: WeeklyScheduleDto
+    val schedule: WeeklyScheduleDto
 )
 
 typealias DeviceState = String
+
+const val DEFAULT_STATE: DeviceState = "ACTIVE"
 
 data class DescriptiveDeviceStateDto(
     val deviceState: DeviceState,
@@ -275,10 +298,10 @@ data class DescriptiveDeviceStateDto(
 
 @Serializable
 data class WeeklyScheduleDto(
-    val schedule: Map<Day, DailyScheduleDto>
+    val schedule: Map<DayOfWeek, DailyScheduleDto>
 ) {
     companion object {
-        fun empty() = WeeklyScheduleDto(Day.entries.associateWith { DailyScheduleDto(emptyList()) })
+        fun empty() = WeeklyScheduleDto(DayOfWeek.entries.associateWith { DailyScheduleDto(emptyList()) })
     }
 }
 
@@ -293,7 +316,7 @@ data class PeriodDto(
     val toSeconds: Long,
     val deviceState: DeviceState
 )
-
-enum class Day {
-    MON, TUE, WED, THU, FRI, SAT, SUN
-}
+//
+//enum class Day {
+//    MON, TUE, WED, THU, FRI, SAT, SUN
+//}

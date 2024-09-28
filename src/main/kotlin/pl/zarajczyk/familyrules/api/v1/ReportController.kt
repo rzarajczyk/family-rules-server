@@ -42,14 +42,12 @@ class ReportController(
             }
         }
 
-        stateService.getFinalDeviceState(instanceId).toReportResponse()
+        stateService.getDeviceState(instanceId).finalState.toReportResponse()
     } catch (e: InvalidPassword) {
         throw ResponseStatusException(HttpStatus.FORBIDDEN)
     }
 
-    private fun DeviceState.toReportResponse() = ReportResponse(
-        deviceState = this
-    )
+    private fun DeviceState.toReportResponse() = ReportResponse(deviceState = this)
 
 }
 

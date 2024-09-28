@@ -7,9 +7,14 @@ import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.server.ResponseStatusException
 import pl.zarajczyk.familyrules.shared.*
+import java.time.DayOfWeek
 
 @RestController
-class BffOverviewController(private val dbConnector: DbConnector, private val scheduleUpdater: ScheduleUpdater) {
+class BffOverviewController(
+    private val dbConnector: DbConnector,
+    private val scheduleUpdater: ScheduleUpdater,
+    private val stateService: StateService
+) {
 
     @GetMapping("/bff/status")
     fun status(
@@ -24,6 +29,7 @@ class BffOverviewController(private val dbConnector: DbConnector, private val sc
         val instances = dbConnector.getInstances(auth.user)
         StatusResponse(instances.map { instance ->
             val appUsageMap = dbConnector.getScreenTimes(instance.id, day)
+            val state = stateService.getDeviceState(instance)
             Instance(
                 instanceId = instance.id,
                 instanceName = instance.name,
@@ -35,8 +41,12 @@ class BffOverviewController(private val dbConnector: DbConnector, private val sc
                     )
                 },
                 forcedDeviceState = dbConnector.getAvailableDeviceStates(instance.id)
-                    .firstOrNull { it.deviceState == instance.forcedDeviceState }
+                    .firstOrNull { it.deviceState == state.forcedState }
                     ?.toDeviceStateDescription(),
+                automaticDeviceState = dbConnector.getAvailableDeviceStates(instance.id)
+                    .firstOrNull { it.deviceState == state.automaticState }
+                    ?.toDeviceStateDescription()
+                    ?: throw RuntimeException("Instance ≪${instance.name}≫ doesn't have automatic state ≪${state.automaticState}≫"),
                 online = appUsageMap.maxOfOrNull { (_, v) -> v.updatedAt }?.isOnline() ?: false
             )
         })
@@ -75,19 +85,43 @@ class BffOverviewController(private val dbConnector: DbConnector, private val sc
         val instance = dbConnector.getInstance(instanceId) ?: throw RuntimeException("Instance not found $instanceId")
         val availableStates = dbConnector.getAvailableDeviceStates(instanceId)
         return ScheduleResponse(
-            schedules = instance.scheduleDto.schedule.mapValues { (_, periods) ->
-                DailySchedule(periods = periods.periods.map { period ->
-                    Period(
-                        from = period.fromSeconds.toRoundedTimeOfDay(zeroMeansStepBack = false),
-                        to = period.toSeconds.toRoundedTimeOfDay(zeroMeansStepBack = true),
-                        state = availableStates.firstOrNull { it.deviceState == period.deviceState }
-                            ?.toDeviceStateDescription(),
-                    )
-                })
-            },
+            schedules = instance.schedule.schedule
+                .mapKeys { (day, _) -> day.toDay() }
+                .mapValues { (_, periods) ->
+                    DailySchedule(periods = periods.periods.map { period ->
+                        Period(
+                            from = period.fromSeconds.toRoundedTimeOfDay(zeroMeansStepBack = false),
+                            to = period.toSeconds.toRoundedTimeOfDay(zeroMeansStepBack = true),
+                            state = availableStates.firstOrNull { it.deviceState == period.deviceState }
+                                ?.toDeviceStateDescription(),
+                        )
+                    })
+                },
             availableStates = availableStates.map { it.toDeviceStateDescription() }
         )
     }
+
+    private fun Day.toDayOfWeek() = when (this) {
+        Day.MON -> DayOfWeek.MONDAY
+        Day.TUE -> DayOfWeek.TUESDAY
+        Day.WED -> DayOfWeek.WEDNESDAY
+        Day.THU -> DayOfWeek.THURSDAY
+        Day.FRI -> DayOfWeek.FRIDAY
+        Day.SAT -> DayOfWeek.SATURDAY
+        Day.SUN -> DayOfWeek.SUNDAY
+    }
+
+
+    private fun DayOfWeek.toDay() = when (this) {
+        DayOfWeek.MONDAY -> Day.MON
+        DayOfWeek.TUESDAY -> Day.TUE
+        DayOfWeek.WEDNESDAY -> Day.WED
+        DayOfWeek.THURSDAY -> Day.THU
+        DayOfWeek.FRIDAY -> Day.FRI
+        DayOfWeek.SATURDAY -> Day.SAT
+        DayOfWeek.SUNDAY -> Day.SUN
+    }
+
 
     @PostMapping("/bff/instance-schedule/add-period")
     fun addInstanceSchedulePeriod(
@@ -100,14 +134,14 @@ class BffOverviewController(private val dbConnector: DbConnector, private val sc
         dbConnector.validateOneTimeToken(auth.user, auth.pass, seed)
 
         val instance = dbConnector.getInstance(instanceId) ?: throw RuntimeException("Instance not found $instanceId")
-        val schedule = instance.scheduleDto
+        val schedule = instance.schedule
         val period = PeriodDto(
             fromSeconds = (data.from.hour * 3600 + data.from.minute * 60).toLong(),
             toSeconds = (data.to.hour * 3600 + data.to.minute * 60).toLong(),
             deviceState = data.state
         )
         val updatedSchedule = data.days.fold(schedule) { currentSchedule, day ->
-            scheduleUpdater.addPeriod(currentSchedule, day, period)
+            scheduleUpdater.addPeriod(currentSchedule, day.toDayOfWeek(), period)
         }
         dbConnector.setInstanceSchedule(instanceId, updatedSchedule)
     }
@@ -205,6 +239,7 @@ data class Instance(
     val instanceName: String,
     val screenTimeSeconds: Long,
     val appUsageSeconds: List<AppUsage>,
+    val automaticDeviceState: DeviceStateDescription,
     val forcedDeviceState: DeviceStateDescription?,
     val online: Boolean
 )
@@ -237,3 +272,7 @@ data class TimeOfDay(
     val hour: Int,
     val minute: Int
 )
+
+enum class Day {
+    MON, TUE, WED, THU, FRI, SAT, SUN
+}

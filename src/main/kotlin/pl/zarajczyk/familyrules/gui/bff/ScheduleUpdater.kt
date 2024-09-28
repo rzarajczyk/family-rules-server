@@ -1,14 +1,14 @@
 package pl.zarajczyk.familyrules.gui.bff
 
+import kotlinx.datetime.DayOfWeek
 import org.springframework.stereotype.Service
 import pl.zarajczyk.familyrules.shared.DailyScheduleDto
-import pl.zarajczyk.familyrules.shared.Day
 import pl.zarajczyk.familyrules.shared.PeriodDto
 import pl.zarajczyk.familyrules.shared.WeeklyScheduleDto
 
 @Service
 class ScheduleUpdater {
-    fun addPeriod(schedule: WeeklyScheduleDto, day: Day, newPeriod: PeriodDto): WeeklyScheduleDto {
+    fun addPeriod(schedule: WeeklyScheduleDto, day: DayOfWeek, newPeriod: PeriodDto): WeeklyScheduleDto {
         val currentSchedule = schedule.schedule[day]?.periods ?: emptyList()
 
         // We will create a mutable list to hold the updated periods

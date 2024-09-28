@@ -1,8 +1,9 @@
 package pl.zarajczyk.familyrules.gui.bff
 
+import kotlinx.datetime.DayOfWeek
 import org.springframework.stereotype.Service
+import pl.zarajczyk.familyrules.shared.DEFAULT_STATE
 import pl.zarajczyk.familyrules.shared.DailyScheduleDto
-import pl.zarajczyk.familyrules.shared.Day
 import pl.zarajczyk.familyrules.shared.PeriodDto
 import pl.zarajczyk.familyrules.shared.WeeklyScheduleDto
 
@@ -29,18 +30,18 @@ class SchedulePacker {
             schedule = schedule.mapValues { (_, daily) ->
                 val updatedPeriods = mutableListOf<PeriodDto>()
                 if (daily.periods.isEmpty()) {
-                    updatedPeriods.add(PeriodDto(0, MAX, "ACTIVE"))
+                    updatedPeriods.add(PeriodDto(0, MAX, DEFAULT_STATE))
                 } else {
                     var previousToSeconds: Long = 0
                     daily.periods.forEach { period ->
                         if (period.fromSeconds > previousToSeconds) {
-                            updatedPeriods.add(PeriodDto(previousToSeconds, period.fromSeconds, "ACTIVE"))
+                            updatedPeriods.add(PeriodDto(previousToSeconds, period.fromSeconds, DEFAULT_STATE))
                         }
                         updatedPeriods.add(period)
                         previousToSeconds = period.toSeconds
                     }
                     if (daily.periods.last().toSeconds < MAX)
-                        updatedPeriods.add(PeriodDto(daily.periods.last().toSeconds, MAX, "ACTIVE"))
+                        updatedPeriods.add(PeriodDto(daily.periods.last().toSeconds, MAX, DEFAULT_STATE))
                 }
                 DailyScheduleDto(updatedPeriods)
             }
@@ -49,7 +50,7 @@ class SchedulePacker {
 
     fun WeeklyScheduleDto.addEmptyWeekDays(): WeeklyScheduleDto {
         val updatedSchedule = schedule.toMutableMap()
-        Day.entries.forEach { day ->
+        DayOfWeek.entries.forEach { day ->
             if (!updatedSchedule.containsKey(day)) {
                 updatedSchedule[day] = DailyScheduleDto(emptyList())
             }
@@ -73,7 +74,7 @@ class SchedulePacker {
 
     fun WeeklyScheduleDto.removeActivePeriods(): WeeklyScheduleDto {
         return WeeklyScheduleDto(schedule.mapValues { (_, daily) ->
-            val filteredPeriods = daily.periods.filter { it.deviceState != "ACTIVE" }
+            val filteredPeriods = daily.periods.filter { it.deviceState != DEFAULT_STATE }
             DailyScheduleDto(filteredPeriods)
         })
     }
