@@ -131,6 +131,7 @@ class DbConnector(private val schedulePacker: SchedulePacker) {
             it[Instances.instanceName] = instanceName
             it[Instances.instanceTokenSha256] = instanceToken.sha256()
             it[Instances.clientType] = clientType
+            it[Instances.clientVersion] = "v0"
             it[Instances.schedule] = schedulePacker.pack(WeeklyScheduleDto.empty())
         }
         return NewInstanceDto(instanceId, instanceToken)
