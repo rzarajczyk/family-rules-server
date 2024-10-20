@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.*
 import org.springframework.web.server.ResponseStatusException
 import pl.zarajczyk.familyrules.shared.*
 import java.time.DayOfWeek
+import java.util.Base64
 
 @RestController
 class BffOverviewController(
@@ -15,6 +16,15 @@ class BffOverviewController(
     private val scheduleUpdater: ScheduleUpdater,
     private val stateService: StateService
 ) {
+
+    companion object {
+        private val DEFAULT_ICON = Icon(
+            type = "image/png",
+            data = Base64.getEncoder().encodeToString(
+                BffOverviewController::class.java.getResourceAsStream("/default-icon.png")!!.readAllBytes()
+            )
+        )
+    }
 
     @GetMapping("/bff/status")
     fun status(
@@ -47,11 +57,18 @@ class BffOverviewController(
                     .firstOrNull { it.deviceState == state.automaticState }
                     ?.toDeviceStateDescription()
                     ?: throw RuntimeException("Instance ≪${instance.name}≫ doesn't have automatic state ≪${state.automaticState}≫"),
-                online = appUsageMap.maxOfOrNull { (_, v) -> v.updatedAt }?.isOnline() ?: false
+                online = appUsageMap.maxOfOrNull { (_, v) -> v.updatedAt }?.isOnline() ?: false,
+                icon = instance.getIcon()
             )
         })
     } catch (e: InvalidPassword) {
         throw ResponseStatusException(HttpStatus.FORBIDDEN)
+    }
+
+    private fun InstanceDto.getIcon() = if (iconType != null && iconData != null) {
+        Icon(type = iconType, data = iconData)
+    } else {
+        DEFAULT_ICON
     }
 
     @GetMapping("/bff/instance-info")
@@ -84,7 +101,8 @@ class BffOverviewController(
 
         val instance = dbConnector.getInstance(instanceId) ?: throw RuntimeException("Instance not found $instanceId")
         return InstanceEditInfo(
-            instanceName = instance.name
+            instanceName = instance.name,
+            icon = instance.getIcon()
         )
     }
 
@@ -98,11 +116,19 @@ class BffOverviewController(
         val auth = authHeader.decodeBasicAuth()
         dbConnector.validateOneTimeToken(auth.user, auth.pass, seed)
 
-        dbConnector.updateInstanceName(instanceId, data.instanceName)
+        dbConnector.updateInstance(
+            instanceId, UpdateInstanceDto(
+                instanceId = instanceId,
+                name = data.instanceName,
+                iconType = data.icon.type,
+                iconData = data.icon.data
+            )
+        )
     }
 
     data class InstanceEditInfo(
-        val instanceName: String
+        val instanceName: String,
+        val icon: Icon
     )
 
     @GetMapping("/bff/instance-schedule")
@@ -269,11 +295,17 @@ data class StatusResponse(
 data class Instance(
     val instanceId: InstanceId,
     val instanceName: String,
+    val icon: Icon,
     val screenTimeSeconds: Long,
     val appUsageSeconds: List<AppUsage>,
     val automaticDeviceState: DeviceStateDescription,
     val forcedDeviceState: DeviceStateDescription?,
     val online: Boolean
+)
+
+data class Icon(
+    val type: String,
+    val data: String
 )
 
 data class AppUsage(

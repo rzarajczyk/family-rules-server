@@ -100,22 +100,66 @@ document.addEventListener("DOMContentLoaded", (event) => {
                     .then(([tpl, data]) => {
                         let content = document.querySelector("#instance-edit-modal .modal-content")
                         content.innerHTML = tpl(data)
+                        document.querySelectorAll('.file-field input[type="file"]').forEach((fileInput) => {
+                            M.Forms.InitFileInputPath(fileInput);
+                        });
                     })
+            }
+
+            function submitClientEdit(instanceId, instanceName, iconType, iconData) {
+                ServerRequest.fetch(`/bff/instance-edit-info?instanceId=${instanceId}`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        instanceName,
+                        icon: {
+                            type: iconType,
+                            data: iconData
+                        }
+                    })
+                }).then(response => {
+                    M.toast({text: "Saved"})
+                    M.Modal.getInstance(document.querySelector("#instance-edit-modal")).close()
+                    update()
+                })
+
             }
 
             function onClientEditSaveClicked() {
                 let content = document.querySelector("#instance-edit-modal .modal-content")
                 let instanceId = content.dataset['instanceid']
                 let instanceName = document.querySelector("#instance-name").value
-                ServerRequest.fetch(`/bff/instance-edit-info?instanceId=${instanceId}`, {
-                    method: 'POST',
-                    body: JSON.stringify({ instanceName })
-                }).then(response => {
-                    M.toast({text: "Saved"})
-                    M.Modal.getInstance(document.querySelector("#instance-edit-modal")).close()
-                    update()
-                })
+                let iconFile = document.querySelector("#instance-icon").files[0]
+                if (iconFile) {
+                    resizeImage(iconFile, (iconData) => {
+                        submitClientEdit(instanceId, instanceName, iconFile.type, iconData)
+                    })
+                } else {
+                    submitClientEdit(instanceId, instanceName, null, null)
+                }
             }
+
+function resizeImage(file, onResize, width = 64, height = 64) {
+    let reader = new FileReader();
+    reader.onload = function(event) {
+        let img = new Image();
+        img.onload = function() {
+            let canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            let ctx = canvas.getContext('2d');
+
+            // Improve image quality by using a higher quality interpolation algorithm
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+
+            ctx.drawImage(img, 0, 0, width, height);
+            let resizedBase64 = canvas.toDataURL(file.type).split(',')[1];
+            onResize(resizedBase64);
+        }
+        img.src = event.target.result;
+    }
+    reader.readAsDataURL(file);
+}
 
             function onEditScheduleClicked(e) {
                 openModal({

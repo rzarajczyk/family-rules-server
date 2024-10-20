@@ -1,6 +1,7 @@
 <li class="instance-details" data-instanceid="{{instanceId}}">
     <div class="collapsible-header">
-        <i class="material-icons">devices</i>
+        <img src="data:{{icon.type}};base64,{{icon.data}}" alt="Device" class="circle image-icon">
+<!--        <i class="material-icons">devices</i>-->
         <div class="instance-name">
             <span>{{instanceName}}</span>
             <span class="new badge screen-time" data-badge-caption="">{{#formatScreenTime}}{{screenTimeSeconds}}{{/formatScreenTime}}</span>

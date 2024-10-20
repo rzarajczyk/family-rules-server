@@ -38,6 +38,8 @@ class DbConnector(private val schedulePacker: SchedulePacker) {
             text("forced_device_state").nullable() //(text("forced_device_state") references DeviceStates.deviceState).nullable()
         val clientVersion: Column<String> = text("client_version")
         val schedule: Column<WeeklyScheduleDto> = jsonb<WeeklyScheduleDto>("schedule", Json.Default)
+        val iconData: Column<String?> = text("icon_data").nullable()
+        val iconType: Column<String?> = text("icon_type").nullable()
 
         override val primaryKey = PrimaryKey(instanceId)
     }
@@ -166,7 +168,9 @@ class DbConnector(private val schedulePacker: SchedulePacker) {
                 forcedDeviceState = it[Instances.forcedDeviceState],
                 clientVersion = it[Instances.clientVersion],
                 clientType = it[Instances.clientType],
-                schedule = schedulePacker.unpack(it[Instances.schedule])
+                schedule = schedulePacker.unpack(it[Instances.schedule]),
+                iconData = it[Instances.iconData],
+                iconType = it[Instances.iconType]
             )
         }
 
@@ -180,14 +184,18 @@ class DbConnector(private val schedulePacker: SchedulePacker) {
                 forcedDeviceState = it[Instances.forcedDeviceState],
                 clientVersion = it[Instances.clientVersion],
                 clientType = it[Instances.clientType],
-                schedule = schedulePacker.unpack(it[Instances.schedule])
+                schedule = schedulePacker.unpack(it[Instances.schedule]),
+                iconData = it[Instances.iconData],
+                iconType = it[Instances.iconType]
             )
         }
         .firstOrNull()
 
-    fun updateInstanceName(instanceId: InstanceId, newName: String) {
+    fun updateInstance(instanceId: InstanceId, update: UpdateInstanceDto) {
         Instances.update({ Instances.instanceId eq instanceId }) {
-            it[Instances.instanceName] = newName
+            it[Instances.instanceName] = update.name
+            it[Instances.iconData] = update.iconData
+            it[Instances.iconType] = update.iconType
         }
     }
 
@@ -289,7 +297,16 @@ data class InstanceDto(
     val forcedDeviceState: DeviceState?,
     val clientType: String,
     val clientVersion: String,
-    val schedule: WeeklyScheduleDto
+    val schedule: WeeklyScheduleDto,
+    val iconData: String? = null,
+    val iconType: String? = null
+)
+
+data class UpdateInstanceDto(
+    val instanceId: InstanceId,
+    val name: String,
+    val iconData: String?,
+    val iconType: String?
 )
 
 typealias DeviceState = String
@@ -323,7 +340,3 @@ data class PeriodDto(
     val toSeconds: Long,
     val deviceState: DeviceState
 )
-//
-//enum class Day {
-//    MON, TUE, WED, THU, FRI, SAT, SUN
-//}
