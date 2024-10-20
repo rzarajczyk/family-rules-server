@@ -26,6 +26,12 @@ document.addEventListener("DOMContentLoaded", (event) => {
                 instances.querySelectorAll(".instance-buttons a.client-info").forEach(it => {
                     it.addEventListener('click', onClientInfoClicked)
                 })
+                instances.querySelectorAll(".instance-buttons a.client-edit").forEach(it => {
+                    it.addEventListener('click', onClientEditClicked)
+                })
+                document.querySelectorAll("#instance-edit-save").forEach(it => {
+                    it.addEventListener('click', onClientEditSaveClicked)
+                })
                 instances.querySelectorAll("a.edit-schedule").forEach(it => {
                     it.addEventListener('click', onEditScheduleClicked)
                 })
@@ -84,6 +90,33 @@ document.addEventListener("DOMContentLoaded", (event) => {
                     })
             }
 
+            function onClientEditClicked(e) {
+                openModal({
+                    e: e,
+                    selector: "#instance-edit-modal",
+                    templateUrl: "./index-edit.handlebars",
+                    detailsUrlBuilder: instanceId => `/bff/instance-edit-info?instanceId=${instanceId}`
+                })
+                    .then(([tpl, data]) => {
+                        let content = document.querySelector("#instance-edit-modal .modal-content")
+                        content.innerHTML = tpl(data)
+                    })
+            }
+
+            function onClientEditSaveClicked() {
+                let content = document.querySelector("#instance-edit-modal .modal-content")
+                let instanceId = content.dataset['instanceid']
+                let instanceName = document.querySelector("#instance-name").value
+                ServerRequest.fetch(`/bff/instance-edit-info?instanceId=${instanceId}`, {
+                    method: 'POST',
+                    body: JSON.stringify({ instanceName })
+                }).then(response => {
+                    M.toast({text: "Saved"})
+                    M.Modal.getInstance(document.querySelector("#instance-edit-modal")).close()
+                    update()
+                })
+            }
+
             function onEditScheduleClicked(e) {
                 openModal({
                     e: e,
@@ -121,5 +154,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
             }
 
             update()
+
+            window.update = update
     })
 });

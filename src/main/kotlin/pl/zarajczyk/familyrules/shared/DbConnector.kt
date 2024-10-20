@@ -185,6 +185,12 @@ class DbConnector(private val schedulePacker: SchedulePacker) {
         }
         .firstOrNull()
 
+    fun updateInstanceName(instanceId: InstanceId, newName: String) {
+        Instances.update({ Instances.instanceId eq instanceId }) {
+            it[Instances.instanceName] = newName
+        }
+    }
+
     fun getScreenTimes(id: InstanceId, day: LocalDate): Map<String, ScreenTimeDto> = ScreenTimes
         .select(ScreenTimes.app, ScreenTimes.screenTimeSeconds, ScreenTimes.updatedAt)
         .where { (ScreenTimes.instanceId eq id) and (ScreenTimes.day eq day) }

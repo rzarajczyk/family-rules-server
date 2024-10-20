@@ -73,6 +73,38 @@ class BffOverviewController(
         )
     }
 
+    @GetMapping("/bff/instance-edit-info")
+    fun getInstanceEditInfo(
+        @RequestParam("instanceId") instanceId: InstanceId,
+        @RequestHeader("x-seed") seed: String,
+        @RequestHeader("Authorization") authHeader: String
+    ): InstanceEditInfo {
+        val auth = authHeader.decodeBasicAuth()
+        dbConnector.validateOneTimeToken(auth.user, auth.pass, seed)
+
+        val instance = dbConnector.getInstance(instanceId) ?: throw RuntimeException("Instance not found $instanceId")
+        return InstanceEditInfo(
+            instanceName = instance.name
+        )
+    }
+
+    @PostMapping("/bff/instance-edit-info")
+    fun setInstanceEditInfo(
+        @RequestParam("instanceId") instanceId: InstanceId,
+        @RequestHeader("x-seed") seed: String,
+        @RequestHeader("Authorization") authHeader: String,
+        @RequestBody data: InstanceEditInfo
+    ) {
+        val auth = authHeader.decodeBasicAuth()
+        dbConnector.validateOneTimeToken(auth.user, auth.pass, seed)
+
+        dbConnector.updateInstanceName(instanceId, data.instanceName)
+    }
+
+    data class InstanceEditInfo(
+        val instanceName: String
+    )
+
     @GetMapping("/bff/instance-schedule")
     fun getInstanceSchedule(
         @RequestParam("instanceId") instanceId: InstanceId,
