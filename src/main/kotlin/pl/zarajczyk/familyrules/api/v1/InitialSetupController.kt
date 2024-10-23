@@ -9,7 +9,7 @@ import pl.zarajczyk.familyrules.shared.*
 @RestController
 class InitialSetupController(private val dbConnector: DbConnector) {
 
-    @PostMapping(value = ["/api/register-instance", "/api/v1/register-instance"])
+    @PostMapping(value = ["/api/v1/register-instance"])
     fun registerInstance(
         @RequestBody data: RegisterInstanceRequest,
         @RequestHeader("Authorization") authHeader: String
@@ -30,7 +30,7 @@ class InitialSetupController(private val dbConnector: DbConnector) {
         RegisterInstanceResponse(RegisterInstanceStatus.ILLEGAL_INSTANCE_NAME)
     }
 
-    @PostMapping(value = ["/api/unregister-instance", "/api/v1/unregister-instance"])
+    @PostMapping(value = ["/api/v1/unregister-instance"])
     fun unregisterInstance(
         @RequestBody data: UnregisterInstanceRequest,
         @RequestHeader("Authorization") authHeader: String

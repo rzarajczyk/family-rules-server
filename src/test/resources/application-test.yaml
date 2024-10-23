@@ -1,0 +1,13 @@
+spring:
+  datasource:
+    url: ${DB_URL}
+    driverClassName: org.postgresql.Driver
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+  exposed:
+    show-sql: true
+
+database-initialization:
+  enabled: true
+  username: admin
+  password: admin

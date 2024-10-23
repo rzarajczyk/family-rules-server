@@ -27,26 +27,17 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter")
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
+    implementation("org.springframework.boot:spring-boot-starter-websocket")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     implementation("io.micrometer:micrometer-registry-prometheus")
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
-    testImplementation("org.springframework.boot:spring-boot-starter-test")
-    testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
-    testImplementation("io.kotest:kotest-assertions-core:5.6.0")
-    testImplementation(kotlin("test"))
-
-//    implementation("org.jetbrains.exposed:exposed-core:$exposedVersion")
-//    implementation("org.jetbrains.exposed:exposed-crypt:$exposedVersion")
-//    implementation("org.jetbrains.exposed:exposed-dao:$exposedVersion")
-//    implementation("org.jetbrains.exposed:exposed-jdbc:$exposedVersion")
     implementation("org.jetbrains.exposed:exposed-kotlin-datetime:$exposedVersion")
     implementation("org.jetbrains.exposed:exposed-json:$exposedVersion")
-//    implementation("org.jetbrains.exposed:exposed-json:$exposedVersion")
-//    implementation("org.jetbrains.exposed:exposed-money:$exposedVersion")
     implementation("org.jetbrains.exposed:exposed-spring-boot-starter:$exposedVersion")
     implementation("org.postgresql:postgresql:42.7.3")
+
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 
 //    If you experience strange network problems on MacOS, uncomment this
 //    implementation(
@@ -55,6 +46,14 @@ dependencies {
 //        version = "4.1.86.Final",
 //        classifier = "osx-aarch_64"
 //    )
+
+    testImplementation("org.springframework.boot:spring-boot-starter-test")
+    testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
+    testImplementation("io.kotest:kotest-assertions-core:5.6.0")
+    testImplementation(kotlin("test"))
+    testImplementation("org.testcontainers:testcontainers:1.20.0")
+    testImplementation("org.testcontainers:junit-jupiter:1.20.0")
+    testImplementation("org.testcontainers:postgresql:1.20.0")
 }
 
 kotlin {

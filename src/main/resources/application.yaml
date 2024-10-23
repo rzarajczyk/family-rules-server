@@ -10,6 +10,10 @@ spring:
   exposed:
     show-sql: false
 
+database-initialization:
+  enabled: true
+  username: ${ADMIN_USER:admin}
+  password: ${ADMIN_PASS:admin}
 
 management:
   endpoints:
