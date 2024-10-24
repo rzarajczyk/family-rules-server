@@ -23,8 +23,18 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
 
+      - name: Run Unit Tests
+        run: ./gradlew test integrationTest
+
+      - name: Upload Test Results
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-results
+          path: build/reports/tests/test  # Adjust the path to your test report directory
+
       - name: Run the Gradle build
         run: ./gradlew clean build
+
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
