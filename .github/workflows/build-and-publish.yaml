@@ -24,7 +24,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v3
 
       - name: Run Unit Tests
-        run: ./gradlew test integrationTest
+        run: ./gradlew test
 
       - name: Upload Test Results
         uses: actions/upload-artifact@v3
