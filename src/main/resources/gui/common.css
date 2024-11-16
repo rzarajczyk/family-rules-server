@@ -4,6 +4,15 @@ nav .brand-logo {
     text-wrap: nowrap;
 }
 
+nav .clock {
+    margin-right: 2rem;
+}
+
+
+.sidenav .clock {
+}
+
+
 @media only screen and (max-width: 992.99px) {
     nav .brand-logo {
         padding: 0;
