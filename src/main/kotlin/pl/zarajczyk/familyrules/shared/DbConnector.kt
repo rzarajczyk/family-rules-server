@@ -37,6 +37,7 @@ class DbConnector(private val schedulePacker: SchedulePacker) {
         val forcedDeviceState: Column<DeviceState?> =
             text("forced_device_state").nullable() //(text("forced_device_state") references DeviceStates.deviceState).nullable()
         val clientVersion: Column<String> = text("client_version")
+        val clientTimezoneOffsetSeconds: Column<Int> = integer("client_timezone_offset_seconds")
         val schedule: Column<WeeklyScheduleDto> = jsonb<WeeklyScheduleDto>("schedule", Json.Default)
         val iconData: Column<String?> = text("icon_data").nullable()
         val iconType: Column<String?> = text("icon_type").nullable()
@@ -221,8 +222,11 @@ class DbConnector(private val schedulePacker: SchedulePacker) {
         }
     }
 
-    fun updateClientVersion(id: InstanceId, version: String) = Instances
-        .update({ Instances.instanceId eq id }) { it[Instances.clientVersion] = version }
+    fun updateClientInformation(id: InstanceId, version: String, timezoneOffsetSeconds: Int) = Instances
+        .update({ Instances.instanceId eq id }) {
+            it[Instances.clientVersion] = version
+            it[Instances.clientTimezoneOffsetSeconds] = timezoneOffsetSeconds
+        }
 
     fun getAvailableDeviceStates(id: InstanceId) = DeviceStates
         .select(DeviceStates.deviceState, DeviceStates.title, DeviceStates.icon, DeviceStates.description)

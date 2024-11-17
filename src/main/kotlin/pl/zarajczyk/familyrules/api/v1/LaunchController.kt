@@ -17,7 +17,7 @@ class LaunchController(private val dbConnector: DbConnector) {
         val instanceId = InstanceId.fromString(request.instanceId)
         dbConnector.validateInstanceToken(auth.user, instanceId, auth.pass)
 
-        dbConnector.updateClientVersion(instanceId, request.version)
+        dbConnector.updateClientInformation(instanceId, request.version, request.timezoneOffsetSeconds)
         dbConnector.updateAvailableDeviceStates(instanceId, request.availableStates.map { it.toDto() })
     }
 
@@ -32,7 +32,8 @@ class LaunchController(private val dbConnector: DbConnector) {
 data class LaunchRequest(
     val instanceId: String,
     val version: String,
-    val availableStates: List<AvailableDeviceState>
+    val availableStates: List<AvailableDeviceState>,
+    val timezoneOffsetSeconds: Int = 0
 )
 
 data class AvailableDeviceState(
