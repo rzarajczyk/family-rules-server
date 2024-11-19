@@ -12,6 +12,7 @@ import org.jetbrains.exposed.sql.SqlExpressionBuilder.notInList
 import org.jetbrains.exposed.sql.json.jsonb
 import org.jetbrains.exposed.sql.kotlin.datetime.date
 import org.jetbrains.exposed.sql.kotlin.datetime.timestamp
+import org.jetbrains.exposed.sql.transactions.transaction
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import pl.zarajczyk.familyrules.gui.bff.SchedulePacker
@@ -103,18 +104,18 @@ class DbConnector(private val schedulePacker: SchedulePacker) {
     fun validateInstanceToken(username: String, instanceName: String, instanceToken: String): InstanceId {
         val rows = Instances.select(Instances.instanceId)
             .where { (Instances.username eq username) and (Instances.instanceName eq instanceName) and (Instances.instanceTokenSha256 eq instanceToken.sha256()) }
-        if (rows.count() == 0L)
-            throw InvalidPassword()
-        return rows.first()[Instances.instanceId]
+        return rows.firstOrNull()
+            ?.get(Instances.instanceId)
+            ?: throw InvalidPassword()
     }
 
     @Throws(InvalidPassword::class)
     fun validateInstanceToken(username: String, instanceId: InstanceId, instanceToken: String): InstanceId {
         val rows = Instances.select(Instances.instanceId)
             .where { (Instances.username eq username) and (Instances.instanceId eq instanceId) and (Instances.instanceTokenSha256 eq instanceToken.sha256()) }
-        if (rows.count() == 0L)
-            throw InvalidPassword()
-        return rows.first()[Instances.instanceId]
+        return rows.firstOrNull()
+            ?.get(Instances.instanceId)
+            ?: throw InvalidPassword()
     }
 
     @Throws(IllegalInstanceName::class, InstanceAlreadyExists::class)
@@ -147,14 +148,12 @@ class DbConnector(private val schedulePacker: SchedulePacker) {
         applicationsSeconds: Map<String, Long>
     ) {
         val total = applicationsSeconds + mapOf(TOTAL_TIME to screenTimeSeconds)
-        total.forEach { (app, seconds) ->
-            ScreenTimes.upsert {
-                it[ScreenTimes.instanceId] = instanceId
-                it[ScreenTimes.day] = day
-                it[ScreenTimes.screenTimeSeconds] = seconds
-                it[ScreenTimes.app] = app
-                it[ScreenTimes.updatedAt] = Clock.System.now()
-            }
+        ScreenTimes.batchUpsert(total.entries) { (app, seconds) ->
+            this[ScreenTimes.instanceId] = instanceId
+            this[ScreenTimes.day] = day
+            this[ScreenTimes.screenTimeSeconds] = seconds
+            this[ScreenTimes.app] = app
+            this[ScreenTimes.updatedAt] = Clock.System.now()
         }
     }
 
