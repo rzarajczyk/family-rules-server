@@ -6,6 +6,32 @@ document.addEventListener("DOMContentLoaded", (event) => {
         document.cookie = `${name}=${encodeURIComponent(value)}; path=/;`;
     }
 
+    function setOneWeekCookie(name, value) {
+        const expirationDate = new Date();
+        expirationDate.setDate(expirationDate.getDate() + 7); // Add 7 days for one week
+
+        document.cookie = `${name}=${encodeURIComponent(value)}; path=/; expires=${expirationDate.toUTCString()}`;
+    }
+
+    function getCookie(name) {
+        let cookies = document.cookie.split(';');
+        for (let cookie of cookies) {
+            let [cookieName, cookieValue] = cookie.trim().split('=');
+            if (cookieName === name) {
+                return decodeURIComponent(cookieValue);
+            }
+        }
+        return null;
+    }
+
+    let username = getCookie("fr_username")
+    let token = getCookie("fr_token")
+    let seed = getCookie("fr_seed")
+
+    if (username && token && seed) {
+        location.href = "/gui/index.html"
+    }
+
     document.querySelector("#login").addEventListener("click", () => {
         let username = document.querySelector("#username").value
         let password = document.querySelector("#password").value
@@ -21,9 +47,9 @@ document.addEventListener("DOMContentLoaded", (event) => {
         .then(response => response.json())
         .then(response => {
             if (response.success) {
-                setSessionCookie("fr_username", username)
-                setSessionCookie("fr_token", response.token)
-                setSessionCookie("fr_seed", response.seed)
+                setOneWeekCookie("fr_username", username)
+                setOneWeekCookie("fr_token", response.token)
+                setOneWeekCookie("fr_seed", response.seed)
                 location.href = "/gui/index.html"
             } else {
                 alert('Invalid username/password')
