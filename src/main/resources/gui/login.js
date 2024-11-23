@@ -13,6 +13,10 @@ document.addEventListener("DOMContentLoaded", (event) => {
         document.cookie = `${name}=${encodeURIComponent(value)}; path=/; expires=${expirationDate.toUTCString()}`;
     }
 
+    function deleteCookie(name) {
+            document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC`;
+    }
+
     function getCookie(name) {
         let cookies = document.cookie.split(';');
         for (let cookie of cookies) {
@@ -23,6 +27,14 @@ document.addEventListener("DOMContentLoaded", (event) => {
         }
         return null;
     }
+
+    let logout = new URLSearchParams(window.location.search).get('logout')
+    if (logout) {
+            deleteCookie("fr_username");
+            deleteCookie("fr_token");
+            deleteCookie("fr_seed");
+    }
+
 
     let username = getCookie("fr_username")
     let token = getCookie("fr_token")
