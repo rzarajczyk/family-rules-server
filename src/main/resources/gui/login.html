@@ -16,6 +16,27 @@
         .input-field {
             margin-top: 2em;
         }
+
+        #logged-out {
+            background-color: green;
+        }
+        #error {
+            background-color: red;
+        }
+        .message {
+            display: none;
+            padding-left: 1rem;
+            border-radius: 1rem;
+            color: white;
+            line-height: 6rem;
+            height: 6rem;
+            margin-top: 2rem;
+        }
+        .message i {
+            margin-left: 0;
+            margin-right: 1rem;
+            margin-top: 1rem;
+        }
     </style>
     <!--Let browser know website is optimized for mobile-->
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -23,32 +44,30 @@
     <link rel="icon" type="image/png" href="icon.png">
 </head>
 <body>
-<!--<header>-->
-<!--    <div class="navbar-fixed">-->
-<!--        <nav class="primary">-->
-<!--            <div class="nav-wrapper">-->
-<!--                <a href="#" class="brand-logo center">Family Rules</a>-->
-<!--            </div>-->
-<!--        </nav>-->
-<!--    </div>-->
-<!--</header>-->
+
 <div class="container">
     <div class="row">
         <div class="col s6">
             <img class="responsive-img" src="icon.png">
         </div>
         <div class="col s6 valign-wrapper">
-            <form>
+            <form action="/bff/security-login" method="post">
+                <div id="logged-out" class="message">
+                    <i class="left medium material-icons">logout</i> You have been logged out!
+                </div>
+                <div id="error" class="message">
+                    <i class="left medium material-icons">error</i> Incorrect username or password!
+                </div>
                 <div class="input-field">
-                    <input id="username" type="text" placeholder=" " maxlength="120">
+                    <input name="username" id="username" type="text" placeholder=" " maxlength="120">
                     <label for="username">Username</label>
                 </div>
                 <div class="input-field">
-                    <input id="password" type="password" placeholder=" " maxlength="120">
+                    <input name="password" id="password" type="password" placeholder=" " maxlength="120">
                     <label for="password">Password</label>
                 </div>
                 <div class="input-field">
-                    <a id="login" class="btn filled">Login</a>
+                    <button class="btn filled waves-effect waves-light" type="submit">Login</button>
                 </div>
             </form>
         </div>

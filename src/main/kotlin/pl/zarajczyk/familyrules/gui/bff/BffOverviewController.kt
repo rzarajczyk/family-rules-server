@@ -4,6 +4,7 @@ import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
 import org.springframework.http.HttpStatus
+import org.springframework.security.core.Authentication
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.server.ResponseStatusException
 import pl.zarajczyk.familyrules.shared.*
@@ -29,14 +30,10 @@ class BffOverviewController(
     @GetMapping("/bff/status")
     fun status(
         @RequestParam("date") date: String,
-        @RequestHeader("x-seed") seed: String,
-        @RequestHeader("Authorization") authHeader: String
+        authentication: Authentication,
     ): StatusResponse = try {
         val day = LocalDate.parse(date)
-        val auth = authHeader.decodeBasicAuth()
-        dbConnector.validateOneTimeToken(auth.user, auth.pass, seed)
-
-        val instances = dbConnector.getInstances(auth.user)
+        val instances = dbConnector.getInstances(authentication.name)
         StatusResponse(instances.map { instance ->
             val appUsageMap = dbConnector.getScreenTimes(instance.id, day)
             val state = stateService.getDeviceState(instance)
@@ -73,13 +70,8 @@ class BffOverviewController(
 
     @GetMapping("/bff/instance-info")
     fun getInstanceInfo(
-        @RequestParam("instanceId") instanceId: InstanceId,
-        @RequestHeader("x-seed") seed: String,
-        @RequestHeader("Authorization") authHeader: String
+        @RequestParam("instanceId") instanceId: InstanceId
     ): InstanceInfoResponse {
-        val auth = authHeader.decodeBasicAuth()
-        dbConnector.validateOneTimeToken(auth.user, auth.pass, seed)
-
         val instance = dbConnector.getInstance(instanceId) ?: throw RuntimeException("Instance not found $instanceId")
         return InstanceInfoResponse(
             instanceId = instanceId,
@@ -92,13 +84,8 @@ class BffOverviewController(
 
     @GetMapping("/bff/instance-edit-info")
     fun getInstanceEditInfo(
-        @RequestParam("instanceId") instanceId: InstanceId,
-        @RequestHeader("x-seed") seed: String,
-        @RequestHeader("Authorization") authHeader: String
+        @RequestParam("instanceId") instanceId: InstanceId
     ): InstanceEditInfo {
-        val auth = authHeader.decodeBasicAuth()
-        dbConnector.validateOneTimeToken(auth.user, auth.pass, seed)
-
         val instance = dbConnector.getInstance(instanceId) ?: throw RuntimeException("Instance not found $instanceId")
         return InstanceEditInfo(
             instanceName = instance.name,
@@ -109,13 +96,8 @@ class BffOverviewController(
     @PostMapping("/bff/instance-edit-info")
     fun setInstanceEditInfo(
         @RequestParam("instanceId") instanceId: InstanceId,
-        @RequestHeader("x-seed") seed: String,
-        @RequestHeader("Authorization") authHeader: String,
         @RequestBody data: InstanceEditInfo
     ) {
-        val auth = authHeader.decodeBasicAuth()
-        dbConnector.validateOneTimeToken(auth.user, auth.pass, seed)
-
         dbConnector.updateInstance(
             instanceId, UpdateInstanceDto(
                 instanceId = instanceId,
@@ -133,13 +115,8 @@ class BffOverviewController(
 
     @GetMapping("/bff/instance-schedule")
     fun getInstanceSchedule(
-        @RequestParam("instanceId") instanceId: InstanceId,
-        @RequestHeader("x-seed") seed: String,
-        @RequestHeader("Authorization") authHeader: String
+        @RequestParam("instanceId") instanceId: InstanceId
     ): ScheduleResponse {
-        val auth = authHeader.decodeBasicAuth()
-        dbConnector.validateOneTimeToken(auth.user, auth.pass, seed)
-
         val instance = dbConnector.getInstance(instanceId) ?: throw RuntimeException("Instance not found $instanceId")
         val availableStates = dbConnector.getAvailableDeviceStates(instanceId)
         return ScheduleResponse(
@@ -184,13 +161,8 @@ class BffOverviewController(
     @PostMapping("/bff/instance-schedule/add-period")
     fun addInstanceSchedulePeriod(
         @RequestParam("instanceId") instanceId: InstanceId,
-        @RequestHeader("x-seed") seed: String,
-        @RequestHeader("Authorization") authHeader: String,
         @RequestBody data: AddPeriodRequest
     ) {
-        val auth = authHeader.decodeBasicAuth()
-        dbConnector.validateOneTimeToken(auth.user, auth.pass, seed)
-
         val instance = dbConnector.getInstance(instanceId) ?: throw RuntimeException("Instance not found $instanceId")
         val schedule = instance.schedule
         val period = PeriodDto(
@@ -223,13 +195,8 @@ class BffOverviewController(
 
     @GetMapping("/bff/instance-state")
     fun getInstanceState(
-        @RequestParam("instanceId") instanceId: InstanceId,
-        @RequestHeader("x-seed") seed: String,
-        @RequestHeader("Authorization") authHeader: String
+        @RequestParam("instanceId") instanceId: InstanceId
     ): InstanceStateResponse {
-        val auth = authHeader.decodeBasicAuth()
-        dbConnector.validateOneTimeToken(auth.user, auth.pass, seed)
-
         val instance = dbConnector.getInstance(instanceId) ?: throw RuntimeException("Instance not found $instanceId")
         return InstanceStateResponse(
             instanceId = instanceId,
@@ -242,13 +209,8 @@ class BffOverviewController(
     @PostMapping("/bff/instance-state")
     fun setInstanceState(
         @RequestParam("instanceId") instanceId: InstanceId,
-        @RequestHeader("x-seed") seed: String,
-        @RequestHeader("Authorization") authHeader: String,
         @RequestBody data: InstanceState
     ) {
-        val auth = authHeader.decodeBasicAuth()
-        dbConnector.validateOneTimeToken(auth.user, auth.pass, seed)
-
         dbConnector.setForcedInstanceState(instanceId, data.forcedDeviceState.emptyToNull())
     }
 

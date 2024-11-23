@@ -12,14 +12,26 @@ const ServerRequest = {
 
     fetch: function(url, options) {
         let headers = new Headers()
-        headers.set('Authorization', 'Basic ' + btoa(ServerRequest.getCookie("fr_username") + ":" + ServerRequest.getCookie("fr_token")))
-        headers.set('x-seed', ServerRequest.getCookie("fr_seed"))
+//        headers.set('Authorization', 'Basic ' + btoa(ServerRequest.getCookie("fr_username") + ":" + ServerRequest.getCookie("fr_token")))
+//        headers.set('x-seed', ServerRequest.getCookie("fr_seed"))
         headers.set('Content-Type', "application/json");
 
         return fetch(url, {
             method: options?.method ?? "GET",
             headers: headers,
-            body: options?.body
+            body: options?.body,
+            credentials: 'include',
+            redirect: 'manual'
+        }).then(response => {
+            if (response.type == 'opaqueredirect') {
+                window.location.href = "/logout"
+                return null
+            }
+            if (response.redirected) {
+                window.location.href = response.url
+                return null
+            }
+            return response
         })
     }
 }

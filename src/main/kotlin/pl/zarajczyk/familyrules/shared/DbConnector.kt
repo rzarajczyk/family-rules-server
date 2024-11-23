@@ -12,11 +12,11 @@ import org.jetbrains.exposed.sql.SqlExpressionBuilder.notInList
 import org.jetbrains.exposed.sql.json.jsonb
 import org.jetbrains.exposed.sql.kotlin.datetime.date
 import org.jetbrains.exposed.sql.kotlin.datetime.timestamp
-import org.jetbrains.exposed.sql.transactions.transaction
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import pl.zarajczyk.familyrules.gui.bff.SchedulePacker
 import java.util.*
+import kotlin.Throws
 
 @Service
 @Transactional
@@ -67,6 +67,17 @@ class DbConnector(private val schedulePacker: SchedulePacker) {
         override val primaryKey = PrimaryKey(instanceId, day, app)
     }
 
+    fun findUser(username: String): UserDto? = Users.selectAll()
+        .where { Users.username eq username }
+        .firstOrNull()
+        ?.let {
+            UserDto(
+                username = it[Users.username],
+                passwordSha256 = it[Users.passwordSha256]
+            )
+        }
+
+
     @Throws(InvalidPassword::class)
     fun validatePassword(username: String, password: String) {
         val count = Users.select(Users.username)
@@ -76,28 +87,7 @@ class DbConnector(private val schedulePacker: SchedulePacker) {
             throw InvalidPassword()
     }
 
-    @Throws(InvalidPassword::class)
-    fun validatePasswordAndCreateOneTimeToken(username: String, password: String, seed: String): String {
-        val user = Users.select(Users.passwordSha256)
-            .where { (Users.username eq username) and (Users.passwordSha256 eq password.sha256()) }
-        if (user.count() == 0L)
-            throw InvalidPassword()
-        return createOneTimeToken(user.first()[Users.passwordSha256], seed)
-    }
-
     private fun createOneTimeToken(passwordSha256: String, seed: String) = "${seed}/${passwordSha256}".sha256()
-
-    @Throws(InvalidPassword::class)
-    fun validateOneTimeToken(username: String, token: String, seed: String) {
-        val user = Users
-            .select(Users.passwordSha256)
-            .where { Users.username eq username }
-        if (user.count() == 0L)
-            throw InvalidPassword()
-        val expectedToken = createOneTimeToken(user.first()[Users.passwordSha256], seed)
-        if (expectedToken != token)
-            throw InvalidPassword()
-    }
 
     @Throws(InvalidPassword::class)
     @Deprecated("use instanceid")
@@ -283,6 +273,11 @@ class InvalidPassword : RuntimeException("Invalid password")
 class IllegalInstanceName(val instanceName: String) : RuntimeException("Instance $instanceName already exists")
 class InstanceAlreadyExists(val instanceName: String) :
     RuntimeException("Instance $instanceName has incorrect name")
+
+data class UserDto(
+    val username: String,
+    val passwordSha256: String
+)
 
 data class NewInstanceDto(
     val instanceId: InstanceId,

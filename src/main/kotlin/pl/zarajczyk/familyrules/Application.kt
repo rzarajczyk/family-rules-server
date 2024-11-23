@@ -7,7 +7,7 @@ import org.springframework.boot.runApplication
 
 @SpringBootApplication
 @ImportAutoConfiguration(
-    value = [ExposedAutoConfiguration::class],
+    value = [ExposedAutoConfiguration::class/*, SecurityConfig::class*/],
 //    exclude = [DataSourceTransactionManagerAutoConfiguration::class]
 )
 class Application
