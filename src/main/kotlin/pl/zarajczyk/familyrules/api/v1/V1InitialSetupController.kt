@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.RestController
 import pl.zarajczyk.familyrules.shared.*
 
 @RestController
-class InitialSetupController(private val dbConnector: DbConnector) {
+class V1InitialSetupController(private val dbConnector: DbConnector) {
 
     @PostMapping(value = ["/api/v1/register-instance"])
     fun registerInstance(

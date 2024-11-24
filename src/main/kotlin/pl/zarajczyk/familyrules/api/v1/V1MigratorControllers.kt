@@ -8,7 +8,7 @@ import pl.zarajczyk.familyrules.shared.DbConnector
 import pl.zarajczyk.familyrules.shared.decodeBasicAuth
 
 @RestController
-class MigratorControllers(private val dbConnector: DbConnector) {
+class V1MigratorControllers(private val dbConnector: DbConnector) {
 
     @PostMapping("/api/v1/migrator/get-instance-id")
     fun getInstanceId(

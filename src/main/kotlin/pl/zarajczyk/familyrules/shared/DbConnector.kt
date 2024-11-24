@@ -87,8 +87,6 @@ class DbConnector(private val schedulePacker: SchedulePacker) {
             throw InvalidPassword()
     }
 
-    private fun createOneTimeToken(passwordSha256: String, seed: String) = "${seed}/${passwordSha256}".sha256()
-
     @Throws(InvalidPassword::class)
     @Deprecated("use instanceid")
     fun validateInstanceToken(username: String, instanceName: String, instanceToken: String): InstanceId {
@@ -108,6 +106,13 @@ class DbConnector(private val schedulePacker: SchedulePacker) {
             ?: throw InvalidPassword()
     }
 
+    fun validateInstanceToken(instanceId: InstanceId, instanceToken: String): InstanceId? {
+        val rows = Instances.select(Instances.instanceId)
+            .where { (Instances.instanceId eq instanceId) and (Instances.instanceTokenSha256 eq instanceToken.sha256()) }
+        return rows.firstOrNull()
+            ?.get(Instances.instanceId)
+    }
+
     @Throws(IllegalInstanceName::class, InstanceAlreadyExists::class)
     fun setupNewInstance(username: String, instanceName: String, clientType: String): NewInstanceDto {
         if (instanceName.length < 3)
@@ -117,7 +122,10 @@ class DbConnector(private val schedulePacker: SchedulePacker) {
             .count()
         if (count > 0)
             throw InstanceAlreadyExists(instanceName)
-        val instanceId = UUID.randomUUID()
+        var instanceId: UUID
+        do {
+            instanceId = UUID.randomUUID()
+        } while (Instances.selectAll().where { Instances.instanceId eq instanceId }.count() > 0 )
         val instanceToken = UUID.randomUUID().toString()
         Instances.insert {
             it[Instances.username] = username
@@ -127,6 +135,7 @@ class DbConnector(private val schedulePacker: SchedulePacker) {
             it[Instances.clientType] = clientType
             it[Instances.clientVersion] = "v0"
             it[Instances.schedule] = schedulePacker.pack(WeeklyScheduleDto.empty())
+            it[Instances.clientTimezoneOffsetSeconds] = 0
         }
         return NewInstanceDto(instanceId, instanceToken)
     }

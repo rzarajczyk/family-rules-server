@@ -1,22 +1,16 @@
-package pl.zarajczyk.familyrules.api.v1
+package pl.zarajczyk.familyrules.api.v2
 
+import org.springframework.security.core.Authentication
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
-import org.springframework.web.bind.annotation.RequestHeader
 import org.springframework.web.bind.annotation.RestController
 import pl.zarajczyk.familyrules.shared.*
 
 @RestController
-class LaunchController(private val dbConnector: DbConnector) {
-    @PostMapping(value = ["/api/v1/launch"])
-    fun launch(
-        @RequestBody request: LaunchRequest,
-        @RequestHeader("Authorization") authHeader: String
-    ) {
-        val auth = authHeader.decodeBasicAuth()
-        val instanceId = InstanceId.fromString(request.instanceId)
-        dbConnector.validateInstanceToken(auth.user, instanceId, auth.pass)
-
+class V2LaunchController(private val dbConnector: DbConnector) {
+    @PostMapping(value = ["/api/v2/launch"])
+    fun launch(@RequestBody request: LaunchRequest, authentication: Authentication) {
+        val instanceId = authentication.principal as InstanceId
         dbConnector.updateClientInformation(instanceId, request.version, request.timezoneOffsetSeconds)
         dbConnector.updateAvailableDeviceStates(instanceId, request.availableStates.map { it.toDto() })
     }
@@ -30,7 +24,6 @@ class LaunchController(private val dbConnector: DbConnector) {
 }
 
 data class LaunchRequest(
-    val instanceId: String,
     val version: String,
     val availableStates: List<AvailableDeviceState>,
     val timezoneOffsetSeconds: Int = 0

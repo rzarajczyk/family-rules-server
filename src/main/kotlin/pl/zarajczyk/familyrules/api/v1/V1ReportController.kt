@@ -15,13 +15,10 @@ import org.springframework.web.socket.handler.TextWebSocketHandler
 import pl.zarajczyk.familyrules.shared.*
 
 @Component
-class ReportController(private val dbConnector: DbConnector, private val stateService: StateService) {
+class V1ReportController(private val dbConnector: DbConnector, private val stateService: StateService) {
 
     @RestController
-    inner class ReportRestController(
-        private val dbConnector: DbConnector,
-        private val stateService: StateService
-    ) {
+    inner class ReportRestController {
 
         @PostMapping(value = ["/api/v1/report"])
         fun report(
@@ -36,8 +33,6 @@ class ReportController(private val dbConnector: DbConnector, private val stateSe
 
     @Component
     inner class ReportWebSocketHandler(
-        private val dbConnector: DbConnector,
-        private val stateService: StateService,
         private val objectMapper: ObjectMapper
     ) : TextWebSocketHandler() {
 
