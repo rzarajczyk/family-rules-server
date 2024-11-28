@@ -31,7 +31,7 @@ class ApiV2FlowTest : AbstractIntegrationTest() {
     @Test
     fun `should register new instance`() {
         // when
-        val response = v2Client.registerInstance(name = "testInstance", type = "TEST_CLIENT")
+        val response = v2Client.registerInstance(name = "testInstanceV2", type = "TEST_CLIENT")
 
         // then
         response["status"] shouldBe "SUCCESS"
@@ -44,7 +44,7 @@ class ApiV2FlowTest : AbstractIntegrationTest() {
 
         // and
         val instance = db.findInstance(instanceId)
-        instance[Instances.instanceName] shouldBe "testInstance"
+        instance[Instances.instanceName] shouldBe "testInstanceV2"
         instance[Instances.clientType] shouldBe "TEST_CLIENT"
     }
 
@@ -183,7 +183,7 @@ class ApiV2FlowTest : AbstractIntegrationTest() {
 
     // ==================================================================================
 
-    inner class TestDbClient {
+    private inner class TestDbClient {
 
         fun findInstance(instanceId: InstanceId) = Instances
             .selectAll()

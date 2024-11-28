@@ -183,7 +183,7 @@ class ApiV1FlowTest : AbstractIntegrationTest() {
 
     // ==================================================================================
 
-    inner class TestDbClient {
+    private inner class TestDbClient {
 
         fun findInstance(instanceId: InstanceId) = Instances
             .selectAll()
