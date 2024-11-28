@@ -60,6 +60,11 @@ class SecurityConfig {
                     .requestMatchers("/gui/**").permitAll()
                     .anyRequest().authenticated()
             }
+            .rememberMe { rm ->
+                rm
+                    .key("remember-me")
+                    .rememberMeParameter("remember-me")
+            }
             .formLogin { form ->
                 form.loginPage("/gui/login.html")
                     .loginProcessingUrl("/bff/security-login")

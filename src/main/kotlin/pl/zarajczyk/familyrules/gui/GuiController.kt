@@ -16,7 +16,7 @@ import org.springframework.web.servlet.function.ServerRequest.Headers
 class GuiController {
 
     @GetMapping("/")
-    fun root(response: HttpServletResponse) = response.sendRedirect("/gui/login.html")
+    fun root(response: HttpServletResponse) = response.sendRedirect("/gui/index.html")
 
     @GetMapping("/gui/{file}")
     fun get(
