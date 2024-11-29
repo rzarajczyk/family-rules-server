@@ -78,7 +78,8 @@ class BffOverviewController(
             instanceName = instance.name,
             forcedDeviceState = instance.forcedDeviceState,
             clientType = instance.clientType,
-            clientVersion = instance.clientVersion
+            clientVersion = instance.clientVersion,
+            clientTimezoneOffsetSeconds = instance.clientTimezoneOffsetSeconds
         )
     }
 
@@ -239,8 +240,9 @@ data class InstanceInfoResponse(
     val instanceName: String,
     val forcedDeviceState: DeviceState?,
     val clientType: String,
-    val clientVersion: String
-)
+    val clientVersion: String,
+    val clientTimezoneOffsetSeconds: Int,
+    )
 
 data class DeviceStateDescription(
     val deviceState: DeviceState,

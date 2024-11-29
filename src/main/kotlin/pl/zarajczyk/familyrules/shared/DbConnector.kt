@@ -169,7 +169,8 @@ class DbConnector(private val schedulePacker: SchedulePacker) {
                 clientType = it[Instances.clientType],
                 schedule = schedulePacker.unpack(it[Instances.schedule]),
                 iconData = it[Instances.iconData],
-                iconType = it[Instances.iconType]
+                iconType = it[Instances.iconType],
+                clientTimezoneOffsetSeconds = it[Instances.clientTimezoneOffsetSeconds]
             )
         }
 
@@ -185,7 +186,8 @@ class DbConnector(private val schedulePacker: SchedulePacker) {
                 clientType = it[Instances.clientType],
                 schedule = schedulePacker.unpack(it[Instances.schedule]),
                 iconData = it[Instances.iconData],
-                iconType = it[Instances.iconType]
+                iconType = it[Instances.iconType],
+                clientTimezoneOffsetSeconds = it[Instances.clientTimezoneOffsetSeconds]
             )
         }
         .firstOrNull()
@@ -305,8 +307,9 @@ data class InstanceDto(
     val clientType: String,
     val clientVersion: String,
     val schedule: WeeklyScheduleDto,
+    val clientTimezoneOffsetSeconds: Int,
     val iconData: String? = null,
-    val iconType: String? = null
+    val iconType: String? = null,
 )
 
 data class UpdateInstanceDto(
