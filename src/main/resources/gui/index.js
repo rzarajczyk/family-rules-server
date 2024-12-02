@@ -149,7 +149,9 @@ document.addEventListener("DOMContentLoaded", (event) => {
                         submitClientEdit(instanceId, instanceName, iconFile.type, iconData)
                     })
                 } else {
-                    submitClientEdit(instanceId, instanceName, null, null)
+                    let iconType = document.querySelector('.edit-instance-data img').dataset['type']
+                    let iconData = document.querySelector('.edit-instance-data img').dataset['icon']
+                    submitClientEdit(instanceId, instanceName, iconType, iconData)
                 }
             }
 
