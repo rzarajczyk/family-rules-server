@@ -29,6 +29,9 @@ document.addEventListener("DOMContentLoaded", (event) => {
                 instances.querySelectorAll(".instance-buttons a.client-edit").forEach(it => {
                     it.addEventListener('click', onClientEditClicked)
                 })
+                instances.querySelectorAll(".instance-buttons a.client-delete").forEach(it => {
+                    it.addEventListener('click', onClientDeleteClicked)
+                })
                 document.querySelectorAll("#instance-edit-save").forEach(it => {
                     it.addEventListener('click', onClientEditSaveClicked)
                 })
@@ -104,6 +107,18 @@ document.addEventListener("DOMContentLoaded", (event) => {
                             M.Forms.InitFileInputPath(fileInput);
                         });
                     })
+            }
+
+            function onClientDeleteClicked(e) {
+                let instanceId = e.target.closest('.instance-details').dataset["instanceid"]
+                if (confirm("Are you sure?")) {
+                    ServerRequest.fetch(`/bff/delete-instance?instanceId=${instanceId}`, {
+                        method: 'POST',
+                    }).then(response => {
+                        M.toast({text: "Deleted"})
+                        update()
+                    })
+                }
             }
 
             function submitClientEdit(instanceId, instanceName, iconType, iconData) {

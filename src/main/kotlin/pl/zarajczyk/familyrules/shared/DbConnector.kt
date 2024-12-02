@@ -42,6 +42,7 @@ class DbConnector(private val schedulePacker: SchedulePacker) {
         val schedule: Column<WeeklyScheduleDto> = jsonb<WeeklyScheduleDto>("schedule", Json.Default)
         val iconData: Column<String?> = text("icon_data").nullable()
         val iconType: Column<String?> = text("icon_type").nullable()
+        val deleted: Column<Boolean> = bool("deleted").default(false)
 
         override val primaryKey = PrimaryKey(instanceId)
     }
@@ -87,28 +88,9 @@ class DbConnector(private val schedulePacker: SchedulePacker) {
             throw InvalidPassword()
     }
 
-    @Throws(InvalidPassword::class)
-    @Deprecated("use instanceid")
-    fun validateInstanceToken(username: String, instanceName: String, instanceToken: String): InstanceId {
-        val rows = Instances.select(Instances.instanceId)
-            .where { (Instances.username eq username) and (Instances.instanceName eq instanceName) and (Instances.instanceTokenSha256 eq instanceToken.sha256()) }
-        return rows.firstOrNull()
-            ?.get(Instances.instanceId)
-            ?: throw InvalidPassword()
-    }
-
-    @Throws(InvalidPassword::class)
-    fun validateInstanceToken(username: String, instanceId: InstanceId, instanceToken: String): InstanceId {
-        val rows = Instances.select(Instances.instanceId)
-            .where { (Instances.username eq username) and (Instances.instanceId eq instanceId) and (Instances.instanceTokenSha256 eq instanceToken.sha256()) }
-        return rows.firstOrNull()
-            ?.get(Instances.instanceId)
-            ?: throw InvalidPassword()
-    }
-
     fun validateInstanceToken(instanceId: InstanceId, instanceToken: String): InstanceId? {
         val rows = Instances.select(Instances.instanceId)
-            .where { (Instances.instanceId eq instanceId) and (Instances.instanceTokenSha256 eq instanceToken.sha256()) }
+            .where { (Instances.instanceId eq instanceId) and (Instances.instanceTokenSha256 eq instanceToken.sha256()) and (Instances.deleted eq false) }
         return rows.firstOrNull()
             ?.get(Instances.instanceId)
     }
@@ -118,14 +100,14 @@ class DbConnector(private val schedulePacker: SchedulePacker) {
         if (instanceName.length < 3)
             throw IllegalInstanceName(instanceName)
         val count = Instances.select(Instances.instanceId)
-            .where { (Instances.username eq username) and (Instances.instanceName eq instanceName) }
+            .where { (Instances.username eq username) and (Instances.instanceName eq instanceName) and (Instances.deleted eq false) }
             .count()
         if (count > 0)
             throw InstanceAlreadyExists(instanceName)
         var instanceId: UUID
         do {
             instanceId = UUID.randomUUID()
-        } while (Instances.selectAll().where { Instances.instanceId eq instanceId }.count() > 0 )
+        } while (Instances.selectAll().where { Instances.instanceId eq instanceId }.count() > 0)
         val instanceToken = UUID.randomUUID().toString()
         Instances.insert {
             it[Instances.username] = username
@@ -158,7 +140,7 @@ class DbConnector(private val schedulePacker: SchedulePacker) {
 
     fun getInstances(username: String) = Instances
         .selectAll()
-        .where { Instances.username eq username }
+        .where { (Instances.username eq username) and (Instances.deleted eq false) }
         .orderBy(Instances.instanceName)
         .map {
             InstanceDto(
@@ -176,7 +158,7 @@ class DbConnector(private val schedulePacker: SchedulePacker) {
 
     fun getInstance(instanceId: InstanceId) = Instances
         .selectAll()
-        .where { Instances.instanceId eq instanceId }
+        .where { (Instances.instanceId eq instanceId) and (Instances.deleted eq false) }
         .map {
             InstanceDto(
                 id = it[Instances.instanceId],
@@ -227,6 +209,12 @@ class DbConnector(private val schedulePacker: SchedulePacker) {
             it[Instances.clientVersion] = version
             it[Instances.clientTimezoneOffsetSeconds] = timezoneOffsetSeconds
         }
+
+    fun deleteInstance(instanceId: InstanceId) = Instances
+        .update({ Instances.instanceId eq instanceId }) {
+            it[deleted] = true
+        }
+
 
     fun getAvailableDeviceStates(id: InstanceId) = DeviceStates
         .select(DeviceStates.deviceState, DeviceStates.title, DeviceStates.icon, DeviceStates.description)

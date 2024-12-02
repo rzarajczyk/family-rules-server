@@ -215,6 +215,14 @@ class BffOverviewController(
         dbConnector.setForcedInstanceState(instanceId, data.forcedDeviceState.emptyToNull())
     }
 
+    @PostMapping("/bff/delete-instance")
+    fun deleteInstance(
+        @RequestParam("instanceId") instanceId: InstanceId
+    ) {
+        dbConnector.deleteInstance(instanceId)
+    }
+
+
     private fun Instant.isOnline() = (Clock.System.now() - this).inWholeSeconds <= 30
 
     private fun DescriptiveDeviceStateDto.toDeviceStateDescription() = DeviceStateDescription(
