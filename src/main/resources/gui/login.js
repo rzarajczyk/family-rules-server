@@ -8,4 +8,10 @@ document.addEventListener("DOMContentLoaded", (event) => {
     if (urlParams.has("error")) {
         document.querySelector("#error").style.display = 'block'
     }
+
+    M.Modal.init(document.querySelector("#insiders-modal"), {
+        dismissible: false,
+        inDuration: 0
+    })
+    M.Modal.getInstance(document.querySelector("#insiders-modal")).open()
 });

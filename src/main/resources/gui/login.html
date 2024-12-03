@@ -37,6 +37,25 @@
             margin-right: 1rem;
             margin-top: 1rem;
         }
+
+        img {
+            width: 240px;
+            max-width: 50%;
+        }
+
+        .img-wrapper {
+            text-align: center;
+        }
+
+        .footer {
+            margin-top: 80px;
+            text-align: center;
+        }
+
+        .footer a {
+            margin-left: 5px;
+            margin-right: 5px;
+        }
     </style>
     <!--Let browser know website is optimized for mobile-->
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -45,13 +64,14 @@
     <title>Family Rules</title>
 </head>
 <body>
-
 <div class="container">
     <div class="row">
-        <div class="col s6">
-            <img class="responsive-img" src="icon.png">
+        <div class="col s6 offset-s3 img-wrapper">
+            <img src="icon.png">
         </div>
-        <div class="col s6 valign-wrapper">
+    </div>
+    <div class="row">
+        <div class="col s6 offset-s3 valign-wrapper">
             <form action="/bff/security-login" method="post">
                 <div id="logged-out" class="message">
                     <i class="left medium material-icons">logout</i> You have been logged out!
@@ -78,6 +98,26 @@
                 </div>
             </form>
         </div>
+    </div>
+    <div class="row">
+        <div class="col s6 offset-s3 footer">
+            <hr>
+            <a class="tooltipped" href="https://rzarajczyk.github.io/projects-family-rules/" title="Project description" data-tooltip="Project description"><i class="material-icons medium">info</i> </a>
+            <a class="tooltipped" href="https://hub.docker.com/r/rzarajczyk/family-rules-server" title="Server" data-tooltip="Server"><i class="material-icons medium">dns</i> </a>
+            <a class="tooltipped" href="https://github.com/rzarajczyk/family-rules-client/releases/latest" title="Windows & Mac" data-tooltip="Windows & Mac"><i class="material-icons medium">laptop_mac</i> </a>
+            <a class="tooltipped"  href="https://github.com/rzarajczyk/family-rules-android/releases/latest" title="Android" data-tooltip="Android"><i class="material-icons medium">android</i> </a>
+        </div>
+    </div>
+</div>
+<div id="insiders-modal" class="modal no-autoinit">
+    <div class="modal-content">
+        <h4><i class="material-icons left" style="font-size: 120px; margin-right: 20px;">warning</i> Insiders only!
+        </h4>
+        <p>This service is for insiders only</p>
+        <p>Do not use it without explicit permission from the author!</p>
+    </div>
+    <div class="modal-footer">
+        <a href="#!" class="modal-close waves-effect btn-flat">I Agree</a>
     </div>
 </div>
 <!--JavaScript at end of body for optimized loading-->
