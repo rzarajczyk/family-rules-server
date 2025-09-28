@@ -11,12 +11,12 @@ import org.springframework.security.authentication.BadCredentialsException
 import org.springframework.security.core.GrantedAuthority
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.web.filter.GenericFilterBean
-import pl.zarajczyk.familyrules.shared.DbConnector
+import pl.zarajczyk.familyrules.shared.DataRepository
 import pl.zarajczyk.familyrules.shared.InstanceId
 import pl.zarajczyk.familyrules.shared.decodeBasicAuth
 
 class ApiV2KeyAuthFilter(
-    private val dbConnector: DbConnector,
+    private val dbConnector: DataRepository,
     private val excludedUris: Set<String>
 ) : GenericFilterBean() {
     override fun doFilter(

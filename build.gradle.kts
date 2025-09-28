@@ -21,7 +21,6 @@ repositories {
     mavenCentral()
 }
 
-val exposedVersion: String by project
 
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter")
@@ -33,10 +32,10 @@ dependencies {
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     implementation("io.micrometer:micrometer-registry-prometheus")
-    implementation("org.jetbrains.exposed:exposed-kotlin-datetime:$exposedVersion")
-    implementation("org.jetbrains.exposed:exposed-json:$exposedVersion")
-    implementation("org.jetbrains.exposed:exposed-spring-boot-starter:$exposedVersion")
-    implementation("org.postgresql:postgresql:42.7.3")
+    implementation("com.google.cloud:google-cloud-firestore:3.15.0")
+    implementation("com.google.auth:google-auth-library-oauth2-http:1.19.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.5.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
 
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 

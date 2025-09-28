@@ -6,10 +6,10 @@ import kotlinx.datetime.toLocalDateTime
 import org.springframework.stereotype.Service
 
 @Service
-class StateService(private val dbConnector: DbConnector) {
+class StateService(private val dataRepository: DataRepository) {
 
     fun getDeviceState(instanceId: InstanceId): CurrentDeviceState {
-        val instance = dbConnector.getInstance(instanceId)
+        val instance = dataRepository.getInstance(instanceId)
             ?: throw RuntimeException("Instance ≪$instanceId≫ doesn't exist")
         return getDeviceState(instance)
     }

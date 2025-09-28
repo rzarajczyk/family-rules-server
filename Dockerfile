@@ -1,8 +1,14 @@
-FROM eclipse-temurin:21-jdk
+FROM eclipse-temurin:17-jdk AS build
+WORKDIR /app
+COPY ./ .
+RUN ./gradlew clean bootJar -x test --stacktrace --no-daemon
+
+FROM eclipse-temurin:17-jdk
 EXPOSE 8080
 WORKDIR /app
-COPY build/libs/app.jar app.jar
+COPY --from=build /app/build/libs/app.jar app.jar
 RUN apt-get install -y tzdata
+
 ENTRYPOINT java \
   -XX:InitialRAMPercentage=75.0 \
   -XX:MaxRAMPercentage=75.0 \

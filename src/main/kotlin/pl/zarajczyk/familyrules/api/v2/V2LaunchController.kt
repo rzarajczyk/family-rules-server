@@ -7,12 +7,12 @@ import org.springframework.web.bind.annotation.RestController
 import pl.zarajczyk.familyrules.shared.*
 
 @RestController
-class V2LaunchController(private val dbConnector: DbConnector) {
+class V2LaunchController(private val dataRepository: DataRepository) {
     @PostMapping(value = ["/api/v2/launch"])
     fun launch(@RequestBody request: LaunchRequest, authentication: Authentication) {
         val instanceId = authentication.principal as InstanceId
-        dbConnector.updateClientInformation(instanceId, request.version, request.timezoneOffsetSeconds)
-        dbConnector.updateAvailableDeviceStates(instanceId, request.availableStates.map { it.toDto() })
+        dataRepository.updateClientInformation(instanceId, request.version, request.timezoneOffsetSeconds)
+        dataRepository.updateAvailableDeviceStates(instanceId, request.availableStates.map { it.toDto() })
     }
 
     private fun AvailableDeviceState.toDto() = DescriptiveDeviceStateDto(

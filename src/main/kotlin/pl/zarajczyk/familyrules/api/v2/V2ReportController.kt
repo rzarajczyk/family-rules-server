@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RestController
 import pl.zarajczyk.familyrules.shared.*
 
 @Component
-class V2ReportController(private val dbConnector: DbConnector, private val stateService: StateService) {
+class V2ReportController(private val dataRepository: DataRepository, private val stateService: StateService) {
 
     @RestController
     inner class ReportRestController {
@@ -32,7 +32,7 @@ class V2ReportController(private val dbConnector: DbConnector, private val state
                         throw ValidationError("screenTimeSeconds and applicationsSeconds must be both null or non-null")
 
                     screenTimeSeconds != null && applicationsSeconds != null ->
-                        dbConnector.saveReport(instanceId, today(), screenTimeSeconds, applicationsSeconds)
+                        dataRepository.saveReport(instanceId, today(), screenTimeSeconds, applicationsSeconds)
                 }
             }
 

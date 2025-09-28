@@ -8,7 +8,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy
 import org.springframework.security.web.SecurityFilterChain
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter
-import pl.zarajczyk.familyrules.shared.DbConnector
+import pl.zarajczyk.familyrules.shared.DataRepository
 
 @Configuration
 @EnableWebSecurity
@@ -30,12 +30,12 @@ class SecurityConfig {
 
     @Bean
     @Order(2)
-    fun apiV2FilterChain(http: HttpSecurity, dbConnector: DbConnector): SecurityFilterChain {
+    fun apiV2FilterChain(http: HttpSecurity, dataRepository: DataRepository): SecurityFilterChain {
         http
             .securityMatcher("/api/v2/**")
             .csrf { it.disable() }
             .addFilterBefore(
-                ApiV2KeyAuthFilter(dbConnector, excludedUris = setOf("/api/v2/register-instance")),
+                ApiV2KeyAuthFilter(dataRepository, excludedUris = setOf("/api/v2/register-instance")),
                 UsernamePasswordAuthenticationFilter::class.java
             )
             .sessionManagement { it.sessionCreationPolicy(SessionCreationPolicy.STATELESS) }

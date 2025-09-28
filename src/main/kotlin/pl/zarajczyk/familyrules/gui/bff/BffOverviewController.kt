@@ -13,7 +13,7 @@ import java.util.Base64
 
 @RestController
 class BffOverviewController(
-    private val dbConnector: DbConnector,
+    private val dbConnector: DataRepository,
     private val scheduleUpdater: ScheduleUpdater,
     private val stateService: StateService
 ) {
@@ -40,8 +40,8 @@ class BffOverviewController(
             Instance(
                 instanceId = instance.id,
                 instanceName = instance.name,
-                screenTimeSeconds = appUsageMap[DbConnector.TOTAL_TIME]?.screenTimeSeconds ?: 0L,
-                appUsageSeconds = (appUsageMap - DbConnector.TOTAL_TIME).map { (k, v) ->
+                screenTimeSeconds = appUsageMap[FirestoreDataRepository.TOTAL_TIME]?.screenTimeSeconds ?: 0L,
+                appUsageSeconds = (appUsageMap - FirestoreDataRepository.TOTAL_TIME).map { (k, v) ->
                     AppUsage(
                         k,
                         v.screenTimeSeconds

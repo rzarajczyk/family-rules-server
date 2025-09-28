@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.RestController
 import pl.zarajczyk.familyrules.shared.*
 
 @RestController
-class V2InitialSetupController(private val dbConnector: DbConnector) {
+class V2InitialSetupController(private val dataRepository: DataRepository) {
 
     @PostMapping(value = ["/api/v2/register-instance"])
     fun registerInstance(
@@ -15,8 +15,8 @@ class V2InitialSetupController(private val dbConnector: DbConnector) {
         @RequestHeader("Authorization") authHeader: String
     ): RegisterInstanceResponse = try {
         val auth = authHeader.decodeBasicAuth()
-        dbConnector.validatePassword(auth.user, auth.pass)
-        val result = dbConnector.setupNewInstance(auth.user, data.instanceName, data.clientType)
+        dataRepository.validatePassword(auth.user, auth.pass)
+        val result = dataRepository.setupNewInstance(auth.user, data.instanceName, data.clientType)
         RegisterInstanceResponse(
             RegisterInstanceStatus.SUCCESS,
             instanceId = result.instanceId.toString(),

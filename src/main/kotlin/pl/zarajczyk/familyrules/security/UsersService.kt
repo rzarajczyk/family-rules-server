@@ -5,11 +5,11 @@ import org.springframework.security.core.userdetails.UserDetails
 import org.springframework.security.core.userdetails.UsernameNotFoundException
 import org.springframework.security.provisioning.UserDetailsManager
 import org.springframework.stereotype.Service
-import pl.zarajczyk.familyrules.shared.DbConnector
+import pl.zarajczyk.familyrules.shared.DataRepository
 import pl.zarajczyk.familyrules.shared.UserDto
 
 @Service
-class UsersService(private val dbConnector: DbConnector) : UserDetailsManager {
+class UsersService(private val dataRepository: DataRepository) : UserDetailsManager {
     override fun createUser(user: UserDetails?) {
         TODO("Not yet implemented")
     }
@@ -31,7 +31,7 @@ class UsersService(private val dbConnector: DbConnector) : UserDetailsManager {
     }
 
     override fun loadUserByUsername(username: String): UserDetails {
-        return dbConnector.findUser(username)
+        return dataRepository.findUser(username)
             ?.let { dto -> DtoBasedUserDetails(dto) }
             ?: throw UsernameNotFoundException("User ≪$username≫ not found")
     }
