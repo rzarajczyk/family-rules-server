@@ -38,6 +38,11 @@ class FirestoreDataRepository(
         }
     }
 
+    override fun changePassword(username: String, newPassword: String) {
+        val userRef = firestore.collection("users").document(username)
+        userRef.update("passwordSha256", newPassword.sha256()).get()
+    }
+
     override fun validateInstanceToken(instanceId: InstanceId, instanceToken: String): InstanceId? {
         // Find the instance across all users
         val instances = firestore.collectionGroup("instances")
