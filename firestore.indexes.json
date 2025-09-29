@@ -1,0 +1,30 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "instances",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "instanceId", "order": "ASCENDING" },
+        { "fieldPath": "deleted", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "instances",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "deleted", "order": "ASCENDING" },
+        { "fieldPath": "instanceName", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "instances",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "instanceName", "order": "ASCENDING" },
+        { "fieldPath": "deleted", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}
+
