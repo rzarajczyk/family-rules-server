@@ -14,7 +14,7 @@ ENTRYPOINT java \
   -XX:MaxRAMPercentage=75.0 \
   -XX:+UseG1GC \
   -XX:+ExitOnOutOfMemoryError \
-  -Xlog:gc*:stderr:time \
+#  -Xlog:gc*:stderr:time \
   -XX:+HeapDumpOnOutOfMemoryError \
   -Dfile.encoding=UTF-8 \
   -Djava.security.egd=file:/dev/./urandom \
