@@ -1,11 +1,10 @@
 package pl.zarajczyk.familyrules.shared
 
 import com.google.cloud.firestore.Firestore
-import org.springframework.beans.factory.annotation.Value
-import org.springframework.boot.ApplicationArguments
-import org.springframework.boot.ApplicationRunner
+import org.springframework.boot.context.event.ApplicationReadyEvent
 import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.boot.context.properties.EnableConfigurationProperties
+import org.springframework.context.event.EventListener
 import org.springframework.stereotype.Component
 import kotlin.properties.Delegates
 
@@ -14,9 +13,10 @@ import kotlin.properties.Delegates
 class FirestoreInitializer(
     private val firestore: Firestore,
     private val databaseInitializationProperties: DatabaseInitializationProperties
-) : ApplicationRunner {
+) {
 
-    override fun run(args: ApplicationArguments?) {
+    @EventListener(ApplicationReadyEvent::class)
+    fun initializeDatabase(event: ApplicationReadyEvent) {
         if (databaseInitializationProperties.enabled) {
             val userDoc = firestore.collection("users")
                 .document(databaseInitializationProperties.username)
