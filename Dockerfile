@@ -14,8 +14,13 @@ ENTRYPOINT java \
   -XX:MaxRAMPercentage=75.0 \
   -XX:+UseG1GC \
   -XX:+ExitOnOutOfMemoryError \
-#  -Xlog:gc*:stderr:time \
   -XX:+HeapDumpOnOutOfMemoryError \
   -Dfile.encoding=UTF-8 \
   -Djava.security.egd=file:/dev/./urandom \
+  -XX:+TieredCompilation \
+  -XX:TieredStopAtLevel=1 \
+  -XX:+UseStringDeduplication \
+  -XX:+OptimizeStringConcat \
+  -Dspring.jmx.enabled=false \
+  -Dspring.main.lazy-initialization=true \
   -jar app.jar
