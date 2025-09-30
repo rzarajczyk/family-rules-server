@@ -70,7 +70,7 @@ users/{username}
     │   ├── icon: string?
     │   ├── description: string?
     │   └── order: number
-    └── screenTimes/{day-app}
+    └── screenTimes/{day}/apps/{app}
         ├── app: string
         ├── screenTimeSeconds: number
         └── updatedAt: string

@@ -289,7 +289,8 @@ class FirestoreDataRepository(
             .get()
             .get()
 
-        if (instances.isEmpty) return
+        if (instances.isEmpty)
+            throw RuntimeException("Missing instance ≪$instanceId≫")
 
         val instanceDoc = instances.documents.first()
         val total = applicationsSeconds + mapOf(TOTAL_TIME to screenTimeSeconds)
@@ -298,7 +299,9 @@ class FirestoreDataRepository(
         total.entries.forEach { (app, seconds) ->
             val screenTimeRef = instanceDoc.reference
                 .collection("screenTimes")
-                .document("${day}-$app")
+                .document(day.toString())
+                .collection("apps")
+                .document(app)
 
             batch.set(screenTimeRef, mapOf(
                 "app" to app,
@@ -319,11 +322,10 @@ class FirestoreDataRepository(
         if (instances.isEmpty) return emptyMap()
 
         val instanceDoc = instances.documents.first()
-        val nextDay = day.plus(1, DAY)
         val screenTimes = instanceDoc.reference
             .collection("screenTimes")
-            .whereGreaterThanOrEqualTo("app", day.toString())
-            .whereLessThan("app", nextDay.toString())
+            .document(day.toString())
+            .collection("apps")
             .get()
             .get()
 
