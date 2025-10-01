@@ -70,9 +70,8 @@ users/{username}
     │   ├── icon: string?
     │   ├── description: string?
     │   └── order: number
-    └── screenTimes/{day}/apps/{app}
-        ├── app: string
-        ├── screenTimeSeconds: number
+    └── screenTimes/{day}
+        ├── screenTimes: string (JSON containing Map<String, Long>)
         └── updatedAt: string
 ```
 

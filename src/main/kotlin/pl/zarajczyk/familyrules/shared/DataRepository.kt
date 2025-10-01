@@ -28,5 +28,5 @@ interface DataRepository {
     
     // Screen time operations
     fun saveReport(instanceId: InstanceId, day: LocalDate, screenTimeSeconds: Long, applicationsSeconds: Map<String, Long>)
-    fun getScreenTimes(id: InstanceId, day: LocalDate): Map<String, ScreenTimeDto>
+    fun getScreenTimes(id: InstanceId, day: LocalDate): ScreenTimeDto
 }

@@ -24,6 +24,7 @@ data class NewInstanceDto(
 
 data class ScreenTimeDto(
     val screenTimeSeconds: Long,
+    val applicationsSeconds: Map<String, Long>,
     val updatedAt: Instant
 )
 

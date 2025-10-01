@@ -35,18 +35,14 @@ class BffOverviewController(
         val day = LocalDate.parse(date)
         val instances = dbConnector.getInstances(authentication.name)
         StatusResponse(instances.map { instance ->
-            val appUsageMap = dbConnector.getScreenTimes(instance.id, day)
+            val screenTimeDto = dbConnector.getScreenTimes(instance.id, day)
             val state = stateService.getDeviceState(instance)
             Instance(
                 instanceId = instance.id,
                 instanceName = instance.name,
-                screenTimeSeconds = appUsageMap[FirestoreDataRepository.TOTAL_TIME]?.screenTimeSeconds ?: 0L,
-                appUsageSeconds = (appUsageMap - FirestoreDataRepository.TOTAL_TIME).map { (k, v) ->
-                    AppUsage(
-                        k,
-                        v.screenTimeSeconds
-                    )
-                },
+                screenTimeSeconds = screenTimeDto.screenTimeSeconds,
+                appUsageSeconds = screenTimeDto.applicationsSeconds
+                    .map { (k, v) -> AppUsage(k, v) },
                 forcedDeviceState = dbConnector.getAvailableDeviceStates(instance.id)
                     .firstOrNull { it.deviceState == state.forcedState }
                     ?.toDeviceStateDescription(),
@@ -54,7 +50,7 @@ class BffOverviewController(
                     .firstOrNull { it.deviceState == state.automaticState }
                     ?.toDeviceStateDescription()
                     ?: throw RuntimeException("Instance ≪${instance.name}≫ doesn't have automatic state ≪${state.automaticState}≫"),
-                online = appUsageMap.maxOfOrNull { (_, v) -> v.updatedAt }?.isOnline() ?: false,
+                online = screenTimeDto.updatedAt.isOnline(),
                 icon = instance.getIcon()
             )
         })

@@ -1,18 +1,14 @@
 package pl.zarajczyk.familyrules.shared
 
 import com.google.cloud.firestore.Firestore
-import com.google.cloud.firestore.WriteBatch
 import kotlinx.datetime.Clock
-import kotlinx.datetime.DateTimeUnit.Companion.DAY
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
-import kotlinx.datetime.plus
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.springframework.stereotype.Service
 import pl.zarajczyk.familyrules.gui.bff.SchedulePacker
 import java.util.*
-import kotlin.Throws
 
 @Service
 class FirestoreDataRepository(
@@ -53,7 +49,7 @@ class FirestoreDataRepository(
             .whereEqualTo("deleted", false)
             .get()
             .get()
-        
+
         return if (instances.isEmpty) null else instanceId
     }
 
@@ -118,7 +114,8 @@ class FirestoreDataRepository(
                 clientVersion = doc.getString("clientVersion") ?: "",
                 clientType = doc.getString("clientType") ?: "",
                 schedule = try {
-                    json.decodeFromString<WeeklyScheduleDto>(doc.getString("schedule") ?: "{}").let { schedulePacker.unpack(it) }
+                    json.decodeFromString<WeeklyScheduleDto>(doc.getString("schedule") ?: "{}")
+                        .let { schedulePacker.unpack(it) }
                 } catch (e: Exception) {
                     WeeklyScheduleDto.empty()
                 },
@@ -144,7 +141,8 @@ class FirestoreDataRepository(
                 clientVersion = doc.getString("clientVersion") ?: "",
                 clientType = doc.getString("clientType") ?: "",
                 schedule = try {
-                    json.decodeFromString<WeeklyScheduleDto>(doc.getString("schedule") ?: "{}").let { schedulePacker.unpack(it) }
+                    json.decodeFromString<WeeklyScheduleDto>(doc.getString("schedule") ?: "{}")
+                        .let { schedulePacker.unpack(it) }
                 } catch (e: Exception) {
                     WeeklyScheduleDto.empty()
                 },
@@ -271,19 +269,26 @@ class FirestoreDataRepository(
                 .collection("deviceStates")
                 .document(state.deviceState)
 
-            batch.set(stateRef, mapOf(
-                "deviceState" to state.deviceState,
-                "title" to state.title,
-                "icon" to state.icon,
-                "description" to state.description,
-                "order" to index
-            ))
+            batch.set(
+                stateRef, mapOf(
+                    "deviceState" to state.deviceState,
+                    "title" to state.title,
+                    "icon" to state.icon,
+                    "description" to state.description,
+                    "order" to index
+                )
+            )
         }
 
         batch.commit().get()
     }
 
-    override fun saveReport(instanceId: InstanceId, day: LocalDate, screenTimeSeconds: Long, applicationsSeconds: Map<String, Long>) {
+    override fun saveReport(
+        instanceId: InstanceId,
+        day: LocalDate,
+        screenTimeSeconds: Long,
+        applicationsSeconds: Map<String, Long>
+    ) {
         val instances = firestore.collectionGroup("instances")
             .whereEqualTo("instanceId", instanceId.toString())
             .get()
@@ -293,49 +298,54 @@ class FirestoreDataRepository(
             throw RuntimeException("Missing instance ≪$instanceId≫")
 
         val instanceDoc = instances.documents.first()
-        val total = applicationsSeconds + mapOf(TOTAL_TIME to screenTimeSeconds)
-        val batch = firestore.batch()
 
-        total.entries.forEach { (app, seconds) ->
-            val screenTimeRef = instanceDoc.reference
-                .collection("screenTimes")
-                .document(day.toString())
-                .collection("apps")
-                .document(app)
+        // Convert to JSON string - simple Map<String, Long>
+        val applicationTimesJson = json.encodeToString(applicationsSeconds)
 
-            batch.set(screenTimeRef, mapOf(
-                "app" to app,
-                "screenTimeSeconds" to seconds,
+        // Store as a single field in the day document
+        val screenTimeRef = instanceDoc.reference
+            .collection("screenTimes")
+            .document(day.toString())
+
+        screenTimeRef.set(
+            mapOf(
+                "screenTime" to screenTimeSeconds,
+                "applicationTimes" to applicationTimesJson,
                 "updatedAt" to Clock.System.now().toString()
-            ))
-        }
-
-        batch.commit().get()
+            )
+        ).get()
     }
 
-    override fun getScreenTimes(id: InstanceId, day: LocalDate): Map<String, ScreenTimeDto> {
+    override fun getScreenTimes(id: InstanceId, day: LocalDate): ScreenTimeDto {
         val instances = firestore.collectionGroup("instances")
             .whereEqualTo("instanceId", id.toString())
             .get()
             .get()
 
-        if (instances.isEmpty) return emptyMap()
+        if (instances.isEmpty)
+            throw RuntimeException("Missing instance ≪${id}≫")
 
         val instanceDoc = instances.documents.first()
-        val screenTimes = instanceDoc.reference
+        val dayDoc = instanceDoc.reference
             .collection("screenTimes")
             .document(day.toString())
-            .collection("apps")
             .get()
             .get()
 
-        return screenTimes.documents.associate { doc ->
-            val app = doc.getString("app") ?: ""
-            val seconds = doc.getLong("screenTimeSeconds") ?: 0L
-            val updatedAt = doc.getString("updatedAt")?.let { Instant.parse(it) } ?: Clock.System.now()
-            app to ScreenTimeDto(seconds, updatedAt)
+        if (!dayDoc.exists()) return emptyScreenTime()
+
+        val totalSeconds = dayDoc.getLong("screenTime") ?: throw RuntimeException("Missing field ≪screenTime≫")
+        val applicationTimesJson = dayDoc.getString("applicationTimes") ?: throw RuntimeException("Missing field ≪applicationTimes≫")
+        val updatedAt = dayDoc.getString("updatedAt")?.let { Instant.parse(it) } ?: throw RuntimeException("Missing field ≪updatedAt≫")
+        try {
+            val applicationTimes = json.decodeFromString<Map<String, Long>>(applicationTimesJson)
+            return ScreenTimeDto(totalSeconds, applicationTimes, updatedAt)
+        } catch (e: Exception) {
+            throw RuntimeException("JSON decoding error: $applicationTimesJson", e)
         }
     }
+
+    fun emptyScreenTime() = ScreenTimeDto(0, emptyMap(), Instant.DISTANT_PAST)
 
     private fun List<DescriptiveDeviceStateDto>.ensureActiveIsPresent(): List<DescriptiveDeviceStateDto> {
         return if (this.find { it.deviceState == DEFAULT_STATE } == null) {
@@ -348,9 +358,5 @@ class FirestoreDataRepository(
         } else {
             this
         }
-    }
-
-    companion object {
-        const val TOTAL_TIME = "## screentime ##"
     }
 }

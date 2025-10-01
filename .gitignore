@@ -18,3 +18,5 @@ out/
 
 
 src/main/resources/application-local.yaml
+firebase-debug.log
+firestore-debug.log
