@@ -4,15 +4,18 @@ import org.springframework.security.core.Authentication
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RestController
-import pl.zarajczyk.familyrules.shared.*
+import pl.zarajczyk.familyrules.shared.DataRepository
+import pl.zarajczyk.familyrules.shared.DescriptiveDeviceStateDto
+import pl.zarajczyk.familyrules.shared.DeviceState
+import pl.zarajczyk.familyrules.shared.findAuthenticatedInstance
 
 @RestController
 class V2LaunchController(private val dataRepository: DataRepository) {
     @PostMapping(value = ["/api/v2/launch"])
     fun launch(@RequestBody request: LaunchRequest, authentication: Authentication) {
-        val instanceId = authentication.principal as InstanceId
-        dataRepository.updateClientInformation(instanceId, request.version, request.timezoneOffsetSeconds)
-        dataRepository.updateAvailableDeviceStates(instanceId, request.availableStates.map { it.toDto() })
+        val instanceRef = dataRepository.findAuthenticatedInstance(authentication)
+        dataRepository.updateClientInformation(instanceRef, request.version, request.timezoneOffsetSeconds)
+        dataRepository.updateAvailableDeviceStates(instanceRef, request.availableStates.map { it.toDto() })
     }
 
     private fun AvailableDeviceState.toDto() = DescriptiveDeviceStateDto(

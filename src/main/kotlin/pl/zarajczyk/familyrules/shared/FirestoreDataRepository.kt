@@ -98,36 +98,18 @@ class FirestoreDataRepository(
         return NewInstanceDto(instanceId, instanceToken)
     }
 
-    override fun getInstances(username: String): List<InstanceDto> {
-        val instances = firestore.collection("users")
+    override fun findInstances(username: String): List<InstanceRef> =
+        firestore.collection("users")
             .document(username)
             .collection("instances")
             .whereEqualTo("deleted", false)
             .orderBy("instanceName")
             .get()
             .get()
+            .documents
+            .map { FirestoreInstanceRef(it) }
 
-        return instances.documents.map { doc ->
-            InstanceDto(
-                id = UUID.fromString(doc.getString("instanceId") ?: ""),
-                name = doc.getString("instanceName") ?: "",
-                forcedDeviceState = doc.getString("forcedDeviceState"),
-                clientVersion = doc.getString("clientVersion") ?: "",
-                clientType = doc.getString("clientType") ?: "",
-                schedule = try {
-                    json.decodeFromString<WeeklyScheduleDto>(doc.getString("schedule") ?: "{}")
-                        .let { schedulePacker.unpack(it) }
-                } catch (e: Exception) {
-                    WeeklyScheduleDto.empty()
-                },
-                iconData = doc.getString("iconData"),
-                iconType = doc.getString("iconType"),
-                clientTimezoneOffsetSeconds = doc.getLong("clientTimezoneOffsetSeconds")?.toInt() ?: 0
-            )
-        }
-    }
-
-    override fun getInstanceReference(instanceId: InstanceId): DbInstanceReference? =
+    override fun findInstance(instanceId: InstanceId): InstanceRef? =
         firestore.collectionGroup("instances")
             .whereEqualTo("instanceId", instanceId.toString())
             .whereEqualTo("deleted", false)
@@ -135,15 +117,10 @@ class FirestoreDataRepository(
             .get()
             ?.documents
             ?.firstOrNull()
-            ?.let { FirestoreInstanceReference(it) }
+            ?.let { FirestoreInstanceRef(it) }
 
-    override fun getInstance(instanceId: InstanceId): InstanceDto? {
-        val ref = getInstanceReference(instanceId)
-        return ref?.let {  getInstance(it) }
-    }
-
-    override fun getInstance(instanceRef: DbInstanceReference): InstanceDto {
-        val doc = (instanceRef as FirestoreInstanceReference).document
+    override fun getInstance(instanceRef: InstanceRef): InstanceDto {
+        val doc = (instanceRef as FirestoreInstanceRef).document
 
         return InstanceDto(
             id = UUID.fromString(doc.getString("instanceId") ?: ""),
@@ -163,77 +140,44 @@ class FirestoreDataRepository(
         )
     }
 
-    override fun updateInstance(instanceId: InstanceId, update: UpdateInstanceDto) {
-        val instances = firestore.collectionGroup("instances")
-            .whereEqualTo("instanceId", instanceId.toString())
-            .get()
-            .get()
+    override fun updateInstance(instance: InstanceRef, update: UpdateInstanceDto) {
+        val doc = (instance as FirestoreInstanceRef).document
 
-        instances.documents.forEach { doc ->
-            doc.reference.update(
-                "instanceName", update.name,
-                "iconData", update.iconData,
-                "iconType", update.iconType
-            ).get()
-        }
+        doc.reference.update(
+            "instanceName", update.name,
+            "iconData", update.iconData,
+            "iconType", update.iconType
+        ).get()
     }
 
-    override fun deleteInstance(instanceId: InstanceId) {
-        val instances = firestore.collectionGroup("instances")
-            .whereEqualTo("instanceId", instanceId.toString())
-            .get()
-            .get()
+    override fun deleteInstance(instance: InstanceRef) {
+        val doc = (instance as FirestoreInstanceRef).document
 
-        instances.documents.forEach { doc ->
-            doc.reference.update("deleted", true).get()
-        }
+        doc.reference.update("deleted", true).get()
     }
 
-    override fun setInstanceSchedule(id: InstanceId, schedule: WeeklyScheduleDto) {
-        val instances = firestore.collectionGroup("instances")
-            .whereEqualTo("instanceId", id.toString())
-            .get()
-            .get()
-
-        instances.documents.forEach { doc ->
-            doc.reference.update("schedule", json.encodeToString(schedulePacker.pack(schedule))).get()
-        }
+    override fun setInstanceSchedule(instance: InstanceRef, schedule: WeeklyScheduleDto) {
+        val doc = (instance as FirestoreInstanceRef).document
+        doc.reference.update("schedule", json.encodeToString(schedulePacker.pack(schedule))).get()
     }
 
-    override fun setForcedInstanceState(id: InstanceId, state: DeviceState?) {
-        val instances = firestore.collectionGroup("instances")
-            .whereEqualTo("instanceId", id.toString())
-            .get()
-            .get()
-
-        instances.documents.forEach { doc ->
-            doc.reference.update("forcedDeviceState", state).get()
-        }
+    override fun setForcedInstanceState(instance: InstanceRef, state: DeviceState?) {
+        val doc = (instance as FirestoreInstanceRef).document
+        doc.reference.update("forcedDeviceState", state).get()
     }
 
-    override fun updateClientInformation(id: InstanceId, version: String, timezoneOffsetSeconds: Int) {
-        val instances = firestore.collectionGroup("instances")
-            .whereEqualTo("instanceId", id.toString())
-            .get()
-            .get()
+    override fun updateClientInformation(instance: InstanceRef, version: String, timezoneOffsetSeconds: Int) {
+        val doc = (instance as FirestoreInstanceRef).document
 
-        instances.documents.forEach { doc ->
-            doc.reference.update(
-                "clientVersion", version,
-                "clientTimezoneOffsetSeconds", timezoneOffsetSeconds
-            ).get()
-        }
+        doc.reference.update(
+            "clientVersion", version,
+            "clientTimezoneOffsetSeconds", timezoneOffsetSeconds
+        ).get()
     }
 
-    override fun getAvailableDeviceStates(id: InstanceId): List<DescriptiveDeviceStateDto> {
-        val instances = firestore.collectionGroup("instances")
-            .whereEqualTo("instanceId", id.toString())
-            .get()
-            .get()
+    override fun getAvailableDeviceStates(instance: InstanceRef): List<DescriptiveDeviceStateDto> {
+        val instanceDoc = (instance as FirestoreInstanceRef).document
 
-        if (instances.isEmpty) return emptyList()
-
-        val instanceDoc = instances.documents.first()
         val deviceStates = instanceDoc.reference
             .collection("deviceStates")
             .orderBy("order")
@@ -252,15 +196,9 @@ class FirestoreDataRepository(
         return states.ensureActiveIsPresent()
     }
 
-    override fun updateAvailableDeviceStates(id: InstanceId, states: List<DescriptiveDeviceStateDto>) {
-        val instances = firestore.collectionGroup("instances")
-            .whereEqualTo("instanceId", id.toString())
-            .get()
-            .get()
+    override fun updateAvailableDeviceStates(instance: InstanceRef, states: List<DescriptiveDeviceStateDto>) {
+        val instanceDoc = (instance as FirestoreInstanceRef).document
 
-        if (instances.isEmpty) return
-
-        val instanceDoc = instances.documents.first()
         val batch = firestore.batch()
 
         // Clear existing device states
@@ -294,12 +232,12 @@ class FirestoreDataRepository(
     }
 
     override fun saveReport(
-        instanceRef: DbInstanceReference,
+        instanceRef: InstanceRef,
         day: LocalDate,
         screenTimeSeconds: Long,
         applicationsSeconds: Map<String, Long>
     ) {
-        val instanceDoc = (instanceRef as FirestoreInstanceReference).document
+        val instanceDoc = (instanceRef as FirestoreInstanceRef).document
 
         val applicationTimesJson = json.encodeToString(applicationsSeconds)
 
@@ -317,16 +255,9 @@ class FirestoreDataRepository(
         ).get()
     }
 
-    override fun getScreenTimes(id: InstanceId, day: LocalDate): ScreenTimeDto {
-        val instances = firestore.collectionGroup("instances")
-            .whereEqualTo("instanceId", id.toString())
-            .get()
-            .get()
+    override fun getScreenTimes(instance: InstanceRef, day: LocalDate): ScreenTimeDto {
+        val instanceDoc = (instance as FirestoreInstanceRef).document
 
-        if (instances.isEmpty)
-            throw RuntimeException("Missing instance ≪${id}≫")
-
-        val instanceDoc = instances.documents.first()
         val dayDoc = instanceDoc.reference
             .collection("screenTimes")
             .document(day.toString())
@@ -362,4 +293,4 @@ class FirestoreDataRepository(
     }
 }
 
-class FirestoreInstanceReference(val document: QueryDocumentSnapshot) : DbInstanceReference
+class FirestoreInstanceRef(val document: QueryDocumentSnapshot) : InstanceRef

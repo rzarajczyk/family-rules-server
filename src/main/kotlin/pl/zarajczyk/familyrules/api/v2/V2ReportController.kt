@@ -19,24 +19,7 @@ class V2ReportController(private val dataRepository: DataRepository, private val
             @RequestBody report: ReportRequest,
             authentication: Authentication,
         ): ReportResponse {
-            val instanceId = authentication.principal as InstanceId
-
-//            with(report) {
-//                when {
-//                    screenTimeSeconds == null && applicationsSeconds == null -> Unit // nothing
-//
-//                    screenTimeSeconds != null && applicationsSeconds == null ->
-//                        throw ValidationError("screenTimeSeconds and applicationsSeconds must be both null or non-null")
-//
-//                    screenTimeSeconds == null && applicationsSeconds != null ->
-//                        throw ValidationError("screenTimeSeconds and applicationsSeconds must be both null or non-null")
-//
-//                    screenTimeSeconds != null && applicationsSeconds != null ->
-//                        dataRepository.saveReport(instanceId, today(), screenTimeSeconds, applicationsSeconds)
-//                }
-//            }
-//
-            val instanceRef = dataRepository.getInstanceReference(instanceId) ?: throw RuntimeException("Instance ≪$instanceId≫ not found")
+            val instanceRef = dataRepository.findAuthenticatedInstance(authentication)
             dataRepository.saveReport(
                 instance = instanceRef,
                 day = today(),
@@ -51,8 +34,6 @@ class V2ReportController(private val dataRepository: DataRepository, private val
     private fun DeviceState.toReportResponse() = ReportResponse(deviceState = this)
 
 }
-
-class ValidationError(msg: String) : RuntimeException(msg)
 
 data class ReportRequest(
     @JsonProperty("screenTime") val screenTimeSeconds: Long,

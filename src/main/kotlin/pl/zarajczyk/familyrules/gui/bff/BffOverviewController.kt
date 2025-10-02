@@ -33,23 +33,25 @@ class BffOverviewController(
         authentication: Authentication,
     ): StatusResponse = try {
         val day = LocalDate.parse(date)
-        val instances = dbConnector.getInstances(authentication.name)
-        StatusResponse(instances.map { instance ->
-            val screenTimeDto = dbConnector.getScreenTimes(instance.id, day)
-            val state = stateService.getDeviceState(instance)
+        val instances = dbConnector.findInstances(authentication.name)
+        StatusResponse(instances.map { instanceRef ->
+            val screenTimeDto = dbConnector.getScreenTimes(instanceRef, day)
+            val state = stateService.getDeviceState(instanceRef)
+            val instance = dbConnector.getInstance(instanceRef)
+            val availableStates = dbConnector.getAvailableDeviceStates(instanceRef)
             Instance(
                 instanceId = instance.id,
                 instanceName = instance.name,
                 screenTimeSeconds = screenTimeDto.screenTimeSeconds,
                 appUsageSeconds = screenTimeDto.applicationsSeconds
                     .map { (k, v) -> AppUsage(k, v) },
-                forcedDeviceState = dbConnector.getAvailableDeviceStates(instance.id)
+                forcedDeviceState = availableStates
                     .firstOrNull { it.deviceState == state.forcedState }
                     ?.toDeviceStateDescription(),
-                automaticDeviceState = dbConnector.getAvailableDeviceStates(instance.id)
+                automaticDeviceState = availableStates
                     .firstOrNull { it.deviceState == state.automaticState }
                     ?.toDeviceStateDescription()
-                    ?: throw RuntimeException("Instance ≪${instance.name}≫ doesn't have automatic state ≪${state.automaticState}≫"),
+                    ?: throw RuntimeException("Instance ≪${instance.id}≫ doesn't have automatic state ≪${state.automaticState}≫"),
                 online = screenTimeDto.updatedAt.isOnline(),
                 icon = instance.getIcon()
             )
@@ -68,7 +70,8 @@ class BffOverviewController(
     fun getInstanceInfo(
         @RequestParam("instanceId") instanceId: InstanceId
     ): InstanceInfoResponse {
-        val instance = dbConnector.getInstance(instanceId) ?: throw RuntimeException("Instance not found $instanceId")
+        val instanceRef = dbConnector.findInstanceOrThrow(instanceId)
+        val instance = dbConnector.getInstance(instanceRef)
         return InstanceInfoResponse(
             instanceId = instanceId,
             instanceName = instance.name,
@@ -83,7 +86,8 @@ class BffOverviewController(
     fun getInstanceEditInfo(
         @RequestParam("instanceId") instanceId: InstanceId
     ): InstanceEditInfo {
-        val instance = dbConnector.getInstance(instanceId) ?: throw RuntimeException("Instance not found $instanceId")
+        val instanceRef = dbConnector.findInstanceOrThrow(instanceId)
+        val instance = dbConnector.getInstance(instanceRef)
         return InstanceEditInfo(
             instanceName = instance.name,
             icon = instance.getIcon()
@@ -95,8 +99,9 @@ class BffOverviewController(
         @RequestParam("instanceId") instanceId: InstanceId,
         @RequestBody data: InstanceEditInfo
     ) {
+        val instanceRef = dbConnector.findInstanceOrThrow(instanceId)
         dbConnector.updateInstance(
-            instanceId, UpdateInstanceDto(
+            instanceRef, UpdateInstanceDto(
                 instanceId = instanceId,
                 name = data.instanceName,
                 iconType = data.icon.type,
@@ -114,8 +119,9 @@ class BffOverviewController(
     fun getInstanceSchedule(
         @RequestParam("instanceId") instanceId: InstanceId
     ): ScheduleResponse {
-        val instance = dbConnector.getInstance(instanceId) ?: throw RuntimeException("Instance not found $instanceId")
-        val availableStates = dbConnector.getAvailableDeviceStates(instanceId)
+        val instanceRef = dbConnector.findInstanceOrThrow(instanceId)
+        val instance = dbConnector.getInstance(instanceRef)
+        val availableStates = dbConnector.getAvailableDeviceStates(instanceRef)
         return ScheduleResponse(
             schedules = instance.schedule.schedule
                 .mapKeys { (day, _) -> day.toDay() }
@@ -160,7 +166,8 @@ class BffOverviewController(
         @RequestParam("instanceId") instanceId: InstanceId,
         @RequestBody data: AddPeriodRequest
     ) {
-        val instance = dbConnector.getInstance(instanceId) ?: throw RuntimeException("Instance not found $instanceId")
+        val instanceRef = dbConnector.findInstanceOrThrow(instanceId)
+        val instance = dbConnector.getInstance(instanceRef)
         val schedule = instance.schedule
         val period = PeriodDto(
             fromSeconds = (data.from.hour * 3600 + data.from.minute * 60).toLong(),
@@ -170,7 +177,7 @@ class BffOverviewController(
         val updatedSchedule = data.days.fold(schedule) { currentSchedule, day ->
             scheduleUpdater.addPeriod(currentSchedule, day.toDayOfWeek(), period)
         }
-        dbConnector.setInstanceSchedule(instanceId, updatedSchedule)
+        dbConnector.setInstanceSchedule(instanceRef, updatedSchedule)
     }
 
     data class AddPeriodRequest(
@@ -194,12 +201,13 @@ class BffOverviewController(
     fun getInstanceState(
         @RequestParam("instanceId") instanceId: InstanceId
     ): InstanceStateResponse {
-        val instance = dbConnector.getInstance(instanceId) ?: throw RuntimeException("Instance not found $instanceId")
+        val instanceRef = dbConnector.findInstanceOrThrow(instanceId)
+        val instance = dbConnector.getInstance(instanceRef)
         return InstanceStateResponse(
             instanceId = instanceId,
             instanceName = instance.name,
             forcedDeviceState = instance.forcedDeviceState,
-            availableStates = dbConnector.getAvailableDeviceStates(instanceId).map { it.toDeviceStateDescription() }
+            availableStates = dbConnector.getAvailableDeviceStates(instanceRef).map { it.toDeviceStateDescription() }
         )
     }
 
@@ -208,14 +216,16 @@ class BffOverviewController(
         @RequestParam("instanceId") instanceId: InstanceId,
         @RequestBody data: InstanceState
     ) {
-        dbConnector.setForcedInstanceState(instanceId, data.forcedDeviceState.emptyToNull())
+        val instanceRef = dbConnector.findInstanceOrThrow(instanceId)
+        dbConnector.setForcedInstanceState(instanceRef, data.forcedDeviceState.emptyToNull())
     }
 
     @PostMapping("/bff/delete-instance")
     fun deleteInstance(
         @RequestParam("instanceId") instanceId: InstanceId
     ) {
-        dbConnector.deleteInstance(instanceId)
+        val instanceRef = dbConnector.findInstanceOrThrow(instanceId)
+        dbConnector.deleteInstance(instanceRef)
     }
 
 

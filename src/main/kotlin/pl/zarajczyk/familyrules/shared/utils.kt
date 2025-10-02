@@ -6,6 +6,11 @@ import kotlinx.datetime.todayIn
 import java.security.MessageDigest
 import java.util.*
 
+import org.springframework.security.core.Authentication
+fun DataRepository.findInstanceOrThrow(id: InstanceId) = this.findInstance(id) ?: throw RuntimeException("Instance ≪$id≫ not found")
+
+fun DataRepository.findAuthenticatedInstance(authentication: Authentication) = findInstanceOrThrow(authentication.principal as InstanceId)
+
 fun String?.decodeBasicAuth(): BasicAuth {
     if (this == null || this.lowercase().startsWith("Basic"))
         throw RuntimeException("Missing Basic Auth header")

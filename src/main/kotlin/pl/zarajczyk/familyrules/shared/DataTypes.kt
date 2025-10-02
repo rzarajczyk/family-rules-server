@@ -1,7 +1,6 @@
 package pl.zarajczyk.familyrules.shared
 
 import kotlinx.datetime.Instant
-import kotlinx.datetime.LocalDate
 import kotlinx.datetime.DayOfWeek
 import kotlinx.serialization.Serializable
 import java.util.*
@@ -79,4 +78,4 @@ data class PeriodDto(
     val deviceState: DeviceState
 )
 
-interface DbInstanceReference
+interface InstanceRef

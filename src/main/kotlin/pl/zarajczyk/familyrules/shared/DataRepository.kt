@@ -1,8 +1,6 @@
 package pl.zarajczyk.familyrules.shared
 
-import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
-import java.util.*
 
 interface DataRepository {
     
@@ -11,25 +9,24 @@ interface DataRepository {
     fun validatePassword(username: String, password: String)
     fun changePassword(username: String, newPassword: String)
 
-    fun getInstanceReference(id: InstanceId): DbInstanceReference?
+    fun findInstance(id: InstanceId): InstanceRef?
+    fun findInstances(username: String): List<InstanceRef>
     
     // Instance operations
     fun validateInstanceToken(instanceId: InstanceId, instanceToken: String): InstanceId?
     fun setupNewInstance(username: String, instanceName: String, clientType: String): NewInstanceDto
-    fun getInstances(username: String): List<InstanceDto>
-    fun getInstance(instanceId: InstanceId): InstanceDto?
-    fun getInstance(instance: DbInstanceReference): InstanceDto
-    fun updateInstance(instanceId: InstanceId, update: UpdateInstanceDto)
-    fun deleteInstance(instanceId: InstanceId)
-    fun setInstanceSchedule(id: InstanceId, schedule: WeeklyScheduleDto)
-    fun setForcedInstanceState(id: InstanceId, state: DeviceState?)
-    fun updateClientInformation(id: InstanceId, version: String, timezoneOffsetSeconds: Int)
+    fun getInstance(instance: InstanceRef): InstanceDto
+    fun updateInstance(instance: InstanceRef, update: UpdateInstanceDto)
+    fun deleteInstance(instance: InstanceRef)
+    fun setInstanceSchedule(instance: InstanceRef, schedule: WeeklyScheduleDto)
+    fun setForcedInstanceState(instance: InstanceRef, state: DeviceState?)
+    fun updateClientInformation(instance: InstanceRef, version: String, timezoneOffsetSeconds: Int)
     
     // Device states operations
-    fun getAvailableDeviceStates(id: InstanceId): List<DescriptiveDeviceStateDto>
-    fun updateAvailableDeviceStates(id: InstanceId, states: List<DescriptiveDeviceStateDto>)
+    fun getAvailableDeviceStates(instance: InstanceRef): List<DescriptiveDeviceStateDto>
+    fun updateAvailableDeviceStates(instance: InstanceRef, states: List<DescriptiveDeviceStateDto>)
     
     // Screen time operations
-    fun saveReport(instance: DbInstanceReference, day: LocalDate, screenTimeSeconds: Long, applicationsSeconds: Map<String, Long>)
-    fun getScreenTimes(id: InstanceId, day: LocalDate): ScreenTimeDto
+    fun saveReport(instance: InstanceRef, day: LocalDate, screenTimeSeconds: Long, applicationsSeconds: Map<String, Long>)
+    fun getScreenTimes(instance: InstanceRef, day: LocalDate): ScreenTimeDto
 }

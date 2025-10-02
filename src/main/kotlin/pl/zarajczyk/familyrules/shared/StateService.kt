@@ -8,7 +8,7 @@ import org.springframework.stereotype.Service
 @Service
 class StateService(private val dataRepository: DataRepository) {
 
-    fun getDeviceState(instance: DbInstanceReference): CurrentDeviceState {
+    fun getDeviceState(instance: InstanceRef): CurrentDeviceState {
         return getDeviceState(dataRepository.getInstance(instance))
     }
 
