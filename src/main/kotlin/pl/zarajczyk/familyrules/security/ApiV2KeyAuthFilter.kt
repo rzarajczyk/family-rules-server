@@ -5,6 +5,7 @@ import jakarta.servlet.ServletRequest
 import jakarta.servlet.ServletResponse
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
+import org.slf4j.LoggerFactory
 import org.springframework.http.MediaType
 import org.springframework.security.authentication.AbstractAuthenticationToken
 import org.springframework.security.authentication.BadCredentialsException
@@ -14,11 +15,33 @@ import org.springframework.web.filter.GenericFilterBean
 import pl.zarajczyk.familyrules.shared.DataRepository
 import pl.zarajczyk.familyrules.shared.InstanceId
 import pl.zarajczyk.familyrules.shared.decodeBasicAuth
+import java.time.Instant
+import java.util.concurrent.ConcurrentHashMap
 
 class ApiV2KeyAuthFilter(
-    private val dbConnector: DataRepository,
+    private val dataRepository: DataRepository,
     private val excludedUris: Set<String>
 ) : GenericFilterBean() {
+    
+    // Cache configuration
+    companion object {
+        const val cacheExpirationMinutes = 30L
+        const val maxCacheSize = 1024
+    }
+
+    private val logger = LoggerFactory.getLogger(javaClass)
+
+    // Cache storage: key is "instanceId:tokenHash", value is cache entry
+    private val authCache = ConcurrentHashMap<String, AuthCacheEntry>()
+    
+    private data class AuthCacheEntry(
+        val instanceId: InstanceId,
+        val timestamp: Instant
+    ) {
+        fun isExpired(): Boolean {
+            return timestamp.plusSeconds(cacheExpirationMinutes * 60).isBefore(Instant.now())
+        }
+    }
     override fun doFilter(
         request: ServletRequest,
         response: ServletResponse,
@@ -50,10 +73,50 @@ class ApiV2KeyAuthFilter(
         val auth = authHeader.decodeBasicAuth()
 
         val instanceId = InstanceId.fromString(auth.user)
-        dbConnector.validateInstanceToken(instanceId, auth.pass) ?: throw UnauthorizedException()
+        
+        // Check cache first
+        val cacheKey = "${instanceId}:${auth.pass.hashCode()}"
+        val cachedEntry = authCache[cacheKey]
 
-        val authentication = ApiKeyAuthenticationToken.authorized(instanceId, auth.pass)
-        return authentication
+        if (cachedEntry != null && !cachedEntry.isExpired()) {
+            logger.info("Instance ≪${cachedEntry.instanceId}≫ validated successfully using the cache")
+            return ApiKeyAuthenticationToken.authorized(cachedEntry.instanceId, auth.pass)
+        }
+
+        cleanupExpiredEntries()
+        val validatedInstanceId = dataRepository.validateInstanceToken(instanceId, auth.pass)
+        return if (validatedInstanceId != null) {
+            logger.info("Instance ≪${validatedInstanceId}≫ validated successfully using the database")
+            cacheValidationResult(cacheKey, instanceId)
+            ApiKeyAuthenticationToken.authorized(instanceId, auth.pass)
+        } else {
+            logger.info("Instance ≪${validatedInstanceId}≫ NOT validated successfully")
+            throw UnauthorizedException()
+        }
+
+    }
+    
+    private fun cacheValidationResult(cacheKey: String, instanceId: InstanceId) {
+        // Ensure cache doesn't exceed max size
+        if (authCache.size >= maxCacheSize) {
+            // Remove oldest entries (simple LRU approximation)
+            val oldestKeys = authCache.entries
+                .sortedBy { it.value.timestamp }
+                .take(maxCacheSize / 4) // Remove 25% of entries
+                .map { it.key }
+            
+            oldestKeys.forEach { authCache.remove(it) }
+        }
+        
+        authCache[cacheKey] = AuthCacheEntry(instanceId, Instant.now())
+    }
+    
+    private fun cleanupExpiredEntries() {
+        val expiredKeys = authCache.entries
+            .filter { it.value.isExpired() }
+            .map { it.key }
+        
+        expiredKeys.forEach { authCache.remove(it) }
     }
 }
 

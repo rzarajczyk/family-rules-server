@@ -24,5 +24,21 @@ echo "Token: $TOKEN"
 curl --header "Content-Type: application/json" \
   --request POST \
   --user "$INSTANCE_ID:$TOKEN" \
+  --data "{\"instanceId\":\"$INSTANCE_ID\",\"screenTime\":600, \"applications\": {\"app1\": 100, \"app2\": 300}}" \
+  "$HOST/api/v2/report"
+
+echo ""
+
+curl --header "Content-Type: application/json" \
+  --request POST \
+  --user "$INSTANCE_ID:$TOKEN" \
+  --data "{\"instanceId\":\"$INSTANCE_ID\",\"screenTime\":600, \"applications\": {\"app1\": 200, \"app2\": 300}}" \
+  "$HOST/api/v2/report"
+
+echo ""
+
+curl --header "Content-Type: application/json" \
+  --request POST \
+  --user "$INSTANCE_ID:$TOKEN" \
   --data "{\"instanceId\":\"$INSTANCE_ID\",\"screenTime\":600, \"applications\": {\"app1\": 400, \"app2\": 300}}" \
   "$HOST/api/v2/report"
