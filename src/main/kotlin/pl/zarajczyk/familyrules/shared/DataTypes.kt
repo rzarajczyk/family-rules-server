@@ -78,3 +78,5 @@ data class PeriodDto(
     val toSeconds: Long,
     val deviceState: DeviceState
 )
+
+interface DbInstanceReference

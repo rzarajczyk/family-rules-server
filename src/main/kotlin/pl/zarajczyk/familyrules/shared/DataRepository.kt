@@ -10,12 +10,15 @@ interface DataRepository {
     fun findUser(username: String): UserDto?
     fun validatePassword(username: String, password: String)
     fun changePassword(username: String, newPassword: String)
+
+    fun getInstanceReference(id: InstanceId): DbInstanceReference?
     
     // Instance operations
     fun validateInstanceToken(instanceId: InstanceId, instanceToken: String): InstanceId?
     fun setupNewInstance(username: String, instanceName: String, clientType: String): NewInstanceDto
     fun getInstances(username: String): List<InstanceDto>
     fun getInstance(instanceId: InstanceId): InstanceDto?
+    fun getInstance(instance: DbInstanceReference): InstanceDto
     fun updateInstance(instanceId: InstanceId, update: UpdateInstanceDto)
     fun deleteInstance(instanceId: InstanceId)
     fun setInstanceSchedule(id: InstanceId, schedule: WeeklyScheduleDto)
@@ -27,6 +30,6 @@ interface DataRepository {
     fun updateAvailableDeviceStates(id: InstanceId, states: List<DescriptiveDeviceStateDto>)
     
     // Screen time operations
-    fun saveReport(instanceId: InstanceId, day: LocalDate, screenTimeSeconds: Long, applicationsSeconds: Map<String, Long>)
+    fun saveReport(instance: DbInstanceReference, day: LocalDate, screenTimeSeconds: Long, applicationsSeconds: Map<String, Long>)
     fun getScreenTimes(id: InstanceId, day: LocalDate): ScreenTimeDto
 }

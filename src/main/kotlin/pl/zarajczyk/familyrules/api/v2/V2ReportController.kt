@@ -21,22 +21,29 @@ class V2ReportController(private val dataRepository: DataRepository, private val
         ): ReportResponse {
             val instanceId = authentication.principal as InstanceId
 
-            with(report) {
-                when {
-                    screenTimeSeconds == null && applicationsSeconds == null -> Unit // nothing
-
-                    screenTimeSeconds != null && applicationsSeconds == null ->
-                        throw ValidationError("screenTimeSeconds and applicationsSeconds must be both null or non-null")
-
-                    screenTimeSeconds == null && applicationsSeconds != null ->
-                        throw ValidationError("screenTimeSeconds and applicationsSeconds must be both null or non-null")
-
-                    screenTimeSeconds != null && applicationsSeconds != null ->
-                        dataRepository.saveReport(instanceId, today(), screenTimeSeconds, applicationsSeconds)
-                }
-            }
-
-            val response = stateService.getDeviceState(instanceId).finalState.toReportResponse()
+//            with(report) {
+//                when {
+//                    screenTimeSeconds == null && applicationsSeconds == null -> Unit // nothing
+//
+//                    screenTimeSeconds != null && applicationsSeconds == null ->
+//                        throw ValidationError("screenTimeSeconds and applicationsSeconds must be both null or non-null")
+//
+//                    screenTimeSeconds == null && applicationsSeconds != null ->
+//                        throw ValidationError("screenTimeSeconds and applicationsSeconds must be both null or non-null")
+//
+//                    screenTimeSeconds != null && applicationsSeconds != null ->
+//                        dataRepository.saveReport(instanceId, today(), screenTimeSeconds, applicationsSeconds)
+//                }
+//            }
+//
+            val instanceRef = dataRepository.getInstanceReference(instanceId) ?: throw RuntimeException("Instance ≪$instanceId≫ not found")
+            dataRepository.saveReport(
+                instance = instanceRef,
+                day = today(),
+                screenTimeSeconds = report.screenTimeSeconds,
+                applicationsSeconds = report.applicationsSeconds
+            )
+            val response = stateService.getDeviceState(instanceRef).finalState.toReportResponse()
             return response
         }
     }
@@ -48,8 +55,8 @@ class V2ReportController(private val dataRepository: DataRepository, private val
 class ValidationError(msg: String) : RuntimeException(msg)
 
 data class ReportRequest(
-    @JsonProperty("screenTime") val screenTimeSeconds: Long?,
-    @JsonProperty("applications") val applicationsSeconds: Map<String, Long>?
+    @JsonProperty("screenTime") val screenTimeSeconds: Long,
+    @JsonProperty("applications") val applicationsSeconds: Map<String, Long>
 )
 
 data class ReportResponse(

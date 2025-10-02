@@ -1,6 +1,7 @@
 package pl.zarajczyk.familyrules.shared
 
 import com.google.cloud.firestore.Firestore
+import com.google.cloud.firestore.QueryDocumentSnapshot
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
@@ -126,31 +127,40 @@ class FirestoreDataRepository(
         }
     }
 
-    override fun getInstance(instanceId: InstanceId): InstanceDto? {
-        val instances = firestore.collectionGroup("instances")
+    override fun getInstanceReference(instanceId: InstanceId): DbInstanceReference? =
+        firestore.collectionGroup("instances")
             .whereEqualTo("instanceId", instanceId.toString())
             .whereEqualTo("deleted", false)
             .get()
             .get()
+            ?.documents
+            ?.firstOrNull()
+            ?.let { FirestoreInstanceReference(it) }
 
-        return instances.documents.firstOrNull()?.let { doc ->
-            InstanceDto(
-                id = UUID.fromString(doc.getString("instanceId") ?: ""),
-                name = doc.getString("instanceName") ?: "",
-                forcedDeviceState = doc.getString("forcedDeviceState"),
-                clientVersion = doc.getString("clientVersion") ?: "",
-                clientType = doc.getString("clientType") ?: "",
-                schedule = try {
-                    json.decodeFromString<WeeklyScheduleDto>(doc.getString("schedule") ?: "{}")
-                        .let { schedulePacker.unpack(it) }
-                } catch (e: Exception) {
-                    WeeklyScheduleDto.empty()
-                },
-                iconData = doc.getString("iconData"),
-                iconType = doc.getString("iconType"),
-                clientTimezoneOffsetSeconds = doc.getLong("clientTimezoneOffsetSeconds")?.toInt() ?: 0
-            )
-        }
+    override fun getInstance(instanceId: InstanceId): InstanceDto? {
+        val ref = getInstanceReference(instanceId)
+        return ref?.let {  getInstance(it) }
+    }
+
+    override fun getInstance(instanceRef: DbInstanceReference): InstanceDto {
+        val doc = (instanceRef as FirestoreInstanceReference).document
+
+        return InstanceDto(
+            id = UUID.fromString(doc.getString("instanceId") ?: ""),
+            name = doc.getString("instanceName") ?: "",
+            forcedDeviceState = doc.getString("forcedDeviceState"),
+            clientVersion = doc.getString("clientVersion") ?: "",
+            clientType = doc.getString("clientType") ?: "",
+            schedule = try {
+                json.decodeFromString<WeeklyScheduleDto>(doc.getString("schedule") ?: "{}")
+                    .let { schedulePacker.unpack(it) }
+            } catch (e: Exception) {
+                WeeklyScheduleDto.empty()
+            },
+            iconData = doc.getString("iconData"),
+            iconType = doc.getString("iconType"),
+            clientTimezoneOffsetSeconds = doc.getLong("clientTimezoneOffsetSeconds")?.toInt() ?: 0
+        )
     }
 
     override fun updateInstance(instanceId: InstanceId, update: UpdateInstanceDto) {
@@ -284,22 +294,13 @@ class FirestoreDataRepository(
     }
 
     override fun saveReport(
-        instanceId: InstanceId,
+        instanceRef: DbInstanceReference,
         day: LocalDate,
         screenTimeSeconds: Long,
         applicationsSeconds: Map<String, Long>
     ) {
-        val instances = firestore.collectionGroup("instances")
-            .whereEqualTo("instanceId", instanceId.toString())
-            .get()
-            .get()
+        val instanceDoc = (instanceRef as FirestoreInstanceReference).document
 
-        if (instances.isEmpty)
-            throw RuntimeException("Missing instance ≪$instanceId≫")
-
-        val instanceDoc = instances.documents.first()
-
-        // Convert to JSON string - simple Map<String, Long>
         val applicationTimesJson = json.encodeToString(applicationsSeconds)
 
         // Store as a single field in the day document
@@ -360,3 +361,5 @@ class FirestoreDataRepository(
         }
     }
 }
+
+class FirestoreInstanceReference(val document: QueryDocumentSnapshot) : DbInstanceReference
