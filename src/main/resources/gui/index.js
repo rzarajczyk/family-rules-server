@@ -148,12 +148,11 @@ document.addEventListener("DOMContentLoaded", (event) => {
                 const iconImg = document.querySelector('.edit-instance-data img');
                 const fileInput = document.querySelector('#instance-icon');
                 
-                const defaultIconData = 'iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAADUklEQVR4AexZvW/TQBR/Z7dFpRQxIYQEtAuIibliYEDKWpYuiJAQIyXpPwALUgYQYxdU0tBEadXNAx8bRSAGhBiZEANSw9IBiQWqdqD28aw4UW2dfXeOQWfnrHvxfbz3/N7v3t09xwaM+aUBGPMAAB0BOgLGHAG9BMY8APQmqJeAzBJYWlo+US7X5lSmYrE4I+OTUAQU79SvlawaPX7S/U1N2FGZjKmZPc9WpKsiQHABKN5dvmwY9L2IMsV4Ptyq1C/xbOICYFD3C0+JquMmoV95tnEBYCjoYV+WCM2NLtIAbLSb81misOvhtjQAYQVZb2sAVJ/Bm5Z1YZS8g+efshFw26q9KGHuMQmTvVHyDk8H0scoIJQEoFKpXiEAi1FGJ+hfKFv1Gyw5JQFwCLnPMnaUPgr0HkteSQAASDCfp/ADAGRzj10IXHQ20PQbSgJAKcUV4FuIN0rBks094NApoCi3KAkA1+oUGZQEgBBCRXwsWdXnSK9FeKN4lAQgvARYxuPR9h2A4M5OClg/hISXkgAIRsD5Iz6bR+pSVSUBEIkAAPIA/As3yXd+VfqmJAAiEbDRfvoQTway/+vnxGaneV3ac19ASQDEIqDvgW3bTr+W7FdJAJK5wpbi9WoAeAjlfVxHQN5nmOefjgAeQnkf1xGQ9xnm+acjgIdQeBxfPXfSp2oglxd5FwjblbQtEgHhPyfm8GGpEnXJNOocFpl3gaFQwgoXAAeMiwl1Z0KMC8BWe/WbQ6jQH4yZ8DhkJBcAj39rfe1N/93bmCUOzKdNB6em33rPGZBqe8DALrDt1b1ut9lLm+yVlYPhQ7Ci1B6A9mSqyBortARklWaJnwkAnvPbSP/gvK9F6IzPAwiBtqw9MGFui0wEEwAAchYAUj3rIUZfOA8ASgN7AhA4HScfMeb5gEN+oWTfrwVubABo8NtcQOI/NIjrPE77MdSgj1g62QAIfppiKUyjr9t99hn1vEJKq3zaXF97yVLGBMCkZiHtsz5OXzgP8AzFvGNx/twZM05OZOyY6U6hrgVPJ4uYAHQ6T3bTPuvj9IXzgIGhjUbDjZMTGWu1Wn8G+lh3JgAsxrz2aQDyOrOifukIEEUqr3w6AvI6s6J+6QgQRUpVvlHt+gsAAP//ntd1GAAAAAZJREFUAwB/pmuu76zG9QAAAABJRU5ErkJggg==';
-                
                 // Check if current icon is the default icon
                 function isDefaultIcon() {
+                    const currentIconType = iconImg.dataset['type'];
                     const currentIconData = iconImg.dataset['icon'];
-                    return currentIconData === defaultIconData;
+                    return !currentIconType || !currentIconData;
                 }
                 
                 // Show/hide remove button based on whether icon is default
@@ -168,9 +167,9 @@ document.addEventListener("DOMContentLoaded", (event) => {
                 // Handle remove icon button click
                 removeIconBtn.addEventListener('click', function() {
                     // Reset to default icon
-                    iconImg.src = `data:image/png;base64,${defaultIconData}`;
-                    iconImg.dataset['type'] = 'image/png';
-                    iconImg.dataset['icon'] = defaultIconData;
+                    iconImg.src = 'default-icon.png';
+                    iconImg.dataset['type'] = '';
+                    iconImg.dataset['icon'] = '';
                     
                     // Clear file input
                     fileInput.value = '';
@@ -215,9 +214,6 @@ document.addEventListener("DOMContentLoaded", (event) => {
                 let iconFile = document.querySelector("#instance-icon").files[0]
                 let iconImg = document.querySelector('.edit-instance-data img')
                 
-                // Default icon data
-                const defaultIconData = 'iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAADUklEQVR4AexZvW/TQBR/Z7dFpRQxIYQEtAuIibliYEDKWpYuiJAQIyXpPwALUgYQYxdU0tBEadXNAx8bRSAGhBiZEANSw9IBiQWqdqD28aw4UW2dfXeOQWfnrHvxfbz3/N7v3t09xwaM+aUBGPMAAB0BOgLGHAG9BMY8APQmqJeAzBJYWlo+US7X5lSmYrE4I+OTUAQU79SvlawaPX7S/U1N2FGZjKmZPc9WpKsiQHABKN5dvmwY9L2IMsV4Ptyq1C/xbOICYFD3C0+JquMmoV95tnEBYCjoYV+WCM2NLtIAbLSb81misOvhtjQAYQVZb2sAVJ/Bm5Z1YZS8g+efshFw26q9KGHuMQmTvVHyDk8H0scoIJQEoFKpXiEAi1FGJ+hfKFv1Gyw5JQFwCLnPMnaUPgr0HkteSQAASDCfp/ADAGRzj10IXHQ20PQbSgJAKcUV4FuIN0rBks094NApoCi3KAkA1+oUGZQEgBBCRXwsWdXnSK9FeKN4lAQgvARYxuPR9h2A4M5OClg/hISXkgAIRsD5Iz6bR+pSVSUBEIkAAPIA/As3yXd+VfqmJAAiEbDRfvoQTway/+vnxGaneV3ac19ASQDEIqDvgW3bTr+W7FdJAJK5wpbi9WoAeAjlfVxHQN5nmOefjgAeQnkf1xGQ9xnm+acjgIdQeBxfPXfSp2oglxd5FwjblbQtEgHhPyfm8GGpEnXJNOocFpl3gaFQwgoXAAeMiwl1Z0KMC8BWe/WbQ6jQH4yZ8DhkJBcAj39rfe1N/93bmCUOzKdNB6em33rPGZBqe8DALrDt1b1ut9lLm+yVlYPhQ7Ci1B6A9mSqyBortARklWaJnwkAnvPbSP/gvK9F6IzPAwiBtqw9MGFui0wEEwAAchYAUj3rIUZfOA8ASgN7AhA4HScfMeb5gEN+oWTfrwVubABo8NtcQOI/NIjrPE77MdSgj1g62QAIfppiKUyjr9t99hn1vEJKq3zaXF97yVLGBMCkZiHtsz5OXzgP8AzFvGNx/twZM05OZOyY6U6hrgVPJ4uYAHQ6T3bTPuvj9IXzgIGhjUbDjZMTGWu1Wn8G+lh3JgAsxrz2aQDyOrOifukIEEUqr3w6AvI6s6J+6QgQRUpVvlHt+gsAAP//ntd1GAAAAAZJREFUAwB/pmuu76zG9QAAAABJRU5ErkJggg==';
-                
                 if (iconFile) {
                     resizeImage(iconFile, (iconData) => {
                         submitClientEdit(instanceId, instanceName, iconFile.type, iconData)
@@ -226,8 +222,8 @@ document.addEventListener("DOMContentLoaded", (event) => {
                     let iconType = iconImg.dataset['type']
                     let iconData = iconImg.dataset['icon']
                     
-                    // If the icon is the default icon, send null values to clear the custom icon
-                    if (iconData === defaultIconData) {
+                    // If the icon is the default icon (empty or null), send null values to clear the custom icon
+                    if (!iconType || !iconData) {
                         submitClientEdit(instanceId, instanceName, null, null)
                     } else {
                         submitClientEdit(instanceId, instanceName, iconType, iconData)

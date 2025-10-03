@@ -1,6 +1,6 @@
 <li class="instance-details" data-instanceid="{{instanceId}}">
     <div class="collapsible-header">
-        <img src="data:{{icon.type}};base64,{{icon.data}}" alt="Device" class="circle image-icon">
+        <img src="{{#if icon.type}}data:{{icon.type}};base64,{{icon.data}}{{else}}default-icon.png{{/if}}" alt="Device" class="circle image-icon">
 <!--        <i class="material-icons">devices</i>-->
         <div class="instance-name">
             <span>{{instanceName}}</span>

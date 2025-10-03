@@ -22,7 +22,7 @@ class BffOverviewController(
         private val DEFAULT_ICON = Icon(
             type = "image/png",
             data = Base64.getEncoder().encodeToString(
-                BffOverviewController::class.java.getResourceAsStream("/default-icon.png")!!.readAllBytes()
+                BffOverviewController::class.java.getResourceAsStream("/gui/default-icon.png")!!.readAllBytes()
             )
         )
     }
@@ -63,7 +63,7 @@ class BffOverviewController(
     private fun InstanceDto.getIcon() = if (iconType != null && iconData != null) {
         Icon(type = iconType, data = iconData)
     } else {
-        DEFAULT_ICON
+        Icon(type = null, data = null)
     }
 
     @GetMapping("/bff/instance-info")
@@ -282,8 +282,8 @@ data class Instance(
 )
 
 data class Icon(
-    val type: String,
-    val data: String
+    val type: String?,
+    val data: String?
 )
 
 data class AppUsage(
