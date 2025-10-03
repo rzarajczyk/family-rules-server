@@ -104,15 +104,15 @@ class BffOverviewController(
             instanceRef, UpdateInstanceDto(
                 instanceId = instanceId,
                 name = data.instanceName,
-                iconType = data.icon.type,
-                iconData = data.icon.data
+                iconType = data.icon?.type,
+                iconData = data.icon?.data
             )
         )
     }
 
     data class InstanceEditInfo(
         val instanceName: String,
-        val icon: Icon
+        val icon: Icon?
     )
 
     @GetMapping("/bff/instance-schedule")

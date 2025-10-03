@@ -106,6 +106,9 @@ document.addEventListener("DOMContentLoaded", (event) => {
                         document.querySelectorAll('.file-field input[type="file"]').forEach((fileInput) => {
                             M.Forms.InitFileInputPath(fileInput);
                         });
+                        
+                        // Setup remove icon functionality
+                        setupRemoveIconFunctionality();
                     })
             }
 
@@ -126,10 +129,10 @@ document.addEventListener("DOMContentLoaded", (event) => {
                     method: 'POST',
                     body: JSON.stringify({
                         instanceName,
-                        icon: {
+                        icon: iconType && iconData ? {
                             type: iconType,
                             data: iconData
-                        }
+                        } : null
                     })
                 }).then(response => {
                     M.toast({text: "Saved"})
@@ -139,19 +142,96 @@ document.addEventListener("DOMContentLoaded", (event) => {
 
             }
 
+            function setupRemoveIconFunctionality() {
+                const removeIconContainer = document.querySelector('.remove-icon-container');
+                const removeIconBtn = document.querySelector('#remove-icon-btn');
+                const iconImg = document.querySelector('.edit-instance-data img');
+                const fileInput = document.querySelector('#instance-icon');
+                
+                const defaultIconData = 'iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAADUklEQVR4AexZvW/TQBR/Z7dFpRQxIYQEtAuIibliYEDKWpYuiJAQIyXpPwALUgYQYxdU0tBEadXNAx8bRSAGhBiZEANSw9IBiQWqdqD28aw4UW2dfXeOQWfnrHvxfbz3/N7v3t09xwaM+aUBGPMAAB0BOgLGHAG9BMY8APQmqJeAzBJYWlo+US7X5lSmYrE4I+OTUAQU79SvlawaPX7S/U1N2FGZjKmZPc9WpKsiQHABKN5dvmwY9L2IMsV4Ptyq1C/xbOICYFD3C0+JquMmoV95tnEBYCjoYV+WCM2NLtIAbLSb81misOvhtjQAYQVZb2sAVJ/Bm5Z1YZS8g+efshFw26q9KGHuMQmTvVHyDk8H0scoIJQEoFKpXiEAi1FGJ+hfKFv1Gyw5JQFwCLnPMnaUPgr0HkteSQAASDCfp/ADAGRzj10IXHQ20PQbSgJAKcUV4FuIN0rBks094NApoCi3KAkA1+oUGZQEgBBCRXwsWdXnSK9FeKN4lAQgvARYxuPR9h2A4M5OClg/hISXkgAIRsD5Iz6bR+pSVSUBEIkAAPIA/As3yXd+VfqmJAAiEbDRfvoQTway/+vnxGaneV3ac19ASQDEIqDvgW3bTr+W7FdJAJK5wpbi9WoAeAjlfVxHQN5nmOefjgAeQnkf1xGQ9xnm+acjgIdQeBxfPXfSp2oglxd5FwjblbQtEgHhPyfm8GGpEnXJNOocFpl3gaFQwgoXAAeMiwl1Z0KMC8BWe/WbQ6jQH4yZ8DhkJBcAj39rfe1N/93bmCUOzKdNB6em33rPGZBqe8DALrDt1b1ut9lLm+yVlYPhQ7Ci1B6A9mSqyBortARklWaJnwkAnvPbSP/gvK9F6IzPAwiBtqw9MGFui0wEEwAAchYAUj3rIUZfOA8ASgN7AhA4HScfMeb5gEN+oWTfrwVubABo8NtcQOI/NIjrPE77MdSgj1g62QAIfppiKUyjr9t99hn1vEJKq3zaXF97yVLGBMCkZiHtsz5OXzgP8AzFvGNx/twZM05OZOyY6U6hrgVPJ4uYAHQ6T3bTPuvj9IXzgIGhjUbDjZMTGWu1Wn8G+lh3JgAsxrz2aQDyOrOifukIEEUqr3w6AvI6s6J+6QgQRUpVvlHt+gsAAP//ntd1GAAAAAZJREFUAwB/pmuu76zG9QAAAABJRU5ErkJggg==';
+                
+                // Check if current icon is the default icon
+                function isDefaultIcon() {
+                    const currentIconData = iconImg.dataset['icon'];
+                    return currentIconData === defaultIconData;
+                }
+                
+                // Show/hide remove button based on whether icon is default
+                function updateRemoveButtonVisibility() {
+                    if (isDefaultIcon()) {
+                        removeIconContainer.style.display = 'none';
+                    } else {
+                        removeIconContainer.style.display = 'block';
+                    }
+                }
+                
+                // Handle remove icon button click
+                removeIconBtn.addEventListener('click', function() {
+                    // Reset to default icon
+                    iconImg.src = `data:image/png;base64,${defaultIconData}`;
+                    iconImg.dataset['type'] = 'image/png';
+                    iconImg.dataset['icon'] = defaultIconData;
+                    
+                    // Clear file input
+                    fileInput.value = '';
+                    const filePathInput = document.querySelector('.file-path');
+                    if (filePathInput) {
+                        filePathInput.value = '';
+                    }
+                    
+                    // Hide remove button
+                    removeIconContainer.style.display = 'none';
+                });
+                
+                // Handle file input change
+                fileInput.addEventListener('change', function() {
+                    if (this.files.length > 0) {
+                        const file = this.files[0];
+                        
+                        // Preview the selected image
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            iconImg.src = e.target.result;
+                            // Update data attributes with the new file info
+                            iconImg.dataset['type'] = file.type;
+                            // For preview, we'll store the full data URL, but for saving we'll convert to base64
+                            iconImg.dataset['icon'] = e.target.result.split(',')[1]; // Extract base64 part
+                        };
+                        reader.readAsDataURL(file);
+                        
+                        // Show remove button when a file is selected
+                        removeIconContainer.style.display = 'block';
+                    }
+                });
+                
+                // Initial visibility check
+                updateRemoveButtonVisibility();
+            }
+
             function onClientEditSaveClicked() {
                 let content = document.querySelector("#instance-edit-modal .modal-content")
                 let instanceId = content.dataset['instanceid']
                 let instanceName = document.querySelector("#instance-name").value
                 let iconFile = document.querySelector("#instance-icon").files[0]
+                let iconImg = document.querySelector('.edit-instance-data img')
+                
+                // Default icon data
+                const defaultIconData = 'iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAADUklEQVR4AexZvW/TQBR/Z7dFpRQxIYQEtAuIibliYEDKWpYuiJAQIyXpPwALUgYQYxdU0tBEadXNAx8bRSAGhBiZEANSw9IBiQWqdqD28aw4UW2dfXeOQWfnrHvxfbz3/N7v3t09xwaM+aUBGPMAAB0BOgLGHAG9BMY8APQmqJeAzBJYWlo+US7X5lSmYrE4I+OTUAQU79SvlawaPX7S/U1N2FGZjKmZPc9WpKsiQHABKN5dvmwY9L2IMsV4Ptyq1C/xbOICYFD3C0+JquMmoV95tnEBYCjoYV+WCM2NLtIAbLSb81misOvhtjQAYQVZb2sAVJ/Bm5Z1YZS8g+efshFw26q9KGHuMQmTvVHyDk8H0scoIJQEoFKpXiEAi1FGJ+hfKFv1Gyw5JQFwCLnPMnaUPgr0HkteSQAASDCfp/ADAGRzj10IXHQ20PQbSgJAKcUV4FuIN0rBks094NApoCi3KAkA1+oUGZQEgBBCRXwsWdXnSK9FeKN4lAQgvARYxuPR9h2A4M5OClg/hISXkgAIRsD5Iz6bR+pSVSUBEIkAAPIA/As3yXd+VfqmJAAiEbDRfvoQTway/+vnxGaneV3ac19ASQDEIqDvgW3bTr+W7FdJAJK5wpbi9WoAeAjlfVxHQN5nmOefjgAeQnkf1xGQ9xnm+acjgIdQeBxfPXfSp2oglxd5FwjblbQtEgHhPyfm8GGpEnXJNOocFpl3gaFQwgoXAAeMiwl1Z0KMC8BWe/WbQ6jQH4yZ8DhkJBcAj39rfe1N/93bmCUOzKdNB6em33rPGZBqe8DALrDt1b1ut9lLm+yVlYPhQ7Ci1B6A9mSqyBortARklWaJnwkAnvPbSP/gvK9F6IzPAwiBtqw9MGFui0wEEwAAchYAUj3rIUZfOA8ASgN7AhA4HScfMeb5gEN+oWTfrwVubABo8NtcQOI/NIjrPE77MdSgj1g62QAIfppiKUyjr9t99hn1vEJKq3zaXF97yVLGBMCkZiHtsz5OXzgP8AzFvGNx/twZM05OZOyY6U6hrgVPJ4uYAHQ6T3bTPuvj9IXzgIGhjUbDjZMTGWu1Wn8G+lh3JgAsxrz2aQDyOrOifukIEEUqr3w6AvI6s6J+6QgQRUpVvlHt+gsAAP//ntd1GAAAAAZJREFUAwB/pmuu76zG9QAAAABJRU5ErkJggg==';
+                
                 if (iconFile) {
                     resizeImage(iconFile, (iconData) => {
                         submitClientEdit(instanceId, instanceName, iconFile.type, iconData)
                     })
                 } else {
-                    let iconType = document.querySelector('.edit-instance-data img').dataset['type']
-                    let iconData = document.querySelector('.edit-instance-data img').dataset['icon']
-                    submitClientEdit(instanceId, instanceName, iconType, iconData)
+                    let iconType = iconImg.dataset['type']
+                    let iconData = iconImg.dataset['icon']
+                    
+                    // If the icon is the default icon, send null values to clear the custom icon
+                    if (iconData === defaultIconData) {
+                        submitClientEdit(instanceId, instanceName, null, null)
+                    } else {
+                        submitClientEdit(instanceId, instanceName, iconType, iconData)
+                    }
                 }
             }
 
