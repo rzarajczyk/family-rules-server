@@ -14,7 +14,7 @@ class V2LaunchController(private val dataRepository: DataRepository) {
     @PostMapping(value = ["/api/v2/launch"])
     fun launch(@RequestBody request: LaunchRequest, authentication: Authentication) {
         val instanceRef = dataRepository.findAuthenticatedInstance(authentication)
-        dataRepository.updateClientInformation(instanceRef, request.version, request.timezoneOffsetSeconds)
+        dataRepository.updateClientInformation(instanceRef, request.version, request.timezoneOffsetSeconds, request.reportIntervalSeconds)
         dataRepository.updateAvailableDeviceStates(instanceRef, request.availableStates.map { it.toDto() })
     }
 
@@ -29,7 +29,8 @@ class V2LaunchController(private val dataRepository: DataRepository) {
 data class LaunchRequest(
     val version: String,
     val availableStates: List<AvailableDeviceState>,
-    val timezoneOffsetSeconds: Int = 0
+    val timezoneOffsetSeconds: Int = 0,
+    val reportIntervalSeconds: Int? = null
 )
 
 data class AvailableDeviceState(

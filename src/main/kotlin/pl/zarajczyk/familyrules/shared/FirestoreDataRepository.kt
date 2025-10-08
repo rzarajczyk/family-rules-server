@@ -136,7 +136,8 @@ class FirestoreDataRepository(
             },
             iconData = doc.getString("iconData"),
             iconType = doc.getString("iconType"),
-            clientTimezoneOffsetSeconds = doc.getLong("clientTimezoneOffsetSeconds")?.toInt() ?: 0
+            clientTimezoneOffsetSeconds = doc.getLong("clientTimezoneOffsetSeconds")?.toInt() ?: 0,
+            reportIntervalSeconds = doc.getLong("reportIntervalSeconds")?.toInt()
         )
     }
 
@@ -166,12 +167,13 @@ class FirestoreDataRepository(
         doc.reference.update("forcedDeviceState", state).get()
     }
 
-    override fun updateClientInformation(instance: InstanceRef, version: String, timezoneOffsetSeconds: Int) {
+    override fun updateClientInformation(instance: InstanceRef, version: String, timezoneOffsetSeconds: Int, reportIntervalSeconds: Int?) {
         val doc = (instance as FirestoreInstanceRef).document
 
         doc.reference.update(
             "clientVersion", version,
-            "clientTimezoneOffsetSeconds", timezoneOffsetSeconds
+            "clientTimezoneOffsetSeconds", timezoneOffsetSeconds,
+            "reportIntervalSeconds", reportIntervalSeconds
         ).get()
     }
 

@@ -52,7 +52,7 @@ class BffOverviewController(
                     .firstOrNull { it.deviceState == state.automaticState }
                     ?.toDeviceStateDescription()
                     ?: throw RuntimeException("Instance ≪${instance.id}≫ doesn't have automatic state ≪${state.automaticState}≫"),
-                online = screenTimeDto.updatedAt.isOnline(),
+                online = screenTimeDto.updatedAt.isOnline(instance.reportIntervalSeconds),
                 icon = instance.getIcon()
             )
         })
@@ -229,7 +229,7 @@ class BffOverviewController(
     }
 
 
-    private fun Instant.isOnline() = (Clock.System.now() - this).inWholeSeconds <= 30
+    private fun Instant.isOnline(reportIntervalSeconds: Int? = null) = (Clock.System.now() - this).inWholeSeconds <= (reportIntervalSeconds ?: 30)
 
     private fun DescriptiveDeviceStateDto.toDeviceStateDescription() = DeviceStateDescription(
         deviceState = deviceState,
