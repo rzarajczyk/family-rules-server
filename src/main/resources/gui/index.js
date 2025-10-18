@@ -39,6 +39,13 @@ document.addEventListener("DOMContentLoaded", (event) => {
                     it.addEventListener('click', onEditScheduleClicked)
                 })
                 M.Collapsible.init(instances, {});
+                
+                // Initialize tooltips for info icons
+                M.Tooltip.init(document.querySelectorAll('.tooltipped'), {
+                    position: 'left',
+                    enterDelay: 200,
+                    exitDelay: 0
+                });
             }
 
             function onDateChanged() {

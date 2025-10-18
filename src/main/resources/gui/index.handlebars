@@ -28,8 +28,15 @@
         <div class="instance-report">
             <ul class="collection">
                 {{#each appUsageSeconds}}
-                    <li class="collection-item">
-                        {{name}}
+                    <li class="collection-item app-usage-item">
+                        <div class="app-info">
+                            <img src="{{#if iconBase64}}data:image/png;base64,{{iconBase64}}{{else}}default-icon.png{{/if}}" 
+                                 alt="{{appName}}" 
+                                 class="app-icon circle">
+                            <span class="app-name tooltipped" 
+                                  data-tooltip="{{path}}" 
+                                  data-position="left">{{#if appName}}{{appName}}{{else}}{{name}}{{/if}}</span>
+                        </div>
                         <span class="secondary-content">{{#formatScreenTime}}{{usageSeconds}}{{/formatScreenTime}}</span>
                     </li>
                 {{/each}}
