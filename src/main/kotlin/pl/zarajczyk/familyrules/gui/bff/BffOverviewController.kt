@@ -238,7 +238,7 @@ class BffOverviewController(
     }
 
 
-    private fun Instant.isOnline(reportIntervalSeconds: Int? = null) = (Clock.System.now() - this).inWholeSeconds <= (reportIntervalSeconds ?: 30)
+    private fun Instant.isOnline(reportIntervalSeconds: Int? = null) = (Clock.System.now() - this).inWholeSeconds <= (reportIntervalSeconds ?: 60)
 
     private fun DescriptiveDeviceStateDto.toDeviceStateDescription() = DeviceStateDescription(
         deviceState = deviceState,

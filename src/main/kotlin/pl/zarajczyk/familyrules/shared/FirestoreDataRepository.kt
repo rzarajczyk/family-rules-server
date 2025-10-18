@@ -5,6 +5,7 @@ import com.google.cloud.firestore.QueryDocumentSnapshot
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.springframework.stereotype.Service
@@ -310,6 +311,7 @@ class FirestoreDataRepository(
     }
 }
 
+@Serializable
 class FirestoreKnownApp(
     val appName: String,
     val iconBase64: String?

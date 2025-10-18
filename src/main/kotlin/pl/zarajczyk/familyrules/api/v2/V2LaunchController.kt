@@ -12,16 +12,17 @@ import pl.zarajczyk.familyrules.shared.AppDto
 
 @RestController
 class V2LaunchController(private val dataRepository: DataRepository) {
-    @PostMapping(value = ["/api/v2/launch"])
+    @PostMapping(value = ["/api/v2/launch", "/api/v2/client-info"])
     fun launch(@RequestBody request: LaunchRequest, authentication: Authentication) {
         val instanceRef = dataRepository.findAuthenticatedInstance(authentication)
         dataRepository.updateClientInformation(
             instance = instanceRef,
             version = request.version,
             timezoneOffsetSeconds = request.timezoneOffsetSeconds ?: 0,
-            request.reportIntervalSeconds,
+            reportIntervalSeconds = request.reportIntervalSeconds ?: 60,
             knownApps = request.knownApps?.mapValues { it.value.toDto() } ?: emptyMap()
-        )        dataRepository.updateAvailableDeviceStates(instanceRef, request.availableStates.map { it.toDto() })
+        )
+        dataRepository.updateAvailableDeviceStates(instanceRef, request.availableStates.map { it.toDto() })
     }
 
     private fun AvailableDeviceState.toDto() = DescriptiveDeviceStateDto(
