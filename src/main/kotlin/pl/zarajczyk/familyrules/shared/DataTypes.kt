@@ -37,7 +37,8 @@ data class InstanceDto(
     val clientTimezoneOffsetSeconds: Int,
     val iconData: String? = null,
     val iconType: String? = null,
-    val reportIntervalSeconds: Int? = null
+    val reportIntervalSeconds: Int?
+    val knownApps: Map<String, AppDto>
 )
 
 data class UpdateInstanceDto(
@@ -56,6 +57,11 @@ data class DescriptiveDeviceStateDto(
     val title: String,
     val icon: String?,
     val description: String?
+)
+
+data class AppDto(
+    val appName: String,
+    val iconBase64Png: String?
 )
 
 @Serializable
