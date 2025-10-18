@@ -166,12 +166,21 @@ class FirestoreDataRepository(
         doc.reference.update("forcedDeviceState", state).get()
     }
 
-    override fun updateClientInformation(instance: InstanceRef, version: String, timezoneOffsetSeconds: Int) {
+    override fun updateClientInformation(instance: InstanceRef, version: String, timezoneOffsetSeconds: Int, knownApps: Map<String, AppDto>) {
         val doc = (instance as FirestoreInstanceRef).document
+
+        val knownAppsJson = json.encodeToString(
+            knownApps.mapValues {
+                FirestoreKnownApp(
+                    appName = it.value.appName,
+                    iconBase64 = it.value.iconBase64Png)
+            }
+        )
 
         doc.reference.update(
             "clientVersion", version,
-            "clientTimezoneOffsetSeconds", timezoneOffsetSeconds
+            "clientTimezoneOffsetSeconds", timezoneOffsetSeconds,
+            "knownApps", knownAppsJson
         ).get()
     }
 
@@ -292,5 +301,10 @@ class FirestoreDataRepository(
         }
     }
 }
+
+class FirestoreKnownApp(
+    val appName: String,
+    val iconBase64: String?
+)
 
 class FirestoreInstanceRef(val document: QueryDocumentSnapshot) : InstanceRef

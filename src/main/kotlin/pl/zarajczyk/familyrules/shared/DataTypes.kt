@@ -57,6 +57,11 @@ data class DescriptiveDeviceStateDto(
     val description: String?
 )
 
+data class AppDto(
+    val appName: String,
+    val iconBase64Png: String?
+)
+
 @Serializable
 data class WeeklyScheduleDto(
     val schedule: Map<DayOfWeek, DailyScheduleDto>

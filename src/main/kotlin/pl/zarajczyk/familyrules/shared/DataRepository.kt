@@ -20,7 +20,7 @@ interface DataRepository {
     fun deleteInstance(instance: InstanceRef)
     fun setInstanceSchedule(instance: InstanceRef, schedule: WeeklyScheduleDto)
     fun setForcedInstanceState(instance: InstanceRef, state: DeviceState?)
-    fun updateClientInformation(instance: InstanceRef, version: String, timezoneOffsetSeconds: Int)
+    fun updateClientInformation(instance: InstanceRef, version: String, timezoneOffsetSeconds: Int, knownApps: Map<String, AppDto>)
     
     // Device states operations
     fun getAvailableDeviceStates(instance: InstanceRef): List<DescriptiveDeviceStateDto>
