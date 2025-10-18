@@ -136,7 +136,13 @@ class FirestoreDataRepository(
             },
             iconData = doc.getString("iconData"),
             iconType = doc.getString("iconType"),
-            clientTimezoneOffsetSeconds = doc.getLong("clientTimezoneOffsetSeconds")?.toInt() ?: 0
+            clientTimezoneOffsetSeconds = doc.getLong("clientTimezoneOffsetSeconds")?.toInt() ?: 0,
+            knownApps = try {
+                json.decodeFromString<Map<String, FirestoreKnownApp>>(doc.getString("knownApps") ?: "{}")
+                    .mapValues { AppDto(it.value.appName, it.value.iconBase64) }
+            } catch (e: Exception) {
+                emptyMap()
+            }
         )
     }
 

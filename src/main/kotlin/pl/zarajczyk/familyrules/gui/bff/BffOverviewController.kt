@@ -44,7 +44,16 @@ class BffOverviewController(
                 instanceName = instance.name,
                 screenTimeSeconds = screenTimeDto.screenTimeSeconds,
                 appUsageSeconds = screenTimeDto.applicationsSeconds
-                    .map { (k, v) -> AppUsage(k, v) },
+                    .map { (k, v) -> 
+                        val knownApp = instance.knownApps[k]
+                        AppUsage(
+                            name = k,
+                            path = k,
+                            usageSeconds = v,
+                            appName = knownApp?.appName,
+                            iconBase64 = knownApp?.iconBase64Png
+                        )
+                    },
                 forcedDeviceState = availableStates
                     .firstOrNull { it.deviceState == state.forcedState }
                     ?.toDeviceStateDescription(),
@@ -288,7 +297,10 @@ data class Icon(
 
 data class AppUsage(
     val name: String,
-    val usageSeconds: Long
+    val path: String,
+    val usageSeconds: Long,
+    val appName: String? = null,
+    val iconBase64: String? = null
 )
 
 data class InstanceState(

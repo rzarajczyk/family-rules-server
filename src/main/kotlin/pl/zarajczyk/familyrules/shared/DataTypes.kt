@@ -37,6 +37,7 @@ data class InstanceDto(
     val clientTimezoneOffsetSeconds: Int,
     val iconData: String? = null,
     val iconType: String? = null,
+    val knownApps: Map<String, AppDto>
 )
 
 data class UpdateInstanceDto(
