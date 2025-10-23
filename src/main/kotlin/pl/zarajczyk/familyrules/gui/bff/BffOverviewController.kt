@@ -10,6 +10,7 @@ import org.springframework.web.server.ResponseStatusException
 import pl.zarajczyk.familyrules.shared.*
 import java.time.DayOfWeek
 import java.util.Base64
+import java.util.UUID
 
 @RestController
 class BffOverviewController(
@@ -34,11 +35,15 @@ class BffOverviewController(
     ): StatusResponse = try {
         val day = LocalDate.parse(date)
         val instances = dbConnector.findInstances(authentication.name)
+        val username = authentication.name
         StatusResponse(instances.map { instanceRef ->
             val screenTimeDto = dbConnector.getScreenTimes(instanceRef, day)
             val state = stateService.getDeviceState(instanceRef)
             val instance = dbConnector.getInstance(instanceRef)
             val availableStates = dbConnector.getAvailableDeviceStates(instanceRef)
+            val appGroupMemberships = dbConnector.getAppGroupMemberships(username, instance.id)
+            val appGroups = dbConnector.getAppGroups(username)
+            
             Instance(
                 instanceId = instance.id,
                 instanceName = instance.name,
@@ -46,12 +51,28 @@ class BffOverviewController(
                 appUsageSeconds = screenTimeDto.applicationsSeconds
                     .map { (k, v) -> 
                         val knownApp = instance.knownApps[k]
+                        val appGroupsForThisApp = appGroupMemberships
+                            .filter { it.appPath == k }
+                            .mapNotNull { membership ->
+                                appGroups.find { it.id == membership.groupId }
+                            }
+                            .map { group ->
+                                val colorInfo = AppGroupColorPalette.getColorInfo(group.color)
+                                AppGroupWithColor(
+                                    id = group.id,
+                                    name = group.name,
+                                    color = group.color,
+                                    textColor = colorInfo?.text ?: "#000000",
+                                    createdAt = group.createdAt
+                                )
+                            }
                         AppUsage(
                             name = k,
                             path = k,
                             usageSeconds = v,
                             appName = knownApp?.appName,
-                            iconBase64 = knownApp?.iconBase64Png
+                            iconBase64 = knownApp?.iconBase64Png,
+                            appGroups = appGroupsForThisApp
                         )
                     },
                 forcedDeviceState = availableStates
@@ -62,7 +83,8 @@ class BffOverviewController(
                     ?.toDeviceStateDescription()
                     ?: throw RuntimeException("Instance ≪${instance.id}≫ doesn't have automatic state ≪${state.automaticState}≫"),
                 online = screenTimeDto.updatedAt.isOnline(instance.reportIntervalSeconds),
-                icon = instance.getIcon()
+                icon = instance.getIcon(),
+                availableAppGroups = appGroups
             )
         })
     } catch (e: InvalidPassword) {
@@ -237,6 +259,105 @@ class BffOverviewController(
         dbConnector.deleteInstance(instanceRef)
     }
 
+    // App Groups BFF endpoints
+    @PostMapping("/bff/app-groups")
+    fun createAppGroup(
+        @RequestBody request: CreateAppGroupRequest,
+        authentication: Authentication
+    ): CreateAppGroupResponse {
+        val username = authentication.name
+        val group = dbConnector.createAppGroup(username, request.name)
+        return CreateAppGroupResponse(group)
+    }
+
+    @GetMapping("/bff/app-groups")
+    fun getAppGroups(authentication: Authentication): GetAppGroupsResponse {
+        val username = authentication.name
+        val groups = dbConnector.getAppGroups(username)
+        return GetAppGroupsResponse(groups)
+    }
+
+    @DeleteMapping("/bff/app-groups/{groupId}")
+    fun deleteAppGroup(
+        @PathVariable groupId: String,
+        authentication: Authentication
+    ): DeleteAppGroupResponse {
+        val username = authentication.name
+        dbConnector.deleteAppGroup(username, groupId)
+        return DeleteAppGroupResponse(true)
+    }
+
+    @PostMapping("/bff/app-groups/{groupId}/apps")
+    fun addAppToGroup(
+        @PathVariable groupId: String,
+        @RequestBody request: AddAppToGroupRequest,
+        authentication: Authentication
+    ): AddAppToGroupResponse {
+        val username = authentication.name
+        dbConnector.addAppToGroup(username, request.instanceId, request.appPath, groupId)
+        return AddAppToGroupResponse(true)
+    }
+
+    @DeleteMapping("/bff/app-groups/{groupId}/apps/{appPath}")
+    fun removeAppFromGroup(
+        @PathVariable groupId: String,
+        @PathVariable appPath: String,
+        @RequestParam instanceId: UUID,
+        authentication: Authentication
+    ): RemoveAppFromGroupResponse {
+        val username = authentication.name
+        dbConnector.removeAppFromGroup(username, instanceId, appPath, groupId)
+        return RemoveAppFromGroupResponse(true)
+    }
+
+    @GetMapping("/bff/app-groups/statistics")
+    fun getAppGroupStatistics(
+        @RequestParam("date") date: String,
+        authentication: Authentication
+    ): AppGroupStatisticsResponse {
+        val day = LocalDate.parse(date)
+        val username = authentication.name
+        val instances = dbConnector.findInstances(username)
+        val appGroups = dbConnector.getAppGroups(username)
+        
+        val groupStats = appGroups.map { group ->
+            // Calculate statistics across all instances
+            var totalApps = 0
+            var totalScreenTime = 0L
+            val deviceCount = mutableSetOf<String>()
+            
+            instances.forEach { instanceRef ->
+                val instance = dbConnector.getInstance(instanceRef)
+                val screenTimeDto = dbConnector.getScreenTimes(instanceRef, day)
+                val instanceMemberships = dbConnector.getAppGroupMemberships(username, instance.id)
+                    .filter { it.groupId == group.id }
+                
+                if (instanceMemberships.isNotEmpty()) {
+                    deviceCount.add(instance.id.toString())
+                    totalApps += instanceMemberships.size
+                    
+                    // Sum screen time for apps in this group
+                    instanceMemberships.forEach { membership ->
+                        totalScreenTime += screenTimeDto.applicationsSeconds[membership.appPath] ?: 0L
+                    }
+                }
+            }
+            
+            val colorInfo = AppGroupColorPalette.getColorInfo(group.color)
+            AppGroupStatistics(
+                id = group.id,
+                name = group.name,
+                color = group.color,
+                textColor = colorInfo?.text ?: "#000000",
+                appsCount = totalApps,
+                devicesCount = deviceCount.size,
+                totalScreenTime = totalScreenTime
+            )
+        }
+        
+        return AppGroupStatisticsResponse(groupStats)
+    }
+
 
     private fun Instant.isOnline(reportIntervalSeconds: Int? = null) = (Clock.System.now() - this).inWholeSeconds <= (reportIntervalSeconds ?: 60)
 
@@ -287,7 +408,8 @@ data class Instance(
     val appUsageSeconds: List<AppUsage>,
     val automaticDeviceState: DeviceStateDescription,
     val forcedDeviceState: DeviceStateDescription?,
-    val online: Boolean
+    val online: Boolean,
+    val availableAppGroups: List<AppGroupDto>
 )
 
 data class Icon(
@@ -300,7 +422,8 @@ data class AppUsage(
     val path: String,
     val usageSeconds: Long,
     val appName: String? = null,
-    val iconBase64: String? = null
+    val iconBase64: String? = null,
+    val appGroups: List<AppGroupWithColor> = emptyList()
 )
 
 data class InstanceState(
@@ -330,3 +453,55 @@ data class TimeOfDay(
 enum class Day {
     MON, TUE, WED, THU, FRI, SAT, SUN
 }
+
+// App Groups BFF data classes
+data class CreateAppGroupRequest(
+    val name: String
+)
+
+data class CreateAppGroupResponse(
+    val group: AppGroupDto
+)
+
+data class GetAppGroupsResponse(
+    val groups: List<AppGroupDto>
+)
+
+data class DeleteAppGroupResponse(
+    val success: Boolean
+)
+
+data class AddAppToGroupRequest(
+    val instanceId: UUID,
+    val appPath: String
+)
+
+data class AddAppToGroupResponse(
+    val success: Boolean
+)
+
+data class RemoveAppFromGroupResponse(
+    val success: Boolean
+)
+
+data class AppGroupWithColor(
+    val id: String,
+    val name: String,
+    val color: String,
+    val textColor: String,
+    val createdAt: Instant
+)
+
+data class AppGroupStatistics(
+    val id: String,
+    val name: String,
+    val color: String,
+    val textColor: String,
+    val appsCount: Int,
+    val devicesCount: Int,
+    val totalScreenTime: Long
+)
+
+data class AppGroupStatisticsResponse(
+    val groups: List<AppGroupStatistics>
+)

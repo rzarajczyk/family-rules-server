@@ -17,6 +17,9 @@ document.addEventListener("DOMContentLoaded", (event) => {
             })
 
             function render(response) {
+                // Store instance data globally for app group functionality
+                window.currentInstanceData = response.instances;
+                
                 const html = response.instances.map(it => template(it)).join('')
                 const instances = document.querySelector("#instances")
                 instances.innerHTML = html
@@ -40,12 +43,18 @@ document.addEventListener("DOMContentLoaded", (event) => {
                 })
                 M.Collapsible.init(instances, {});
                 
-                // Initialize tooltips for info icons
-                M.Tooltip.init(document.querySelectorAll('.tooltipped'), {
+                // Initialize tooltips for info icons (excluding app names)
+                M.Tooltip.init(document.querySelectorAll('.tooltipped:not(.clickable-app-name)'), {
                     position: 'left',
                     enterDelay: 200,
                     exitDelay: 0
                 });
+                
+                // Initialize app group functionality
+                initializeAppGroupHandlers();
+                
+                // Initialize clickable app names
+                initializeClickableAppNames();
             }
 
             function onDateChanged() {
@@ -292,9 +301,105 @@ function resizeImage(file, onResize, width = 64, height = 64) {
             function update() {
                 document.querySelector("#instances").innerHTML = LOADING
                 let date = document.querySelector("#datepicker").value
-                ServerRequest.fetch(`/bff/status?date=${date}`)
-                    .then(response => response.json())
-                    .then(response => render(response))
+                Promise.all([
+                    ServerRequest.fetch(`/bff/status?date=${date}`).then(response => response.json()),
+                    ServerRequest.fetch(`/bff/app-groups/statistics?date=${date}`).then(response => response.json())
+                ])
+                .then(([statusResponse, statisticsResponse]) => {
+                    render(statusResponse)
+                    renderAppGroupCarousel(statisticsResponse)
+                })
+                .catch(error => {
+                    console.error('Error in update function:', error);
+                    document.querySelector("#instances").innerHTML = '<div class="center-align" style="padding: 20px; color: red;">Error loading data</div>';
+                })
+            }
+
+            function renderAppGroupCarousel(statisticsResponse) {
+                try {
+                    const carousel = document.querySelector('#app-groups-carousel');
+                    
+                    if (!carousel) {
+                        console.error('Carousel element not found');
+                        return;
+                    }
+                    
+                    if (!statisticsResponse || !statisticsResponse.groups || statisticsResponse.groups.length === 0) {
+                        carousel.innerHTML = '<div class="carousel-item"><div class="center-align" style="padding: 20px; color: var(--md-sys-color-outline);">No app groups created yet</div></div>';
+                        // Initialize carousel with empty state
+                        try {
+                            M.Carousel.init(carousel, {
+                                numVisible: 1,
+                                shift: 0,
+                                padding: 20,
+                                dist: 0,
+                                indicators: true
+                            });
+                        } catch (carouselError) {
+                            console.error('Error initializing empty carousel:', carouselError);
+                        }
+                        return;
+                    }
+                    
+                    // Load the template
+                    Handlebars.fetchTemplate('./app-group-tile.handlebars')
+                        .then(([template]) => {
+                            const html = statisticsResponse.groups.map(group => template(group)).join('');
+                            carousel.innerHTML = html;
+                            
+                            // Initialize Materialize carousel
+                            try {
+                                M.Carousel.init(carousel, {
+                                    numVisible: 3,
+                                    shift: 0,
+                                    padding: 20,
+                                    dist: 0,
+                                    indicators: true
+                                });
+                            } catch (carouselError) {
+                                console.error('Error initializing carousel:', carouselError);
+                            }
+                            
+                            // Initialize remove group button handlers
+                            initializeAppGroupCarouselHandlers();
+                        })
+                        .catch(templateError => {
+                            console.error('Error loading template:', templateError);
+                            carousel.innerHTML = '<div class="center-align" style="padding: 20px; color: red;">Error loading app group tiles</div>';
+                        });
+                } catch (error) {
+                    console.error('Error in renderAppGroupCarousel:', error);
+                }
+            }
+
+            function initializeAppGroupCarouselHandlers() {
+                document.querySelectorAll('.app-group-tile-remove-btn').forEach(btn => {
+                    btn.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        const groupId = this.dataset.groupId;
+                        if (confirm('Are you sure you want to delete this app group? This will remove all apps from this group.')) {
+                            deleteAppGroup(groupId);
+                        }
+                    });
+                });
+            }
+
+            function deleteAppGroup(groupId) {
+                ServerRequest.fetch(`/bff/app-groups/${groupId}`, {
+                    method: 'DELETE'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Reload the page to show updated groups
+                        window.update();
+                    } else {
+                        console.error('Failed to delete app group');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error deleting app group:', error);
+                });
             }
 
             update()
@@ -302,3 +407,201 @@ function resizeImage(file, onResize, width = 64, height = 64) {
             window.update = update
     })
 });
+
+// App Group functionality
+function initializeAppGroupHandlers() {
+    // Handle remove group button clicks
+    document.querySelectorAll('.remove-group-btn').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const label = this.closest('.app-group-label');
+            const appItem = this.closest('.app-usage-item');
+            const appPath = appItem.dataset.appPath;
+            const groupId = label.dataset.groupId;
+            const instanceId = appItem.closest('.instance-details').dataset.instanceid;
+            
+            removeAppFromGroup(instanceId, appPath, groupId);
+        });
+    });
+    
+    // Handle add group button clicks
+    document.querySelectorAll('.add-group-btn').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const appItem = this.closest('.app-usage-item');
+            const appPath = appItem.dataset.appPath;
+            const instanceId = appItem.closest('.instance-details').dataset.instanceid;
+            
+            showAddGroupDropdown(appItem, instanceId, appPath);
+        });
+    });
+}
+
+function removeAppFromGroup(instanceId, appPath, groupId) {
+    ServerRequest.fetch(`/bff/app-groups/${groupId}/apps/${encodeURIComponent(appPath)}?instanceId=${instanceId}`, {
+        method: 'DELETE'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Reload the page to show updated groups
+            window.update();
+        } else {
+            console.error('Failed to remove app from group');
+        }
+    })
+    .catch(error => {
+        console.error('Error removing app from group:', error);
+    });
+}
+
+function showAddGroupDropdown(appItem, instanceId, appPath) {
+    // Get available app groups from the instance data
+    const instanceDetails = appItem.closest('.instance-details');
+    const instanceData = window.currentInstanceData?.find(inst => inst.instanceId === instanceId);
+    
+    if (!instanceData) {
+        console.error('Instance data not found');
+        return;
+    }
+    
+    const availableGroups = instanceData.availableAppGroups || [];
+    
+    // Create dropdown menu
+    const dropdown = document.createElement('div');
+    dropdown.className = 'app-group-dropdown';
+    dropdown.style.cssText = `
+        position: absolute;
+        background: white;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        z-index: 1000;
+        min-width: 150px;
+    `;
+    
+    // Add existing groups
+    availableGroups.forEach(group => {
+        const item = document.createElement('div');
+        item.className = 'dropdown-item';
+        item.style.cssText = `
+            padding: 8px 12px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+        `;
+        item.textContent = group.name;
+        item.addEventListener('click', () => {
+            addAppToGroup(instanceId, appPath, group.id);
+            dropdown.remove();
+        });
+        dropdown.appendChild(item);
+    });
+    
+    // Add "New app group" option
+    const newGroupItem = document.createElement('div');
+    newGroupItem.className = 'dropdown-item new-group-item';
+    newGroupItem.style.cssText = `
+        padding: 8px 12px;
+        cursor: pointer;
+        background-color: #f5f5f5;
+        font-style: italic;
+    `;
+    newGroupItem.textContent = 'New app group...';
+    newGroupItem.addEventListener('click', () => {
+        showCreateGroupDialog(instanceId, appPath);
+        dropdown.remove();
+    });
+    dropdown.appendChild(newGroupItem);
+    
+    // Position dropdown
+    const rect = appItem.getBoundingClientRect();
+    dropdown.style.left = rect.left + 'px';
+    dropdown.style.top = (rect.bottom + 5) + 'px';
+    
+    document.body.appendChild(dropdown);
+    
+    // Close dropdown when clicking outside
+    const closeDropdown = (e) => {
+        if (!dropdown.contains(e.target)) {
+            dropdown.remove();
+            document.removeEventListener('click', closeDropdown);
+        }
+    };
+    setTimeout(() => document.addEventListener('click', closeDropdown), 0);
+}
+
+function addAppToGroup(instanceId, appPath, groupId) {
+    ServerRequest.fetch(`/bff/app-groups/${groupId}/apps`, {
+        method: 'POST',
+        body: JSON.stringify({
+            instanceId: instanceId,
+            appPath: appPath
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Reload the page to show updated groups
+            window.update();
+        } else {
+            console.error('Failed to add app to group');
+        }
+    })
+    .catch(error => {
+        console.error('Error adding app to group:', error);
+    });
+}
+
+function showCreateGroupDialog(instanceId, appPath) {
+    const groupName = prompt('Enter name for new app group:');
+    if (groupName && groupName.trim()) {
+        createAppGroup(groupName.trim(), instanceId, appPath);
+    }
+}
+
+function createAppGroup(groupName, instanceId, appPath) {
+    ServerRequest.fetch('/bff/app-groups', {
+        method: 'POST',
+        body: JSON.stringify({
+            name: groupName
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.group) {
+            // Add the app to the newly created group
+            addAppToGroup(instanceId, appPath, data.group.id);
+        } else {
+            console.error('Failed to create app group');
+        }
+    })
+    .catch(error => {
+        console.error('Error creating app group:', error);
+    });
+}
+
+// Clickable app names functionality
+function initializeClickableAppNames() {
+    document.querySelectorAll('.clickable-app-name').forEach(appNameElement => {
+        appNameElement.addEventListener('click', function(e) {
+            e.stopPropagation();
+            toggleAppNameDisplay(this);
+        });
+    });
+}
+
+function toggleAppNameDisplay(element) {
+    const appName = element.dataset.appName;
+    const appPath = element.dataset.appPath;
+    const isShowingPath = element.classList.contains('showing-path');
+    
+    if (isShowingPath) {
+        // Switch to showing app name
+        element.textContent = appName;
+        element.classList.remove('showing-path');
+    } else {
+        // Switch to showing app path
+        element.textContent = appPath;
+        element.classList.add('showing-path');
+    }
+}

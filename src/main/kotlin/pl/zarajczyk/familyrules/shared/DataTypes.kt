@@ -64,6 +64,18 @@ data class AppDto(
     val iconBase64Png: String?
 )
 
+data class AppGroupDto(
+    val id: String,
+    val name: String,
+    val color: String,
+    val createdAt: Instant
+)
+
+data class AppGroupMembershipDto(
+    val appPath: String,
+    val groupId: String
+)
+
 @Serializable
 data class WeeklyScheduleDto(
     val schedule: Map<DayOfWeek, DailyScheduleDto>

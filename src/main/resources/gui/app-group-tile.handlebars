@@ -1,0 +1,25 @@
+<div class="carousel-item">
+    <div class="app-group-tile" 
+         data-group-id="{{id}}" 
+         data-group-color="{{color}}"
+         style="--group-color: {{color}};">
+        <div class="app-group-tile-header">
+            <span class="app-group-tile-name" style="color: {{textColor}};">{{name}}</span>
+            <button class="app-group-tile-remove-btn" data-group-id="{{id}}">
+                <i class="material-icons tiny">delete</i>
+            </button>
+        </div>
+        <div class="app-group-tile-content">
+            <div class="app-group-tile-stats">
+                <div class="app-group-tile-apps-count">
+                    <i class="material-icons tiny">apps</i>
+                    <span>{{appsCount}} apps in {{devicesCount}} devices</span>
+                </div>
+                <div class="app-group-tile-screen-time">
+                    <i class="material-icons tiny">schedule</i>
+                    <span>{{#formatScreenTime}}{{totalScreenTime}}{{/formatScreenTime}}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
