@@ -68,6 +68,177 @@
             background-color: rgba(0,0,0,0.1);
             border-radius: 50%;
         }
+        
+        .app-group-item {
+            border-left: 4px solid var(--group-color, var(--md-sys-color-primary));
+        }
+        
+        .app-group-header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+        }
+        
+        .app-group-name {
+            display: flex;
+            align-items: center;
+            font-weight: 500;
+        }
+        
+        .app-group-name i {
+            margin-right: 0.5rem;
+        }
+        
+        .app-group-stats-header {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+        
+        .app-group-stats-header span {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            font-size: 0.9rem;
+            color: var(--md-sys-color-on-surface-variant);
+        }
+        
+        .app-group-actions {
+            display: flex;
+            align-items: center;
+        }
+        
+        .app-group-remove-btn {
+            background: none;
+            border: none;
+            color: var(--md-sys-color-error);
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 50%;
+            transition: background-color 0.2s;
+        }
+        
+        .app-group-remove-btn:hover {
+            background-color: rgba(0,0,0,0.1);
+        }
+        
+        .app-group-details {
+            padding: 1rem 0;
+        }
+        
+        .app-group-summary {
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--md-sys-color-outline-variant);
+        }
+        
+        .app-group-summary p {
+            margin: 0.25rem 0;
+        }
+        
+        .app-group-total-time {
+            color: var(--md-sys-color-primary);
+            font-weight: 500;
+        }
+        
+        .app-group-apps-list {
+            margin-top: 0.5rem;
+        }
+        
+        .app-list-header {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 0.5fr;
+            gap: 1rem;
+            padding: 0.75rem 0;
+            font-weight: 600;
+            color: var(--md-sys-color-on-surface-variant);
+            border-bottom: 2px solid var(--md-sys-color-outline);
+            margin-bottom: 0.5rem;
+        }
+        
+        .app-group-app-item {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 0.5fr;
+            gap: 1rem;
+            align-items: center;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid var(--md-sys-color-outline-variant);
+            transition: background-color 0.2s;
+        }
+        
+        .app-group-app-item:hover {
+            background-color: var(--md-sys-color-surface-variant);
+        }
+        
+        .app-group-app-item:last-child {
+            border-bottom: none;
+        }
+        
+        .app-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+        
+        .app-name {
+            font-weight: 500;
+            color: var(--md-sys-color-on-surface);
+        }
+        
+        .app-package {
+            font-size: 0.8rem;
+            color: var(--md-sys-color-on-surface-variant);
+            font-family: monospace;
+        }
+        
+        .app-device {
+            color: var(--md-sys-color-on-surface-variant);
+            font-size: 0.9rem;
+        }
+        
+        .app-time {
+            color: var(--md-sys-color-primary);
+            font-weight: 500;
+            text-align: right;
+        }
+        
+        .app-percentage {
+            color: var(--md-sys-color-primary);
+            font-weight: 500;
+            text-align: right;
+            font-size: 0.9rem;
+        }
+        
+        @media only screen and (max-width: 768px) {
+            .app-list-header,
+            .app-group-app-item {
+                grid-template-columns: 1fr;
+                gap: 0.5rem;
+            }
+            
+            .app-list-header {
+                display: none;
+            }
+            
+            .app-group-app-item {
+                display: flex;
+                flex-direction: column;
+                align-items: flex-start;
+                padding: 1rem 0;
+            }
+            
+            .app-info {
+                width: 100%;
+                margin-bottom: 0.5rem;
+            }
+            
+            .app-device,
+            .app-time,
+            .app-percentage {
+                font-size: 0.85rem;
+            }
+        }
     </style>
     <!--Let browser know website is optimized for mobile-->
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -91,9 +262,8 @@
     </div>
     <div class="row">
         <div class="col s12">
-            <div id="app-groups-carousel" class="carousel">
-                <div class="carousel-item"></div>
-            </div>
+            <ul class="collapsible no-autoinit popout" id="app-groups">
+            </ul>
         </div>
     </div>
 </div>

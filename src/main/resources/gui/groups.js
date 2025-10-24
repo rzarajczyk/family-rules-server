@@ -13,65 +13,55 @@ document.addEventListener("DOMContentLoaded", (event) => {
         update()
     }
 
-    function renderAppGroupCarousel(statisticsResponse) {
+    function renderAppGroups(statisticsResponse) {
         try {
-            const carousel = document.querySelector('#app-groups-carousel');
+            const appGroupsContainer = document.querySelector('#app-groups');
             
-            if (!carousel) {
-                console.error('Carousel element not found');
+            if (!appGroupsContainer) {
+                console.error('App groups container not found');
                 return;
             }
             
             if (!statisticsResponse || !statisticsResponse.groups || statisticsResponse.groups.length === 0) {
-                carousel.innerHTML = '<div class="carousel-item"><div class="center-align" style="padding: 20px; color: var(--md-sys-color-outline);">No app groups created yet</div></div>';
-                // Initialize carousel with empty state
-                try {
-                    M.Carousel.init(carousel, {
-                        numVisible: 1,
-                        shift: 0,
-                        padding: 20,
-                        dist: 0,
-                        indicators: true
-                    });
-                } catch (carouselError) {
-                    console.error('Error initializing empty carousel:', carouselError);
-                }
+                appGroupsContainer.innerHTML = '<li><div class="center-align" style="padding: 20px; color: var(--md-sys-color-outline);">No app groups created yet</div></li>';
                 return;
             }
             
             // Load the template
-            Handlebars.fetchTemplate('./app-group-tile.handlebars')
+            Handlebars.fetchTemplate('./app-group-collapsible.handlebars')
                 .then(([template]) => {
-                    const html = statisticsResponse.groups.map(group => template(group)).join('');
-                    carousel.innerHTML = html;
+                    // Sort apps by screen time (usage) in descending order for each group
+                    const sortedGroups = statisticsResponse.groups.map(group => {
+                        if (group.apps && Array.isArray(group.apps)) {
+                            group.apps = group.apps.sort((a, b) => (b.screenTime || 0) - (a.screenTime || 0));
+                        }
+                        return group;
+                    });
                     
-                    // Initialize Materialize carousel
+                    const html = sortedGroups.map(group => template(group)).join('');
+                    appGroupsContainer.innerHTML = html;
+                    
+                    // Initialize Materialize collapsibles
                     try {
-                        M.Carousel.init(carousel, {
-                            numVisible: 3,
-                            shift: 0,
-                            padding: 20,
-                            dist: 0,
-                            indicators: true
-                        });
-                    } catch (carouselError) {
-                        console.error('Error initializing carousel:', carouselError);
+                        M.Collapsible.init(appGroupsContainer, {});
+                    } catch (collapsibleError) {
+                        console.error('Error initializing collapsibles:', collapsibleError);
                     }
                     
                     // Initialize remove group button handlers
-                    initializeAppGroupCarouselHandlers();
+                    initializeAppGroupHandlers();
                 })
                 .catch(templateError => {
                     console.error('Error loading template:', templateError);
-                    carousel.innerHTML = '<div class="center-align" style="padding: 20px; color: red;">Error loading app group tiles</div>';
+                    appGroupsContainer.innerHTML = '<li><div class="center-align" style="padding: 20px; color: red;">Error loading app groups</div></li>';
                 });
         } catch (error) {
-            console.error('Error in renderAppGroupCarousel:', error);
+            console.error('Error in renderAppGroups:', error);
         }
     }
 
-    function initializeAppGroupCarouselHandlers() {
-        document.querySelectorAll('.app-group-tile-remove-btn').forEach(btn => {
+    function initializeAppGroupHandlers() {
+        document.querySelectorAll('.app-group-remove-btn').forEach(btn => {
             btn.addEventListener('click', function(e) {
                 e.stopPropagation();
                 const groupId = this.dataset.groupId;
@@ -104,10 +94,10 @@ document.addEventListener("DOMContentLoaded", (event) => {
         let date = document.querySelector("#datepicker").value
         ServerRequest.fetch(`/bff/app-groups/statistics?date=${date}`)
         .then(response => response.json())
-        .then(renderAppGroupCarousel)
+        .then(renderAppGroups)
         .catch(error => {
             console.error('Error in update function:', error);
-            document.querySelector("#app-groups-carousel").innerHTML = '<div class="center-align" style="padding: 20px; color: red;">Error loading data</div>';
+            document.querySelector("#app-groups").innerHTML = '<li><div class="center-align" style="padding: 20px; color: red;">Error loading data</div></li>';
         })
     }
 

@@ -1,0 +1,54 @@
+<li class="app-group-item" data-group-id="{{id}}" data-group-color="{{color}}" style="--group-color: {{color}};">
+    <div class="collapsible-header">
+        <div class="app-group-header-content">
+            <div class="app-group-name" style="color: {{textColor}};">
+                <i class="material-icons">group_work</i>
+                {{name}}
+            </div>
+            <div class="app-group-stats-header">
+                <span class="app-group-apps-count">
+                    <i class="material-icons tiny">apps</i>
+                    {{appsCount}} apps
+                </span>
+                <span class="app-group-screen-time">
+                    <i class="material-icons tiny">schedule</i>
+                    {{#formatScreenTime}}{{totalScreenTime}}{{/formatScreenTime}}
+                </span>
+            </div>
+        </div>
+        <div class="app-group-actions">
+            <button class="app-group-remove-btn" data-group-id="{{id}}">
+                <i class="material-icons tiny">delete</i>
+            </button>
+        </div>
+    </div>
+    <div class="collapsible-body">
+        <div class="app-group-details">
+            <div class="app-group-info">
+                <div class="app-group-summary">
+                    <p><strong>{{appsCount}} apps across {{devicesCount}} devices</strong></p>
+                    <p class="app-group-total-time">Total usage: {{#formatScreenTime}}{{totalScreenTime}}{{/formatScreenTime}}</p>
+                </div>
+                <div class="app-group-apps-list">
+                    <div class="app-list-header">
+                        <span class="app-header-name">App Name</span>
+                        <span class="app-header-device">Device</span>
+                        <span class="app-header-time">Usage</span>
+                        <span class="app-header-percentage">%</span>
+                    </div>
+                    {{#each apps}}
+                    <div class="app-group-app-item" data-screen-time="{{screenTime}}">
+                        <div class="app-info">
+                            <span class="app-name">{{name}}</span>
+                            <span class="app-package">{{packageName}}</span>
+                        </div>
+                        <span class="app-device">{{deviceName}}</span>
+                        <span class="app-time">{{#formatScreenTime}}{{screenTime}}{{/formatScreenTime}}</span>
+                        <span class="app-percentage">{{percentage}}%</span>
+                    </div>
+                    {{/each}}
+                </div>
+            </div>
+        </div>
+    </div>
+</li>
