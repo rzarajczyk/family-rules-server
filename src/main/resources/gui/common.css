@@ -165,6 +165,28 @@ nav li.active {
     border-color: var(--md-sys-color-primary);
 }
 
+/* App group dropdown positioning and styling */
+.app-group-dropdown {
+    position: fixed !important;
+    z-index: 1000;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.app-group-dropdown .dropdown-item {
+    transition: background-color 0.2s ease;
+}
+
+.app-group-dropdown .dropdown-item:hover {
+    background-color: var(--md-sys-color-primary-container);
+    color: var(--md-sys-color-on-primary-container);
+}
+
+.app-group-dropdown .new-group-item:hover {
+    background-color: var(--md-sys-color-primary-container) !important;
+    color: var(--md-sys-color-on-primary-container) !important;
+}
+
 .app-usage-item:hover .add-group-btn {
     visibility: visible !important;
 }

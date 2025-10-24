@@ -379,12 +379,10 @@ function showAddGroupDropdown(appItem, instanceId, appPath) {
     const dropdown = document.createElement('div');
     dropdown.className = 'app-group-dropdown';
     dropdown.style.cssText = `
-        position: absolute;
         background: white;
         border: 1px solid #ccc;
         border-radius: 4px;
         box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        z-index: 1000;
         min-width: 150px;
     `;
     
@@ -421,10 +419,29 @@ function showAddGroupDropdown(appItem, instanceId, appPath) {
     });
     dropdown.appendChild(newGroupItem);
     
-    // Position dropdown
+    // Position dropdown with fixed positioning (relative to viewport)
     const rect = appItem.getBoundingClientRect();
-    dropdown.style.left = rect.left + 'px';
-    dropdown.style.top = (rect.bottom + 5) + 'px';
+    
+    // Calculate position relative to viewport (for fixed positioning)
+    let left = rect.left;
+    let top = rect.bottom + 5;
+    
+    // Ensure dropdown doesn't go off-screen horizontally
+    const dropdownWidth = 150; // min-width from CSS
+    const viewportWidth = window.innerWidth;
+    const adjustedLeft = left + dropdownWidth > viewportWidth 
+        ? viewportWidth - dropdownWidth - 10 
+        : left;
+    
+    // Ensure dropdown doesn't go off-screen vertically
+    const dropdownHeight = Math.min(200, availableGroups.length * 40 + 50); // Estimate height
+    const viewportHeight = window.innerHeight;
+    const adjustedTop = top + dropdownHeight > viewportHeight
+        ? rect.top - dropdownHeight - 5 // Position above the button
+        : top;
+    
+    dropdown.style.left = adjustedLeft + 'px';
+    dropdown.style.top = adjustedTop + 'px';
     
     document.body.appendChild(dropdown);
     
