@@ -116,11 +116,13 @@
         .app-group-actions {
             margin-bottom: 1rem;
         }
-        
-        .app-group-remove-btn {
-        }
-        
-        .app-group-remove-btn:hover {
+
+        @media only screen and (max-width: 600.99px) {
+            .app-group-actions button {
+                width: 100%;
+                text-align: center;
+                display: block;
+            }
         }
         
         .app-group-details {

@@ -4,6 +4,13 @@ nav .brand-logo {
     text-wrap: nowrap;
 }
 
+@media only screen and (max-width: 600.99px) {
+    nav .brand-logo {
+        font-size: 1.5rem;
+        padding-left: 0em;
+    }
+}
+
 nav li.active {
     background-color: var(--md-sys-color-on-primary-container-light);
 }
