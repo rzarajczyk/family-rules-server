@@ -28,9 +28,19 @@ class FirestoreInitializer(
                     .document(databaseInitializationProperties.username)
                     .set(mapOf(
                         "username" to databaseInitializationProperties.username,
-                        "passwordSha256" to databaseInitializationProperties.password.sha256()
+                        "passwordSha256" to databaseInitializationProperties.password.sha256(),
+                        "accessLevel" to AccessLevel.ADMIN.name
                     ))
                     .get()
+            } else {
+                // Update existing user to have admin access level if not already set
+                val currentAccessLevel = userDoc.getString("accessLevel")
+                if (currentAccessLevel == null) {
+                    firestore.collection("users")
+                        .document(databaseInitializationProperties.username)
+                        .update("accessLevel", AccessLevel.ADMIN.name)
+                        .get()
+                }
             }
         }
     }

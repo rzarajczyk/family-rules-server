@@ -5,6 +5,7 @@ import org.springframework.security.core.userdetails.UserDetails
 import org.springframework.security.core.userdetails.UsernameNotFoundException
 import org.springframework.security.provisioning.UserDetailsManager
 import org.springframework.stereotype.Service
+import pl.zarajczyk.familyrules.shared.AccessLevel
 import pl.zarajczyk.familyrules.shared.DataRepository
 import pl.zarajczyk.familyrules.shared.UserDto
 
@@ -38,10 +39,16 @@ class UsersService(private val dataRepository: DataRepository) : UserDetailsMana
 }
 
 data class DtoBasedUserDetails(private val dto: UserDto) : UserDetails {
-    override fun getAuthorities(): Collection<GrantedAuthority> = emptyList()
+    override fun getAuthorities(): Collection<GrantedAuthority> = listOf(
+        AccessLevelAuthority(dto.accessLevel)
+    )
 
     override fun getPassword(): String = dto.passwordSha256
 
     override fun getUsername(): String = dto.username
 
+}
+
+class AccessLevelAuthority(private val accessLevel: AccessLevel) : GrantedAuthority {
+    override fun getAuthority(): String = "ROLE_${accessLevel.name}"
 }

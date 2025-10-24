@@ -11,9 +11,16 @@ class InvalidPassword : RuntimeException("Invalid password")
 class IllegalInstanceName(val instanceName: String) : RuntimeException("Instance $instanceName already exists")
 class InstanceAlreadyExists(val instanceName: String) : RuntimeException("Instance $instanceName has incorrect name")
 
+enum class AccessLevel {
+    ADMIN,
+    PARENT,
+    CHILD
+}
+
 data class UserDto(
     val username: String,
-    val passwordSha256: String
+    val passwordSha256: String,
+    val accessLevel: AccessLevel = AccessLevel.ADMIN
 )
 
 data class NewInstanceDto(

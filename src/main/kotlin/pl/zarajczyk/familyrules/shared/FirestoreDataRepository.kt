@@ -25,7 +25,8 @@ class FirestoreDataRepository(
         return if (doc.exists()) {
             UserDto(
                 username = doc.getString("username") ?: username,
-                passwordSha256 = doc.getString("passwordSha256") ?: ""
+                passwordSha256 = doc.getString("passwordSha256") ?: "",
+                accessLevel = doc.getString("accessLevel")?.let { AccessLevel.valueOf(it) } ?: AccessLevel.ADMIN
             )
         } else null
     }
