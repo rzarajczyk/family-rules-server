@@ -342,8 +342,10 @@ class BffOverviewController(
                         val appScreenTime = screenTimeDto.applicationsSeconds[membership.appPath] ?: 0L
                         totalScreenTime += appScreenTime
                         
-                        // Get app name from known apps or use the path
-                        val appName = instance.knownApps[membership.appPath]?.appName ?: membership.appPath
+                        // Get app name and icon from known apps or use the path
+                        val knownApp = instance.knownApps[membership.appPath]
+                        val appName = knownApp?.appName ?: membership.appPath
+                        val appIcon = knownApp?.iconBase64Png
                         
                         appDetails.add(
                             AppGroupAppDetail(
@@ -351,7 +353,8 @@ class BffOverviewController(
                                 packageName = membership.appPath,
                                 deviceName = instance.name,
                                 screenTime = appScreenTime,
-                                percentage = 0.0 // Will be calculated below
+                                percentage = 0.0, // Will be calculated below
+                                iconBase64 = appIcon
                             )
                         )
                     }
@@ -535,7 +538,8 @@ data class AppGroupAppDetail(
     val packageName: String,
     val deviceName: String,
     val screenTime: Long,
-    val percentage: Double
+    val percentage: Double,
+    val iconBase64: String? = null
 )
 
 data class AppGroupStatisticsResponse(

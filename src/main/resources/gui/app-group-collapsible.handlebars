@@ -35,7 +35,7 @@
                         {{#each apps}}
                         <li class="collection-item app-usage-item" data-app-path="{{packageName}}">
                             <div class="app-info">
-                                <img src="default-icon.png" 
+                                <img src="{{#if iconBase64}}data:image/png;base64,{{iconBase64}}{{else}}default-icon.png{{/if}}" 
                                      alt="{{name}}" 
                                      class="app-icon circle">
                                 <div class="app-details">
