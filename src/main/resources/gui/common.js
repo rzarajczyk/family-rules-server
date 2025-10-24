@@ -62,6 +62,17 @@ function formatState(state) {
 
 document.addEventListener("DOMContentLoaded", (event) => {
     M.AutoInit();
+    
+    // Initialize user dropdown
+    const userDropdown = document.querySelector('.dropdown-trigger');
+    if (userDropdown) {
+        M.Dropdown.init(userDropdown, {
+            alignment: 'right',
+            constrainWidth: false,
+            coverTrigger: false,
+            belowOrigin: true
+        });
+    }
 
     Handlebars.registerHelper('ifEquals', function(a, b, options) {
         if (a == b) {

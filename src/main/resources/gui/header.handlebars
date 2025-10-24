@@ -4,21 +4,27 @@
             <div class="nav-wrapper">
                 <a href="#" class="brand-logo">Family Rules</a>
                 <a href="#" data-target="main-menu" class="sidenav-trigger"><i class="material-icons">menu</i></a>
-                <ul class="right hide-on-med-and-down">
-                    <li><a href="/gui/index.html">Home</a></li>
-                    <li><a href="/gui/devices.html">Devices</a></li>
-                    <li><a href="/gui/groups.html">Groups</a></li>
-                    <li><a href="/gui/settings.html">Settings</a></li>
-                    <li><a href="/logout">Logout</a></li>
+                <ul class="right">
+                    <li>
+                        <a class="dropdown-trigger" href="#" data-target="user-dropdown">
+                            <i class="material-icons">person</i>
+                        </a>
+                    </li>
                 </ul>
             </div>
         </nav>
     </div>
     <ul class="sidenav" id="main-menu">
-        <li><a href="/gui/index.html">Home</a></li>
-        <li><a href="/gui/devices.html">Devices</a></li>
-        <li><a href="/gui/groups.html">Groups</a></li>
+        <li><a href="/gui/index.html"><i class="material-icons">home</i> Home</a></li>
+        <li><a href="/gui/devices.html"><i class="material-icons">devices</i> Devices</a></li>
+        <li><a href="/gui/groups.html"><i class="material-icons">group_work</i> Groups</a></li>
+        <li><div class="divider"></div></li>
         <li><a href="/gui/settings.html">Settings</a></li>
         <li><a href="/logout">Logout</a></li>
+    </ul>
+    
+    <!-- User dropdown menu -->
+    <ul id="user-dropdown" class="dropdown-content">
+        <li><a href="/logout"><i class="material-icons">logout</i>Logout</a></li>
     </ul>
 </header>
