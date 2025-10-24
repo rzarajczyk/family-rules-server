@@ -153,12 +153,4 @@ document.addEventListener("DOMContentLoaded", (event) => {
         })
 
     })
-
-    fetch("/bff/time")
-        .then(it => it.json())
-        .then(time => {
-            document.querySelectorAll(".clock").forEach(it => {
-                it.innerHTML = time.time
-            })
-        })
 })
