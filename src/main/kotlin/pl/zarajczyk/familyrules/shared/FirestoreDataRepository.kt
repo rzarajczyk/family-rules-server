@@ -347,6 +347,25 @@ class FirestoreDataRepository(
         }
     }
 
+    override fun renameAppGroup(username: String, groupId: String, newName: String): AppGroupDto {
+        val groupRef = firestore.collection("users")
+            .document(username)
+            .collection("appGroups")
+            .document(groupId)
+            
+        // Update the group name
+        groupRef.update("name", newName).get()
+        
+        // Get the updated group data
+        val updatedGroup = groupRef.get().get()
+        return AppGroupDto(
+            id = updatedGroup.getString("id") ?: groupId,
+            name = updatedGroup.getString("name") ?: newName,
+            color = updatedGroup.getString("color") ?: AppGroupColorPalette.getDefaultColor(),
+            createdAt = updatedGroup.getString("createdAt")?.let { Instant.parse(it) } ?: Instant.DISTANT_PAST
+        )
+    }
+
     override fun deleteAppGroup(username: String, groupId: String) {
         // First, remove all memberships for this group
         val memberships = firestore.collectionGroup("appGroupMemberships")

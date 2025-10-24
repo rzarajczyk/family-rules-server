@@ -66,6 +66,18 @@ document.addEventListener("DOMContentLoaded", (event) => {
                 }
             });
         });
+
+        document.querySelectorAll('.app-group-rename-btn').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const groupId = this.dataset.groupId;
+                const currentName = this.closest('.app-group-item').querySelector('.app-group-name').textContent;
+                const newName = prompt('Enter new name for the group:', currentName);
+                if (newName && newName.trim() !== '' && newName !== currentName) {
+                    renameAppGroup(groupId, newName.trim());
+                }
+            });
+        });
     }
 
     function deleteAppGroup(groupId) {
@@ -83,6 +95,28 @@ document.addEventListener("DOMContentLoaded", (event) => {
         })
         .catch(error => {
             console.error('Error deleting app group:', error);
+        });
+    }
+
+    function renameAppGroup(groupId, newName) {
+        ServerRequest.fetch(`/bff/app-groups/${groupId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ newName: newName })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.group) {
+                // Reload the page to show updated groups
+                window.update();
+            } else {
+                console.error('Failed to rename app group');
+            }
+        })
+        .catch(error => {
+            console.error('Error renaming app group:', error);
         });
     }
 
