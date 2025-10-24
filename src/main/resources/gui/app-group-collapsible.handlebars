@@ -1,25 +1,13 @@
 <li class="app-group-item" data-group-id="{{id}}" data-group-color="{{color}}" style="--group-color: {{color}};">
     <div class="collapsible-header">
         <div class="app-group-header-content">
-            <div class="app-group-name" style="color: {{textColor}};">
-                <i class="material-icons">group_work</i>
-                {{name}}
-            </div>
+            <div class="app-group-name" style="color: {{textColor}};">{{name}}</div>
             <div class="app-group-stats-header">
-                <span class="app-group-apps-count">
-                    <i class="material-icons tiny">apps</i>
-                    {{appsCount}} apps
-                </span>
                 <span class="app-group-screen-time">
                     <i class="material-icons tiny">schedule</i>
                     {{#formatScreenTime}}{{totalScreenTime}}{{/formatScreenTime}}
                 </span>
             </div>
-        </div>
-        <div class="app-group-actions">
-            <button class="app-group-remove-btn" data-group-id="{{id}}">
-                <i class="material-icons tiny">delete</i>
-            </button>
         </div>
     </div>
     <div class="collapsible-body">
@@ -60,6 +48,9 @@
                 </div>
                 {{/if}}
             </div>
+        </div>
+        <div class="app-group-actions">
+            <button class="app-group-remove-btn btn outlined" data-group-id="{{id}}">Delete Group</button>
         </div>
     </div>
 </li>

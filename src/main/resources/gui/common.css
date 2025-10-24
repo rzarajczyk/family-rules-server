@@ -83,6 +83,7 @@ nav li.active {
     flex: 1;
     min-width: 0;
     overflow: hidden;
+    word-break: break-word;
     cursor: pointer;
     padding-right: 0.2em
 }

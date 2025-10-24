@@ -72,12 +72,21 @@
         .app-group-item {
             border-left: 4px solid var(--group-color, var(--md-sys-color-primary));
         }
+
+        .app-group-item .collapsible-header {
+            display: block;
+        }
         
         .app-group-header-content {
             display: flex;
             justify-content: space-between;
             align-items: center;
             width: 100%;
+        }
+
+        .app-group-item .collapsible-header::after {
+            content: "";
+            display: none;
         }
         
         .app-group-name {
@@ -105,22 +114,13 @@
         }
         
         .app-group-actions {
-            display: flex;
-            align-items: center;
+            margin-bottom: 1rem;
         }
         
         .app-group-remove-btn {
-            background: none;
-            border: none;
-            color: var(--md-sys-color-error);
-            cursor: pointer;
-            padding: 0.5rem;
-            border-radius: 50%;
-            transition: background-color 0.2s;
         }
         
         .app-group-remove-btn:hover {
-            background-color: rgba(0,0,0,0.1);
         }
         
         .app-group-details {
