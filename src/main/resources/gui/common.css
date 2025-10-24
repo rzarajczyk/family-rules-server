@@ -143,6 +143,10 @@ nav li.active {
 }
 
 /* App Group Carousel Styles */
+.carousel {
+    height: 250px;
+}
+
 .carousel-item {
     min-width: 280px;
     max-width: 320px;
