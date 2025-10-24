@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <!--Import Google Icon Font-->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <!--Import materialize.css-->
+
+    <link type="text/css" rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/@materializecss/materialize@2.1.1/dist/css/materialize.min.css"
+          media="screen,projection"/>
+    <link type="text/css" rel="stylesheet" href="theme.css" media="screen,projection"/>
+    <link type="text/css" rel="stylesheet" href="common.css" media="screen,projection"/>
+    <style>
+        form {
+            width: 100%;
+        }
+        .input-field {
+            margin-top: 2em;
+        }
+        
+        .app-group-tile {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            min-height: 200px;
+        }
+        
+        .app-group-tile h5 {
+            margin-top: 0;
+            color: var(--md-sys-color-primary);
+        }
+        
+        .app-group-stats {
+            display: flex;
+            justify-content: space-between;
+            margin: 15px 0;
+        }
+        
+        .stat-item {
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: var(--md-sys-color-primary);
+        }
+        
+        .stat-label {
+            font-size: 0.9em;
+            color: var(--md-sys-color-on-surface-variant);
+        }
+        
+        .app-group-tile-remove-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: none;
+            border: none;
+            color: var(--md-sys-color-error);
+            cursor: pointer;
+            padding: 5px;
+        }
+        
+        .app-group-tile-remove-btn:hover {
+            background-color: rgba(0,0,0,0.1);
+            border-radius: 50%;
+        }
+    </style>
+    <!--Let browser know website is optimized for mobile-->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+    <link rel="icon" type="image/png" href="icon.png">
+    <title>Family Rules - Groups</title>
+</head>
+<body>
+<header data-source="./header.handlebars"></header>
+
+<div class="container">
+    <div class="row">
+        <div class="col s12">
+            <form>
+                <div class="input-field">
+                    <input id="datepicker" type="text" class="datepicker" class="no-autoinit">
+                    <label for="datepicker">Date</label>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col s12">
+            <div id="app-groups-carousel" class="carousel">
+                <div class="carousel-item"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!--JavaScript at end of body for optimized loading-->
+<script type="text/javascript"
+        src="https://cdn.jsdelivr.net/npm/@materializecss/materialize@2.1.0/dist/js/materialize.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/handlebars@latest/dist/handlebars.js"></script>
+<script src="common.js"></script>
+<script src="groups.js"></script>
+
+</body>
+</html>

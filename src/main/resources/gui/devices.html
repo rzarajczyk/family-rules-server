@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <!--Import Google Icon Font-->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <!--Import materialize.css-->
+
+    <link type="text/css" rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/@materializecss/materialize@2.1.1/dist/css/materialize.min.css"
+          media="screen,projection"/>
+    <link type="text/css" rel="stylesheet" href="theme.css" media="screen,projection"/>
+    <link type="text/css" rel="stylesheet" href="common.css" media="screen,projection"/>
+    <style>
+        form {
+            width: 100%;
+        }
+        .input-field {
+            margin-top: 2em;
+        }
+        .instance-name {
+            width: 100%;
+        }
+        .instance-report {
+            margin-top: 0.5em;
+            margin-bottom: 2em;
+        }
+
+        .collapsible-header::after {
+            display: none;
+        }
+
+        .instance-buttons::after {
+            content: "";
+            display: table;
+            clear: both;
+        }
+
+        .screen-time {
+            width: 5em;
+        }
+
+        span.is-online {
+            color: red;
+            animation: blinker 2s linear infinite;
+        }
+
+        @keyframes blinker {
+            50% {
+                opacity: 0;
+             }
+        }
+
+        .collection-item svg.circle {
+            border-radius: 0;
+        }
+
+        #instance-schedule-modal {
+            width: 75%;
+        }
+
+        #schedule th {
+            width: 1%;
+            min-width: 4em;
+        }
+
+        #schedule tbody tr {
+            border-bottom: none;
+        }
+
+        #schedule td[data-day="Mon"],
+        #schedule td[data-day="Wed"],
+        #schedule td[data-day="Fri"]
+        {
+            background-color: #00000014;
+        }
+
+        #schedule td[data-day="Sat"]
+        {
+            background-color: #f5eedc;
+        }
+
+        #schedule td[data-day="Sun"]
+        {
+            background-color: #fff0db;
+        }
+
+        #schedule td.add-period {
+            background-color: #dd4a48;
+        }
+
+       #schedule tbody tr:nth-child(4n) {
+            border-bottom: 1px solid var(--md-sys-color-outline-variant);
+        }
+
+        #schedule tbody td {
+            height: 0.5em;
+            padding-top: 0;
+            padding-bottom: 0;
+            border-top: none;
+            border-bottom: none;
+            cursor: pointer;
+        }
+
+        .add-period-modal-state>label {
+            display: block;
+            position: relative;
+        }
+
+        .period {
+            position: absolute;
+            padding: 0.5rem;
+            background-color: var(--md-ref-palette-primary80);
+            border-radius: 10px;
+            text-align: center;
+            cursor: pointer;
+        }
+
+        .explanation {
+            margin-top: 4rem;
+            font-style: italic;
+        }
+
+        .image-icon {
+            margin-right: 1em;
+            width: 64px;
+            height: 64px;
+        }
+
+        .edit-instance-data .image-icon {
+            float: left;
+        }
+
+        .edit-instance-data .file-field {
+            float: left;
+            clear: none;
+            margin-top: 12px;
+        }
+
+        .edit-instance-data .remove-icon-container {
+            float: left;
+            margin-top: 12px;
+            margin-right: 1em;
+        }
+
+        .edit-instance-data .remove-icon-container button {
+            height: 42px;
+        }
+
+        .edit-instance-data .file-path-wrapper {
+            margin-top: -10px;
+        }
+
+        .edit-instance-data .fake-label {
+            font-size: 12px;
+            margin-left: 12px;
+            margin-top: 48px;
+        }
+
+        @media only screen and (max-width: 600.99px) {
+            .instance-buttons .btn {
+                width: 100%;
+                display: inline-grid;
+                text-align: center;
+            }
+
+            .instance-name .badge {
+                clear: right;
+                margin-right: 0 !important;
+                margin-top: 0.2em;
+            }
+
+        }
+    </style>
+    <!--Let browser know website is optimized for mobile-->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+    <link rel="icon" type="image/png" href="icon.png">
+    <title>Family Rules - Devices</title>
+</head>
+<body>
+<header data-source="./header.handlebars"></header>
+
+<div class="container">
+    <div class="row">
+        <div class="col s12">
+            <form>
+                <div class="input-field">
+                    <input id="datepicker" type="text" class="datepicker" class="no-autoinit">
+                    <label for="datepicker">Date</label>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col s12">
+            <ul class="collapsible no-autoinit popout" id="instances">
+            </ul>
+        </div>
+    </div>
+</div>
+
+<div id="instance-state-modal" class="modal modal-fixed-footer">
+    <div class="modal-content"></div>
+    <div class="modal-footer">
+        <a href="#!" class="modal-close waves-effect btn-flat">Cancel</a>
+    </div>
+</div>
+
+<div id="instance-info-modal" class="modal modal-fixed-footer">
+    <div class="modal-content"></div>
+    <div class="modal-footer">
+        <a href="#!" class="modal-close waves-effect btn-flat">Close</a>
+    </div>
+</div>
+
+<div id="instance-edit-modal" class="modal modal-fixed-footer">
+    <div class="modal-content"></div>
+    <div class="modal-footer">
+        <a href="#!" class="modal-close waves-effect btn-flat">Cancel</a>
+        <a href="#!" class="waves-effect btn-flat" id="instance-edit-save">Save</a>
+    </div>
+</div>
+
+<div id="instance-schedule-modal" class="modal modal-fixed-footer">
+    <div class="modal-content"></div>
+    <div class="modal-footer">
+        <a href="#!" class="modal-close waves-effect btn-flat">Close</a>
+    </div>
+</div>
+
+<div id="add-period-modal" class="modal modal-fixed-footer">
+    <div class="modal-content">
+        <div class="input-field">
+            <select type="text" id="add-period-modal-day" class="no-autoinit" multiple>
+                <option value="0">-</option>
+            </select>
+            <label for="add-period-modal-day">Day of week</label>
+        </div>
+        <div class="input-field">
+            <input type="text" id="add-period-modal-start" class="timepicker no-autoinit" value="00:00">
+            <label for="add-period-modal-start">Start time</label>
+        </div>
+        <div class="input-field">
+            <input type="text" id="add-period-modal-end" class="timepicker no-autoinit" value="24:00">
+            <label for="add-period-modal-end">End time</label>
+        </div>
+        <div class="explanation">Note: periods with the state ACTIVE are not visible on the timetable (it's the default state)</div>
+        <div class="input-field add-period-modal-state" id="add-period-modal-states"></div>
+    </div>
+    <div class="modal-footer">
+        <a href="#!" class="modal-close waves-effect btn-flat">Cancel</a>
+        <a href="#!" class="waves-effect btn-flat" id="add-period-modal-ok">Add period</a>
+    </div>
+</div>
+
+<!--JavaScript at end of body for optimized loading-->
+<script type="text/javascript"
+        src="https://cdn.jsdelivr.net/npm/@materializecss/materialize@2.1.0/dist/js/materialize.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/handlebars@latest/dist/handlebars.js"></script>
+<script src="common.js"></script>
+<script src="index-schedule.js"></script>
+<script src="devices.js"></script>
+
+</body>
+</html>
