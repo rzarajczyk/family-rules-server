@@ -325,6 +325,7 @@ class BffOverviewController(
             var totalApps = 0
             var totalScreenTime = 0L
             val deviceCount = mutableSetOf<String>()
+            val appDetails = mutableListOf<AppGroupAppDetail>()
             
             instances.forEach { instanceRef ->
                 val instance = dbConnector.getInstance(instanceRef)
@@ -336,11 +337,36 @@ class BffOverviewController(
                     deviceCount.add(instance.id.toString())
                     totalApps += instanceMemberships.size
                     
-                    // Sum screen time for apps in this group
+                    // Collect detailed app information for this group
                     instanceMemberships.forEach { membership ->
-                        totalScreenTime += screenTimeDto.applicationsSeconds[membership.appPath] ?: 0L
+                        val appScreenTime = screenTimeDto.applicationsSeconds[membership.appPath] ?: 0L
+                        totalScreenTime += appScreenTime
+                        
+                        // Get app name from known apps or use the path
+                        val appName = instance.knownApps[membership.appPath]?.appName ?: membership.appPath
+                        
+                        appDetails.add(
+                            AppGroupAppDetail(
+                                name = appName,
+                                packageName = membership.appPath,
+                                deviceName = instance.name,
+                                screenTime = appScreenTime,
+                                percentage = 0.0 // Will be calculated below
+                            )
+                        )
                     }
                 }
+            }
+            
+            // Calculate percentages for each app
+            val appsWithPercentages = if (totalScreenTime > 0) {
+                appDetails.map { app ->
+                    app.copy(percentage = (app.screenTime.toDouble() / totalScreenTime * 100).let { 
+                        (it * 100).toInt().toDouble() / 100 // Round to 2 decimal places
+                    })
+                }.sortedByDescending { it.screenTime }
+            } else {
+                appDetails.sortedByDescending { it.screenTime }
             }
             
             val colorInfo = AppGroupColorPalette.getColorInfo(group.color)
@@ -351,7 +377,8 @@ class BffOverviewController(
                 textColor = colorInfo?.text ?: "#000000",
                 appsCount = totalApps,
                 devicesCount = deviceCount.size,
-                totalScreenTime = totalScreenTime
+                totalScreenTime = totalScreenTime,
+                apps = appsWithPercentages
             )
         }
         
@@ -499,7 +526,16 @@ data class AppGroupStatistics(
     val textColor: String,
     val appsCount: Int,
     val devicesCount: Int,
-    val totalScreenTime: Long
+    val totalScreenTime: Long,
+    val apps: List<AppGroupAppDetail> = emptyList()
+)
+
+data class AppGroupAppDetail(
+    val name: String,
+    val packageName: String,
+    val deviceName: String,
+    val screenTime: Long,
+    val percentage: Double
 )
 
 data class AppGroupStatisticsResponse(

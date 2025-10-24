@@ -30,15 +30,8 @@ document.addEventListener("DOMContentLoaded", (event) => {
             // Load the template
             Handlebars.fetchTemplate('./app-group-collapsible.handlebars')
                 .then(([template]) => {
-                    // Sort apps by screen time (usage) in descending order for each group
-                    const sortedGroups = statisticsResponse.groups.map(group => {
-                        if (group.apps && Array.isArray(group.apps)) {
-                            group.apps = group.apps.sort((a, b) => (b.screenTime || 0) - (a.screenTime || 0));
-                        }
-                        return group;
-                    });
-                    
-                    const html = sortedGroups.map(group => template(group)).join('');
+                    // Apps are already sorted by the server, so we can use them directly
+                    const html = statisticsResponse.groups.map(group => template(group)).join('');
                     appGroupsContainer.innerHTML = html;
                     
                     // Initialize Materialize collapsibles
@@ -50,6 +43,9 @@ document.addEventListener("DOMContentLoaded", (event) => {
                     
                     // Initialize remove group button handlers
                     initializeAppGroupHandlers();
+                    
+                    // Initialize clickable app names
+                    initializeClickableAppNames();
                 })
                 .catch(templateError => {
                     console.error('Error loading template:', templateError);
@@ -105,3 +101,29 @@ document.addEventListener("DOMContentLoaded", (event) => {
 
     window.update = update
 });
+
+// Clickable app names functionality
+function initializeClickableAppNames() {
+    document.querySelectorAll('.clickable-app-name').forEach(appNameElement => {
+        appNameElement.addEventListener('click', function(e) {
+            e.stopPropagation();
+            toggleAppNameDisplay(this);
+        });
+    });
+}
+
+function toggleAppNameDisplay(element) {
+    const appName = element.dataset.appName;
+    const appPath = element.dataset.appPath;
+    const isShowingPath = element.classList.contains('showing-path');
+    
+    if (isShowingPath) {
+        // Switch to showing app name
+        element.textContent = appName;
+        element.classList.remove('showing-path');
+    } else {
+        // Switch to showing app path
+        element.textContent = appPath;
+        element.classList.add('showing-path');
+    }
+}

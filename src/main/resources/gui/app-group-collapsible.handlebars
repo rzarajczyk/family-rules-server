@@ -29,25 +29,36 @@
                     <p><strong>{{appsCount}} apps across {{devicesCount}} devices</strong></p>
                     <p class="app-group-total-time">Total usage: {{#formatScreenTime}}{{totalScreenTime}}{{/formatScreenTime}}</p>
                 </div>
+                {{#if apps}}
                 <div class="app-group-apps-list">
-                    <div class="app-list-header">
-                        <span class="app-header-name">App Name</span>
-                        <span class="app-header-device">Device</span>
-                        <span class="app-header-time">Usage</span>
-                        <span class="app-header-percentage">%</span>
-                    </div>
-                    {{#each apps}}
-                    <div class="app-group-app-item" data-screen-time="{{screenTime}}">
-                        <div class="app-info">
-                            <span class="app-name">{{name}}</span>
-                            <span class="app-package">{{packageName}}</span>
-                        </div>
-                        <span class="app-device">{{deviceName}}</span>
-                        <span class="app-time">{{#formatScreenTime}}{{screenTime}}{{/formatScreenTime}}</span>
-                        <span class="app-percentage">{{percentage}}%</span>
-                    </div>
-                    {{/each}}
+                    <ul class="collection">
+                        {{#each apps}}
+                        <li class="collection-item app-usage-item" data-app-path="{{packageName}}">
+                            <div class="app-info">
+                                <img src="default-icon.png" 
+                                     alt="{{name}}" 
+                                     class="app-icon circle">
+                                <div class="app-details">
+                                    <span class="app-name clickable-app-name" 
+                                          data-app-name="{{name}}"
+                                          data-app-path="{{packageName}}">{{name}}</span>
+                                    <div class="app-device-info">
+                                        <span class="app-device">{{deviceName}}</span>
+                                        <span class="app-percentage">{{percentage}}%</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <span class="secondary-content">{{#formatScreenTime}}{{screenTime}}{{/formatScreenTime}}</span>
+                        </li>
+                        {{/each}}
+                    </ul>
                 </div>
+                {{else}}
+                <div class="app-group-no-apps">
+                    <p><em>No detailed app information available for this group.</em></p>
+                    <p><small>This group contains {{appsCount}} apps across {{devicesCount}} devices.</small></p>
+                </div>
+                {{/if}}
             </div>
         </div>
     </div>
