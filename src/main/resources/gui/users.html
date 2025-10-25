@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!--Import Google Icon Font-->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <!--Import materialize.css-->
+    <link type="text/css" rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@materializecss/materialize@2.1.0/dist/css/materialize.css" media="screen,projection"/>
+    <!--Import theme.css-->
+    <link type="text/css" rel="stylesheet" href="theme.css" media="screen,projection"/>
+    <!--Import common.css-->
+    <link type="text/css" rel="stylesheet" href="common.css" media="screen,projection"/>
+    
+    <style>
+        .user-card {
+            margin-bottom: 1rem;
+        }
+        
+        .access-level-badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+        
+        .access-level-admin {
+            background-color: #f44336;
+            color: white;
+        }
+        
+        .access-level-parent {
+            background-color: #ff9800;
+            color: white;
+        }
+        
+        .access-level-child {
+            background-color: #4caf50;
+            color: white;
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .user-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background-color: var(--md-sys-color-primary-container-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--md-sys-color-on-primary-container-light);
+            font-size: 1.5rem;
+            font-weight: 500;
+        }
+        
+        .user-details {
+            flex: 1;
+        }
+        
+        .user-name {
+            font-size: 1.25rem;
+            font-weight: 500;
+            margin: 0;
+            color: var(--md-sys-color-on-surface-light);
+        }
+        
+        .user-access-level {
+            margin-top: 0.25rem;
+        }
+        
+        .loading-container {
+            text-align: center;
+            padding: 2rem;
+        }
+        
+        .error-container {
+            text-align: center;
+            padding: 2rem;
+            color: #f44336;
+        }
+    </style>
+    <!--Let browser know website is optimized for mobile-->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+    <link rel="icon" type="image/png" href="icon.png">
+    <title>Family Rules - Users</title>
+</head>
+<body>
+<header data-source="./header.handlebars"></header>
+
+<div class="container">
+    <div class="section">
+        <h4>User Management</h4>
+        <p class="flow-text">Manage system users and their access levels.</p>
+    </div>
+    
+    <div id="loading" class="loading-container">
+        <div class="preloader-wrapper active">
+            <div class="spinner-layer spinner-blue-only">
+                <div class="circle-clipper left">
+                    <div class="circle"></div>
+                </div>
+                <div class="circle-clipper right">
+                    <div class="circle"></div>
+                </div>
+            </div>
+        </div>
+        <p>Loading users...</p>
+    </div>
+    
+    <div id="error" class="error-container" style="display: none;">
+        <i class="material-icons large">error</i>
+        <h5>Error Loading Users</h5>
+        <p id="error-message"></p>
+        <button class="btn waves-effect waves-light" onclick="loadUsers()">
+            <i class="material-icons left">refresh</i>
+            Retry
+        </button>
+    </div>
+    
+    <div id="users-container" style="display: none;">
+        <!-- Users will be loaded here -->
+    </div>
+</div>
+
+<!--JavaScript at end of body for optimized loading-->
+<script type="text/javascript"
+        src="https://cdn.jsdelivr.net/npm/@materializecss/materialize@2.1.0/dist/js/materialize.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/handlebars@latest/dist/handlebars.js"></script>
+<script src="common.js"></script>
+<script src="users.js"></script>
+
+</body>
+</html>

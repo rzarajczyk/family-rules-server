@@ -8,6 +8,7 @@ interface DataRepository {
     fun findUser(username: String): UserDto?
     fun validatePassword(username: String, password: String)
     fun changePassword(username: String, newPassword: String)
+    fun getAllUsers(): List<UserDto>
 
     fun findInstance(id: InstanceId): InstanceRef?
     fun findInstances(username: String): List<InstanceRef>

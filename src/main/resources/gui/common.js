@@ -155,6 +155,10 @@ document.addEventListener("DOMContentLoaded", (event) => {
     })
     Promise.all(promises).then(() => {
         M.AutoInit()
+        
+        // Check user access level and show/hide admin menu items
+        checkUserAccessLevel();
+        
         document.querySelectorAll('header ul').forEach(ul => {
             ul.querySelectorAll('li a').forEach(link => {
                 if (link.getAttribute('href') === window.location.pathname.split('/').pop()) {
@@ -165,3 +169,22 @@ document.addEventListener("DOMContentLoaded", (event) => {
 
     })
 })
+
+// Check user access level and show/hide admin menu items
+async function checkUserAccessLevel() {
+    try {
+        const response = await ServerRequest.fetch('/bff/current-user');
+        if (response.ok) {
+            const user = await response.json();
+            if (user.accessLevel === 'ADMIN') {
+                const usersMenuItem = document.getElementById('users-menu-item');
+                if (usersMenuItem) {
+                    usersMenuItem.style.display = 'block';
+                }
+            }
+        }
+    } catch (error) {
+        console.log('Could not check user access level:', error);
+        // Silently fail - user might not be logged in or endpoint might not exist
+    }
+}

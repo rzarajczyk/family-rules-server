@@ -44,6 +44,20 @@ class FirestoreDataRepository(
         userRef.update("passwordSha256", newPassword.sha256()).get()
     }
 
+    override fun getAllUsers(): List<UserDto> {
+        return firestore.collection("users")
+            .get()
+            .get()
+            .documents
+            .map { doc ->
+                UserDto(
+                    username = doc.getString("username") ?: doc.id,
+                    passwordSha256 = doc.getString("passwordSha256") ?: "",
+                    accessLevel = doc.getString("accessLevel")?.let { AccessLevel.valueOf(it) } ?: AccessLevel.ADMIN
+                )
+            }
+    }
+
     override fun validateInstanceToken(instanceId: InstanceId, instanceToken: String): InstanceId? {
         // Find the instance across all users
         val instances = firestore.collectionGroup("instances")
