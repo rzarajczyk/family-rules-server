@@ -158,14 +158,14 @@ async function deleteUser(username) {
         }
         
         const result = await response.json();
-        alert(result.message);
+        Toast.info(result.message);
         
         // Reload users list
         loadUsers();
         
     } catch (error) {
         console.error('Error deleting user:', error);
-        alert(`Error: ${error.message}`);
+        Toast.error(`Error: ${error.message}`);
     }
 }
 
@@ -193,11 +193,11 @@ async function resetPassword(username) {
         }
         
         const result = await response.json();
-        alert(result.message);
+        Toast.info(result.message);
         
     } catch (error) {
         console.error('Error resetting password:', error);
-        alert(`Error: ${error.message}`);
+        Toast.error(`Error: ${error.message}`);
     }
 }
 
@@ -235,12 +235,12 @@ async function submitAddUser() {
     
     // Validation
     if (!username) {
-        alert('Username is required');
+        Toast.error('Username is required');
         return;
     }
     
     if (!password) {
-        alert('Password is required');
+        Toast.error('Password is required');
         return;
     }
     
@@ -263,7 +263,7 @@ async function submitAddUser() {
         }
         
         const result = await response.json();
-        alert(result.message);
+        Toast.info(result.message);
         
         // Close modal and reload users
         closeAddUserModal();
@@ -271,6 +271,6 @@ async function submitAddUser() {
         
     } catch (error) {
         console.error('Error creating user:', error);
-        alert(`Error: ${error.message}`);
+        Toast.error(`Error: ${error.message}`);
     }
 }
