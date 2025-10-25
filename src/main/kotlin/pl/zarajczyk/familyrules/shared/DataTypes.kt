@@ -13,8 +13,7 @@ class InstanceAlreadyExists(val instanceName: String) : RuntimeException("Instan
 
 enum class AccessLevel {
     ADMIN,
-    PARENT,
-    CHILD
+    PARENT
 }
 
 data class UserDto(

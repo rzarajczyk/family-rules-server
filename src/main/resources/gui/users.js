@@ -97,8 +97,6 @@ function getAccessLevelClass(accessLevel) {
             return 'access-level-admin';
         case 'PARENT':
             return 'access-level-parent';
-        case 'CHILD':
-            return 'access-level-child';
         default:
             return 'access-level-admin';
     }
@@ -111,8 +109,6 @@ function getAccessLevelText(accessLevel) {
             return 'Admin';
         case 'PARENT':
             return 'Parent';
-        case 'CHILD':
-            return 'Child';
         default:
             return 'Admin';
     }
@@ -169,7 +165,7 @@ async function deleteUser(username) {
         
     } catch (error) {
         console.error('Error deleting user:', error);
-        M.toast({html: `Error: ${error.message}`, classes: 'red'});
+        alert(`Error: ${error.message}`);
     }
 }
 
@@ -201,7 +197,7 @@ async function resetPassword(username) {
         
     } catch (error) {
         console.error('Error resetting password:', error);
-        M.toast({html: `Error: ${error.message}`, classes: 'red'});
+        alert(`Error: ${error.message}`);
     }
 }
 
@@ -239,12 +235,12 @@ async function submitAddUser() {
     
     // Validation
     if (!username) {
-        M.toast({html: 'Username is required', classes: 'red'});
+        alert('Username is required');
         return;
     }
     
     if (!password) {
-        M.toast({html: 'Password is required', classes: 'red'});
+        alert('Password is required');
         return;
     }
     
@@ -275,6 +271,6 @@ async function submitAddUser() {
         
     } catch (error) {
         console.error('Error creating user:', error);
-        M.toast({html: `Error: ${error.message}`, classes: 'red'});
+        alert(`Error: ${error.message}`);
     }
 }
