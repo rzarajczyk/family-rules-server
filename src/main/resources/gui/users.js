@@ -61,7 +61,7 @@ function createUserCard(user) {
     const userInitial = user.username.charAt(0).toUpperCase();
     
     return `
-        <div class="card user-card">
+        <div class="card user-card" data-username="${escapeHtml(user.username)}">
             <div class="card-content">
                 <div class="user-info">
                     <div class="user-avatar">
@@ -74,6 +74,15 @@ function createUserCard(user) {
                                 ${accessLevelText}
                             </span>
                         </div>
+                    </div>
+                    <div class="user-actions">
+                        <button class="btn waves-effect waves-light orange" onclick="resetPassword('${escapeHtml(user.username)}')">
+                            <i class="material-icons left">lock_reset</i>
+                            Reset Password
+                        </button>
+                        <button class="btn-floating red waves-effect waves-light" onclick="deleteUser('${escapeHtml(user.username)}')">
+                            <i class="material-icons">delete</i>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -136,7 +145,146 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
+// Delete user function
+async function deleteUser(username) {
+    if (!confirm(`Are you sure you want to delete user "${username}"? This action cannot be undone.`)) {
+        return;
+    }
+    
+    try {
+        const response = await ServerRequest.fetch(`/bff/users/${encodeURIComponent(username)}`, {
+            method: 'DELETE'
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || `Failed to delete user: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        M.toast({html: result.message, classes: 'green'});
+        
+        // Reload users list
+        loadUsers();
+        
+    } catch (error) {
+        console.error('Error deleting user:', error);
+        M.toast({html: `Error: ${error.message}`, classes: 'red'});
+    }
+}
+
+// Reset password function
+async function resetPassword(username) {
+    const newPassword = prompt(`Enter new password for user "${username}":`);
+    if (!newPassword) {
+        return;
+    }
+    
+    if (newPassword.length < 6) {
+        M.toast({html: 'Password must be at least 6 characters long', classes: 'red'});
+        return;
+    }
+    
+    try {
+        const response = await ServerRequest.fetch(`/bff/users/${encodeURIComponent(username)}/reset-password`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                newPassword: newPassword
+            })
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || `Failed to reset password: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        M.toast({html: result.message, classes: 'green'});
+        
+    } catch (error) {
+        console.error('Error resetting password:', error);
+        M.toast({html: `Error: ${error.message}`, classes: 'red'});
+    }
+}
+
+// Modal management
+let addUserModal;
+
 // Initialize the page
 document.addEventListener('DOMContentLoaded', function() {
     loadUsers();
+    
+    // Initialize modal
+    addUserModal = M.Modal.init(document.getElementById('addUserModal'), {
+        onCloseEnd: function() {
+            // Reset form when modal closes
+            document.getElementById('addUserForm').reset();
+        }
+    });
 });
+
+// Open add user modal
+function openAddUserModal() {
+    addUserModal.open();
+}
+
+// Close add user modal
+function closeAddUserModal() {
+    addUserModal.close();
+}
+
+// Submit add user form
+async function submitAddUser() {
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value;
+    const adminRights = document.getElementById('adminRights').checked;
+    
+    // Validation
+    if (!username) {
+        M.toast({html: 'Username is required', classes: 'red'});
+        return;
+    }
+    
+    if (!password) {
+        M.toast({html: 'Password is required', classes: 'red'});
+        return;
+    }
+    
+    if (password.length < 6) {
+        M.toast({html: 'Password must be at least 6 characters long', classes: 'red'});
+        return;
+    }
+    
+    try {
+        const response = await ServerRequest.fetch('/bff/users', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                username: username,
+                password: password,
+                accessLevel: adminRights ? 'ADMIN' : 'PARENT'
+            })
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || `Failed to create user: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        M.toast({html: result.message, classes: 'green'});
+        
+        // Close modal and reload users
+        closeAddUserModal();
+        loadUsers();
+        
+    } catch (error) {
+        console.error('Error creating user:', error);
+        M.toast({html: `Error: ${error.message}`, classes: 'red'});
+    }
+}

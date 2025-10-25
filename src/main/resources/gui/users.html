@@ -73,6 +73,29 @@
             margin-top: 0.25rem;
         }
         
+        .user-actions {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+        
+        .user-actions .btn {
+            padding: 0 0.75rem;
+            height: 2rem;
+            line-height: 2rem;
+            font-size: 0.75rem;
+        }
+        
+        .user-actions .btn-floating {
+            width: 2rem;
+            height: 2rem;
+            line-height: 2rem;
+        }
+        
+        .user-actions .btn-floating i {
+            font-size: 1rem;
+        }
+        
         .loading-container {
             text-align: center;
             padding: 2rem;
@@ -95,8 +118,18 @@
 
 <div class="container">
     <div class="section">
-        <h4>User Management</h4>
-        <p class="flow-text">Manage system users and their access levels.</p>
+        <div class="row">
+            <div class="col s12 m8">
+                <h4>User Management</h4>
+                <p class="flow-text">Manage system users and their access levels.</p>
+            </div>
+            <div class="col s12 m4">
+                <button class="btn waves-effect waves-light right" onclick="openAddUserModal()">
+                    <i class="material-icons left">person_add</i>
+                    Add User
+                </button>
+            </div>
+        </div>
     </div>
     
     <div id="loading" class="loading-container">
@@ -125,6 +158,42 @@
     
     <div id="users-container" style="display: none;">
         <!-- Users will be loaded here -->
+    </div>
+</div>
+
+<!-- Add User Modal -->
+<div id="addUserModal" class="modal">
+    <div class="modal-content">
+        <h4>Add New User</h4>
+        <form id="addUserForm">
+            <div class="row">
+                <div class="input-field col s12">
+                    <input id="username" type="text" class="validate" required>
+                    <label for="username">Username</label>
+                </div>
+            </div>
+            <div class="row">
+                <div class="input-field col s12">
+                    <input id="password" type="password" class="validate" required minlength="6">
+                    <label for="password">Password</label>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col s12">
+                    <label>
+                        <input type="checkbox" id="adminRights" />
+                        <span>Grant ADMIN rights</span>
+                    </label>
+                </div>
+            </div>
+        </form>
+    </div>
+    <div class="modal-footer">
+        <button class="btn-flat" onclick="closeAddUserModal()">Cancel</button>
+        <button class="btn waves-effect waves-light" onclick="submitAddUser()">
+            <i class="material-icons left">person_add</i>
+            Create User
+        </button>
     </div>
 </div>
 

@@ -58,6 +58,20 @@ class FirestoreDataRepository(
             }
     }
 
+    override fun deleteUser(username: String) {
+        firestore.collection("users").document(username).delete().get()
+    }
+
+    override fun createUser(username: String, password: String, accessLevel: AccessLevel) {
+        val userData = mapOf(
+            "username" to username,
+            "passwordSha256" to password.sha256(),
+            "accessLevel" to accessLevel.name
+        )
+        
+        firestore.collection("users").document(username).set(userData).get()
+    }
+
     override fun validateInstanceToken(instanceId: InstanceId, instanceToken: String): InstanceId? {
         // Find the instance across all users
         val instances = firestore.collectionGroup("instances")

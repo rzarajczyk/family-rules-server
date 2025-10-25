@@ -31,6 +31,62 @@ class BffUserController(
             accessLevel = user?.accessLevel ?: AccessLevel.ADMIN
         )
     }
+
+    @DeleteMapping("/bff/users/{username}")
+    fun deleteUser(
+        @PathVariable username: String,
+        authentication: Authentication
+    ): DeleteUserResponse {
+        // Check if user has admin access
+        val currentUser = dataRepository.findUser(authentication.name)
+        if (currentUser?.accessLevel != AccessLevel.ADMIN) {
+            throw ResponseStatusException(HttpStatus.FORBIDDEN, "Admin access required")
+        }
+        
+        // Prevent deleting self
+        if (username == authentication.name) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot delete your own account")
+        }
+        
+        dataRepository.deleteUser(username)
+        return DeleteUserResponse(success = true, message = "User deleted successfully")
+    }
+
+    @PostMapping("/bff/users/{username}/reset-password")
+    fun resetPassword(
+        @PathVariable username: String,
+        @RequestBody request: ResetPasswordRequest,
+        authentication: Authentication
+    ): ResetPasswordResponse {
+        // Check if user has admin access
+        val currentUser = dataRepository.findUser(authentication.name)
+        if (currentUser?.accessLevel != AccessLevel.ADMIN) {
+            throw ResponseStatusException(HttpStatus.FORBIDDEN, "Admin access required")
+        }
+        
+        dataRepository.changePassword(username, request.newPassword)
+        return ResetPasswordResponse(success = true, message = "Password reset successfully")
+    }
+
+    @PostMapping("/bff/users")
+    fun createUser(
+        @RequestBody request: CreateUserRequest,
+        authentication: Authentication
+    ): CreateUserResponse {
+        // Check if user has admin access
+        val currentUser = dataRepository.findUser(authentication.name)
+        if (currentUser?.accessLevel != AccessLevel.ADMIN) {
+            throw ResponseStatusException(HttpStatus.FORBIDDEN, "Admin access required")
+        }
+        
+        // Check if user already exists
+        if (dataRepository.findUser(request.username) != null) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "User already exists")
+        }
+        
+        dataRepository.createUser(request.username, request.password, request.accessLevel)
+        return CreateUserResponse(success = true, message = "User created successfully")
+    }
 }
 
 data class GetUsersResponse(
@@ -40,4 +96,29 @@ data class GetUsersResponse(
 data class CurrentUserResponse(
     val username: String,
     val accessLevel: AccessLevel
+)
+
+data class DeleteUserResponse(
+    val success: Boolean,
+    val message: String
+)
+
+data class ResetPasswordRequest(
+    val newPassword: String
+)
+
+data class ResetPasswordResponse(
+    val success: Boolean,
+    val message: String
+)
+
+data class CreateUserRequest(
+    val username: String,
+    val password: String,
+    val accessLevel: AccessLevel
+)
+
+data class CreateUserResponse(
+    val success: Boolean,
+    val message: String
 )
