@@ -180,11 +180,6 @@ async function resetPassword(username) {
         return;
     }
     
-    if (newPassword.length < 6) {
-        M.toast({html: 'Password must be at least 6 characters long', classes: 'red'});
-        return;
-    }
-    
     try {
         const response = await ServerRequest.fetch(`/bff/users/${encodeURIComponent(username)}/reset-password`, {
             method: 'POST',
@@ -250,11 +245,6 @@ async function submitAddUser() {
     
     if (!password) {
         M.toast({html: 'Password is required', classes: 'red'});
-        return;
-    }
-    
-    if (password.length < 6) {
-        M.toast({html: 'Password must be at least 6 characters long', classes: 'red'});
         return;
     }
     
