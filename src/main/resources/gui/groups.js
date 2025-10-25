@@ -19,11 +19,13 @@ document.addEventListener("DOMContentLoaded", (event) => {
             
             if (!appGroupsContainer) {
                 console.error('App groups container not found');
+                showError('App groups container not found');
                 return;
             }
             
             if (!statisticsResponse || !statisticsResponse.groups || statisticsResponse.groups.length === 0) {
                 appGroupsContainer.innerHTML = '<li><div class="center-align" style="padding: 20px; color: var(--md-sys-color-outline);">No app groups created yet</div></li>';
+                showContent();
                 return;
             }
             
@@ -46,13 +48,17 @@ document.addEventListener("DOMContentLoaded", (event) => {
                     
                     // Initialize clickable app names
                     initializeClickableAppNames();
+                    
+                    // Show content after successful render
+                    showContent();
                 })
                 .catch(templateError => {
                     console.error('Error loading template:', templateError);
-                    appGroupsContainer.innerHTML = '<li><div class="center-align" style="padding: 20px; color: red;">Error loading app groups</div></li>';
+                    showError('Failed to load app groups template. Please try again.');
                 });
         } catch (error) {
             console.error('Error in renderAppGroups:', error);
+            showError('An error occurred while rendering app groups. Please try again.');
         }
     }
 
@@ -120,14 +126,39 @@ document.addEventListener("DOMContentLoaded", (event) => {
         });
     }
 
+    function showLoading() {
+        document.getElementById('loading').style.display = 'block';
+        document.getElementById('error').style.display = 'none';
+        document.getElementById('app-groups').style.display = 'none';
+    }
+
+    function showError(message) {
+        const loading = document.getElementById('loading');
+        const error = document.getElementById('error');
+        const container = document.getElementById('app-groups');
+        
+        loading.style.display = 'none';
+        container.style.display = 'none';
+        
+        document.getElementById('error-message').textContent = message;
+        error.style.display = 'block';
+    }
+
+    function showContent() {
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('error').style.display = 'none';
+        document.getElementById('app-groups').style.display = 'block';
+    }
+
     function update() {
+        showLoading();
         let date = document.querySelector("#datepicker").value
         ServerRequest.fetch(`/bff/app-groups/statistics?date=${date}`)
         .then(response => response.json())
         .then(renderAppGroups)
         .catch(error => {
             console.error('Error in update function:', error);
-            document.querySelector("#app-groups").innerHTML = '<li><div class="center-align" style="padding: 20px; color: red;">Error loading data</div></li>';
+            showError('Failed to load app groups data. Please try again.');
         })
     }
 

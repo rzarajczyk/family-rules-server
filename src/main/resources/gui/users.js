@@ -7,14 +7,14 @@ async function loadUsers() {
         showLoading();
         
         const response = await ServerRequest.fetch('/bff/users');
-        
+
         if (!response.ok) {
             if (response.status === 403) {
                 throw new Error('Access denied. Admin privileges required.');
             }
             throw new Error(`Failed to load users: ${response.status} ${response.statusText}`);
         }
-        
+
         const data = await response.json();
         users = data.users;
         displayUsers();

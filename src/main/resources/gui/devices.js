@@ -55,6 +55,9 @@ document.addEventListener("DOMContentLoaded", (event) => {
                 
                 // Initialize clickable app names
                 initializeClickableAppNames();
+                
+                // Show content after successful render
+                showContent();
             }
 
             function onDateChanged() {
@@ -87,7 +90,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
                                     method: 'POST',
                                     body: JSON.stringify({forcedDeviceState: deviceState})
                                 }).then(response => {
-                                    M.toast({text: "Saved"})
+                                    Toast.info("Saved")
                                     M.Modal.getInstance(document.querySelector("#instance-state-modal")).close()
                                     update()
                                 })
@@ -134,7 +137,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
                     ServerRequest.fetch(`/bff/delete-instance?instanceId=${instanceId}`, {
                         method: 'POST',
                     }).then(response => {
-                        M.toast({text: "Deleted"})
+                        Toast.info("Deleted")
                         update()
                     })
                 }
@@ -151,7 +154,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
                         } : null
                     })
                 }).then(response => {
-                    M.toast({text: "Saved"})
+                    Toast.info("Saved")
                     M.Modal.getInstance(document.querySelector("#instance-edit-modal")).close()
                     update()
                 })
@@ -298,15 +301,39 @@ function resizeImage(file, onResize, width = 64, height = 64) {
                 return Promise.all([templatePromise, dataPromise])
             }
 
+            function showLoading() {
+                document.getElementById('loading').style.display = 'block';
+                document.getElementById('error').style.display = 'none';
+                document.getElementById('instances').style.display = 'none';
+            }
+
+            function showError(message) {
+                const loading = document.getElementById('loading');
+                const error = document.getElementById('error');
+                const container = document.getElementById('instances');
+                
+                loading.style.display = 'none';
+                container.style.display = 'none';
+                
+                document.getElementById('error-message').textContent = message;
+                error.style.display = 'block';
+            }
+
+            function showContent() {
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('error').style.display = 'none';
+                document.getElementById('instances').style.display = 'block';
+            }
+
             function update() {
-                document.querySelector("#instances").innerHTML = LOADING
+                showLoading();
                 let date = document.querySelector("#datepicker").value
                 ServerRequest.fetch(`/bff/status?date=${date}`)
                 .then(response => response.json())
                 .then(render)
                 .catch(error => {
                     console.error('Error in update function:', error);
-                    document.querySelector("#instances").innerHTML = '<div class="center-align" style="padding: 20px; color: red;">Error loading data</div>';
+                    showError('Failed to load devices data. Please try again.');
                 })
             }
 

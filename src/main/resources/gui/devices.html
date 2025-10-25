@@ -170,6 +170,31 @@
             }
 
         }
+        
+        .loading-container {
+            text-align: center;
+            padding: 2rem;
+        }
+        
+        .error-container {
+            text-align: center;
+            padding: 2rem;
+        }
+        
+        .error-container i {
+            color: var(--md-sys-color-error);
+            margin-bottom: 1rem;
+        }
+        
+        .error-container h5 {
+            color: var(--md-sys-color-on-surface);
+            margin-bottom: 1rem;
+        }
+        
+        .error-container p {
+            color: var(--md-sys-color-on-surface-variant);
+            margin-bottom: 1.5rem;
+        }
     </style>
     <!--Let browser know website is optimized for mobile-->
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -191,9 +216,33 @@
             </form>
         </div>
     </div>
+    <div id="loading" class="loading-container">
+        <div class="preloader-wrapper active">
+            <div class="spinner-layer spinner-blue-only">
+                <div class="circle-clipper left">
+                    <div class="circle"></div>
+                </div>
+                <div class="circle-clipper right">
+                    <div class="circle"></div>
+                </div>
+            </div>
+        </div>
+        <p>Loading devices...</p>
+    </div>
+    
+    <div id="error" class="error-container" style="display: none;">
+        <i class="material-icons large">error</i>
+        <h5>Error Loading Devices</h5>
+        <p id="error-message"></p>
+        <button class="btn waves-effect waves-light" onclick="update()">
+            <i class="material-icons left">refresh</i>
+            Retry
+        </button>
+    </div>
+    
     <div class="row">
         <div class="col s12">
-            <ul class="collapsible no-autoinit popout" id="instances">
+            <ul class="collapsible no-autoinit popout" id="instances" style="display: none;">
             </ul>
         </div>
     </div>

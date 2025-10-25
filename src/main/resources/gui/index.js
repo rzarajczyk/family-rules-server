@@ -87,7 +87,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
                                     method: 'POST',
                                     body: JSON.stringify({forcedDeviceState: deviceState})
                                 }).then(response => {
-                                    M.toast({text: "Saved"})
+                                    Toast.info("Saved")
                                     M.Modal.getInstance(document.querySelector("#instance-state-modal")).close()
                                     update()
                                 })
@@ -134,7 +134,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
                     ServerRequest.fetch(`/bff/delete-instance?instanceId=${instanceId}`, {
                         method: 'POST',
                     }).then(response => {
-                        M.toast({text: "Deleted"})
+                        Toast.info("Deleted")
                         update()
                     })
                 }
@@ -151,7 +151,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
                         } : null
                     })
                 }).then(response => {
-                    M.toast({text: "Saved"})
+                    Toast.info("Saved")
                     M.Modal.getInstance(document.querySelector("#instance-edit-modal")).close()
                     update()
                 })

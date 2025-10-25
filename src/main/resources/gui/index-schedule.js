@@ -138,7 +138,7 @@ function addPeriod() {
             state
         })
     }).then(response => {
-        M.toast({text: "Saved"})
+        Toast.info("Saved")
         M.Modal.getInstance(document.querySelector("#add-period-modal")).close()
         refresh(instanceId)
     })
