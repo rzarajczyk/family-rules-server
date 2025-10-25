@@ -158,7 +158,7 @@ async function deleteUser(username) {
         }
         
         const result = await response.json();
-        M.toast({html: result.message, classes: 'green'});
+        alert(result.message);
         
         // Reload users list
         loadUsers();
@@ -193,7 +193,7 @@ async function resetPassword(username) {
         }
         
         const result = await response.json();
-        M.toast({html: result.message, classes: 'green'});
+        alert(result.message);
         
     } catch (error) {
         console.error('Error resetting password:', error);
@@ -263,7 +263,7 @@ async function submitAddUser() {
         }
         
         const result = await response.json();
-        M.toast({html: result.message, classes: 'green'});
+        alert(result.message);
         
         // Close modal and reload users
         closeAddUserModal();
