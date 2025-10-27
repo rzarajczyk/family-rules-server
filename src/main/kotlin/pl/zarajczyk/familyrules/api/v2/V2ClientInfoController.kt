@@ -9,6 +9,7 @@ import pl.zarajczyk.familyrules.shared.DescriptiveDeviceStateDto
 import pl.zarajczyk.familyrules.shared.DeviceState
 import pl.zarajczyk.familyrules.shared.findAuthenticatedInstance
 import pl.zarajczyk.familyrules.shared.AppDto
+import pl.zarajczyk.familyrules.shared.ClientInfoDto
 
 @RestController
 class V2ClientInfoController(private val dataRepository: DataRepository) {
@@ -17,12 +18,14 @@ class V2ClientInfoController(private val dataRepository: DataRepository) {
         val instanceRef = dataRepository.findAuthenticatedInstance(authentication)
         dataRepository.updateClientInformation(
             instance = instanceRef,
-            version = request.version,
-            timezoneOffsetSeconds = request.timezoneOffsetSeconds ?: 0,
-            reportIntervalSeconds = request.reportIntervalSeconds ?: 60,
-            knownApps = request.knownApps?.mapValues { it.value.toDto() } ?: emptyMap()
+            clientInfo = ClientInfoDto(
+                version = request.version,
+                timezoneOffsetSeconds = request.timezoneOffsetSeconds ?: 0,
+                reportIntervalSeconds = request.reportIntervalSeconds ?: 60,
+                knownApps = request.knownApps?.mapValues { it.value.toDto() } ?: emptyMap(),
+                states = request.availableStates.map { it.toDto() }
+            )
         )
-        dataRepository.updateAvailableDeviceStates(instanceRef, request.availableStates.map { it.toDto() })
     }
 
     private fun AvailableDeviceState.toDto() = DescriptiveDeviceStateDto(

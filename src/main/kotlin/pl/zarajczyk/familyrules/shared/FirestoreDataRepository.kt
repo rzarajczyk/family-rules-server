@@ -203,23 +203,56 @@ class FirestoreDataRepository(
         doc.reference.update("forcedDeviceState", state).get()
     }
 
-    override fun updateClientInformation(instance: InstanceRef, version: String, timezoneOffsetSeconds: Int, reportIntervalSeconds: Int?, knownApps: Map<String, AppDto>) {
+    override fun updateClientInformation(instance: InstanceRef, clientInfo: ClientInfoDto) {
         val doc = (instance as FirestoreInstanceRef).document
 
         val knownAppsJson = json.encodeToString(
-            knownApps.mapValues {
+            clientInfo.knownApps.mapValues {
                 FirestoreKnownApp(
                     appName = it.value.appName,
                     iconBase64 = it.value.iconBase64Png)
             }
         )
 
+        // Update client information
         doc.reference.update(
-            "clientVersion", version,
-            "clientTimezoneOffsetSeconds", timezoneOffsetSeconds,
-            "reportIntervalSeconds", reportIntervalSeconds,
+            "clientVersion", clientInfo.version,
+            "clientTimezoneOffsetSeconds", clientInfo.timezoneOffsetSeconds,
+            "reportIntervalSeconds", clientInfo.reportIntervalSeconds,
             "knownApps", knownAppsJson
         ).get()
+
+        // Update device states
+        val batch = firestore.batch()
+
+        // Clear existing device states
+        val existingStates = doc.reference
+            .collection("deviceStates")
+            .get()
+            .get()
+
+        existingStates.documents.forEach { stateDoc ->
+            batch.delete(stateDoc.reference)
+        }
+
+        // Add new device states
+        clientInfo.states.forEachIndexed { index, state ->
+            val stateRef = doc.reference
+                .collection("deviceStates")
+                .document(state.deviceState)
+
+            batch.set(
+                stateRef, mapOf(
+                    "deviceState" to state.deviceState,
+                    "title" to state.title,
+                    "icon" to state.icon,
+                    "description" to state.description,
+                    "order" to index
+                )
+            )
+        }
+
+        batch.commit().get()
     }
 
     override fun getAvailableDeviceStates(instance: InstanceRef): List<DescriptiveDeviceStateDto> {
@@ -241,41 +274,6 @@ class FirestoreDataRepository(
         }
 
         return states.ensureActiveIsPresent()
-    }
-
-    override fun updateAvailableDeviceStates(instance: InstanceRef, states: List<DescriptiveDeviceStateDto>) {
-        val instanceDoc = (instance as FirestoreInstanceRef).document
-
-        val batch = firestore.batch()
-
-        // Clear existing device states
-        val existingStates = instanceDoc.reference
-            .collection("deviceStates")
-            .get()
-            .get()
-
-        existingStates.documents.forEach { doc ->
-            batch.delete(doc.reference)
-        }
-
-        // Add new device states
-        states.forEachIndexed { index, state ->
-            val stateRef = instanceDoc.reference
-                .collection("deviceStates")
-                .document(state.deviceState)
-
-            batch.set(
-                stateRef, mapOf(
-                    "deviceState" to state.deviceState,
-                    "title" to state.title,
-                    "icon" to state.icon,
-                    "description" to state.description,
-                    "order" to index
-                )
-            )
-        }
-
-        batch.commit().get()
     }
 
     override fun saveReport(

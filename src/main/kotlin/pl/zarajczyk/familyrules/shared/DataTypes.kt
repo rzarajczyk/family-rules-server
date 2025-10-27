@@ -70,6 +70,14 @@ data class AppDto(
     val iconBase64Png: String?
 )
 
+data class ClientInfoDto(
+    val version: String,
+    val timezoneOffsetSeconds: Int,
+    val reportIntervalSeconds: Int?,
+    val knownApps: Map<String, AppDto>,
+    val states: List<DescriptiveDeviceStateDto>
+)
+
 data class AppGroupDto(
     val id: String,
     val name: String,
