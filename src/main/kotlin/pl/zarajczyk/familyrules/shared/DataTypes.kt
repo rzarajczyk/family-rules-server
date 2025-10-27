@@ -66,6 +66,7 @@ data class DescriptiveDeviceStateDto(
     val arguments: List<DeviceStateArgumentDto>
 )
 
+@Serializable
 data class DeviceStateArgumentDto(
     val type: DeviceStateArgumentTypeDto
 )
