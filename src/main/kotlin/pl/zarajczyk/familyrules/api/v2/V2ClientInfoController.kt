@@ -10,6 +10,8 @@ import pl.zarajczyk.familyrules.shared.DeviceState
 import pl.zarajczyk.familyrules.shared.findAuthenticatedInstance
 import pl.zarajczyk.familyrules.shared.AppDto
 import pl.zarajczyk.familyrules.shared.ClientInfoDto
+import pl.zarajczyk.familyrules.shared.DeviceStateArgumentDto
+import pl.zarajczyk.familyrules.shared.DeviceStateArgumentTypeDto
 
 @RestController
 class V2ClientInfoController(private val dataRepository: DataRepository) {
@@ -32,13 +34,20 @@ class V2ClientInfoController(private val dataRepository: DataRepository) {
         deviceState = deviceState,
         title = title,
         icon = icon,
-        description = description
+        description = description,
+        arguments = arguments.toDto()
     )
 
     private fun App.toDto() = AppDto(
         appName = appName,
         iconBase64Png = iconBase64Png
     )
+
+    private fun List<DeviceStateArgument>.toDto() = this.map {
+        DeviceStateArgumentDto(
+            type = DeviceStateArgumentTypeDto.valueOf(it.type)
+        )
+    }
 }
 
 data class LaunchRequest(
@@ -53,8 +62,15 @@ data class AvailableDeviceState(
     val deviceState: DeviceState,
     val title: String,
     val icon: String?,
-    val description: String?
+    val description: String?,
+    val arguments: List<DeviceStateArgument>
 )
+
+data class DeviceStateArgument(
+    val type: DeviceStateArgumentType
+)
+
+typealias DeviceStateArgumentType = String
 
 data class App(
     val appName: String,

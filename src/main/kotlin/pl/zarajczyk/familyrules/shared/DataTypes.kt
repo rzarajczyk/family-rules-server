@@ -62,8 +62,15 @@ data class DescriptiveDeviceStateDto(
     val deviceState: DeviceState,
     val title: String,
     val icon: String?,
-    val description: String?
+    val description: String?,
+    val arguments: List<DeviceStateArgumentDto>
 )
+
+data class DeviceStateArgumentDto(
+    val type: DeviceStateArgumentTypeDto
+)
+
+enum class DeviceStateArgumentTypeDto { APP_GROUP_SET }
 
 data class AppDto(
     val appName: String,
