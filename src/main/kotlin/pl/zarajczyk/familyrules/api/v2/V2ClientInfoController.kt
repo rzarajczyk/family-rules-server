@@ -11,7 +11,7 @@ import pl.zarajczyk.familyrules.shared.findAuthenticatedInstance
 import pl.zarajczyk.familyrules.shared.AppDto
 
 @RestController
-class V2LaunchController(private val dataRepository: DataRepository) {
+class V2ClientInfoController(private val dataRepository: DataRepository) {
     @PostMapping(value = ["/api/v2/launch", "/api/v2/client-info"])
     fun launch(@RequestBody request: LaunchRequest, authentication: Authentication) {
         val instanceRef = dataRepository.findAuthenticatedInstance(authentication)
