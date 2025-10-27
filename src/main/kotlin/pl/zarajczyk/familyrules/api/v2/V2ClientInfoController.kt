@@ -45,7 +45,7 @@ class V2ClientInfoController(private val dataRepository: DataRepository) {
 
     private fun List<DeviceStateArgument>.toDto() = this.map {
         DeviceStateArgumentDto(
-            type = DeviceStateArgumentTypeDto.valueOf(it.type)
+            type = it.type
         )
     }
 }

@@ -9,6 +9,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.springframework.stereotype.Service
+import pl.zarajczyk.familyrules.api.v2.AvailableDeviceState
 import pl.zarajczyk.familyrules.gui.bff.SchedulePacker
 import java.util.*
 
@@ -247,6 +248,7 @@ class FirestoreDataRepository(
                     "title" to state.title,
                     "icon" to state.icon,
                     "description" to state.description,
+                    "arguments" to state.arguments.toMapRepresentation(),
                     "order" to index
                 )
             )
@@ -254,6 +256,15 @@ class FirestoreDataRepository(
 
         batch.commit().get()
     }
+
+    private fun List<DeviceStateArgumentDto>.toMapRepresentation() = this.map {
+        mapOf("type" to it.type)
+    }
+
+    private fun Any?.toDeviceStateArguments() =
+        (this as? List<Map<String, String>>)
+            ?.map { DeviceStateArgumentDto(type = it["type"] ?: "") }
+            ?: emptyList()
 
     override fun getAvailableDeviceStates(instance: InstanceRef): List<DescriptiveDeviceStateDto> {
         val instanceDoc = (instance as FirestoreInstanceRef).document
@@ -269,7 +280,8 @@ class FirestoreDataRepository(
                 deviceState = doc.getString("deviceState") ?: "",
                 title = doc.getString("title") ?: "",
                 icon = doc.getString("icon"),
-                description = doc.getString("description")
+                description = doc.getString("description"),
+                arguments = doc.get("arguments").toDeviceStateArguments()
             )
         }
 
@@ -472,7 +484,8 @@ class FirestoreDataRepository(
                 deviceState = DEFAULT_STATE,
                 title = "Active",
                 icon = null,
-                description = null
+                description = null,
+                arguments = emptyList()
             )
         } else {
             this

@@ -70,7 +70,7 @@ data class DeviceStateArgumentDto(
     val type: DeviceStateArgumentTypeDto
 )
 
-enum class DeviceStateArgumentTypeDto { APP_GROUP_SET }
+typealias DeviceStateArgumentTypeDto = String // APP_GROUP_SET
 
 data class AppDto(
     val appName: String,
