@@ -35,7 +35,7 @@ class V2ClientInfoController(private val dataRepository: DataRepository) {
         title = title,
         icon = icon,
         description = description,
-        arguments = arguments.toDto()
+        arguments = arguments?.toDto() ?: emptyList()
     )
 
     private fun App.toDto() = AppDto(
@@ -63,7 +63,7 @@ data class AvailableDeviceState(
     val title: String,
     val icon: String?,
     val description: String?,
-    val arguments: List<DeviceStateArgument>
+    val arguments: List<DeviceStateArgument>?
 )
 
 data class DeviceStateArgument(
