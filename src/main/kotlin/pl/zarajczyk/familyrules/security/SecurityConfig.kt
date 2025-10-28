@@ -58,6 +58,7 @@ class SecurityConfig {
                 authorize
                     .requestMatchers("/bff/**").authenticated()
                     .requestMatchers("/gui/**").permitAll()
+                    .requestMatchers("/api/**").permitAll()  // Exclude API endpoints from GUI security
                     .anyRequest().authenticated()
             }
             .rememberMe { rm ->
