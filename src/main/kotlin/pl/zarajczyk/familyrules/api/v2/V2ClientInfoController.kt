@@ -1,5 +1,6 @@
 package pl.zarajczyk.familyrules.api.v2
 
+import org.springframework.http.ResponseEntity
 import org.springframework.security.core.Authentication
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
@@ -16,7 +17,7 @@ import pl.zarajczyk.familyrules.shared.DeviceStateArgumentTypeDto
 @RestController
 class V2ClientInfoController(private val dataRepository: DataRepository) {
     @PostMapping(value = ["/api/v2/launch", "/api/v2/client-info"])
-    fun launch(@RequestBody request: LaunchRequest, authentication: Authentication) {
+    fun launch(@RequestBody request: LaunchRequest, authentication: Authentication): LaunchResponse {
         val instanceRef = dataRepository.findAuthenticatedInstance(authentication)
         dataRepository.updateClientInformation(
             instance = instanceRef,
@@ -28,6 +29,7 @@ class V2ClientInfoController(private val dataRepository: DataRepository) {
                 states = request.availableStates.map { it.toDto() }
             )
         )
+        return LaunchResponse("ok")
     }
 
     private fun AvailableDeviceState.toDto() = DescriptiveDeviceStateDto(
@@ -56,6 +58,10 @@ data class LaunchRequest(
     val timezoneOffsetSeconds: Int?,
     val reportIntervalSeconds: Int?,
     val knownApps: Map<String, App>?
+)
+
+data class LaunchResponse(
+    val status: String
 )
 
 data class AvailableDeviceState(
