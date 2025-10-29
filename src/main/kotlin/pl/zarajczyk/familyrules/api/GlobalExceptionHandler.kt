@@ -96,3 +96,4 @@ data class ErrorResponse(
     val message: String,
     val timestamp: Long
 )
+
