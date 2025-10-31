@@ -9,7 +9,7 @@ import pl.zarajczyk.familyrules.shared.*
 @RestController
 class V2ClientInfoController(private val dataRepository: DataRepository) {
     @PostMapping(value = ["/api/v2/launch", "/api/v2/client-info"])
-    fun launch(@RequestBody request: LaunchRequest, authentication: Authentication): LaunchResponse {
+    fun clientInfo(@RequestBody request: LaunchRequest, authentication: Authentication): LaunchResponse {
         val instanceRef = dataRepository.findAuthenticatedInstance(authentication)
         dataRepository.updateClientInformation(
             instance = instanceRef,
