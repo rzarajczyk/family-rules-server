@@ -130,6 +130,16 @@ document.addEventListener("DOMContentLoaded", (event) => {
         return formattedHours + formattedMinutes + ":" + formattedSeconds;
     })
 
+    Handlebars.registerHelper('groupNameFrom', function(groups, id) {
+        try {
+            const list = Array.isArray(groups) ? groups : [];
+            const g = list.find(it => it && it.id === id);
+            return g ? g.name : '';
+        } catch (e) {
+            return '';
+        }
+    })
+
     Handlebars.fetchTemplate = function (...urls) {
         const fetchPromises = urls.map(url =>
             fetch(url)
