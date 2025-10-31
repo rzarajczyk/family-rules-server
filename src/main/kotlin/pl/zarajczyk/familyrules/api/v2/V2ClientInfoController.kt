@@ -9,7 +9,7 @@ import pl.zarajczyk.familyrules.shared.*
 @RestController
 class V2ClientInfoController(private val dataRepository: DataRepository) {
     @PostMapping(value = ["/api/v2/launch", "/api/v2/client-info"])
-    fun clientInfo(@RequestBody request: LaunchRequest, authentication: Authentication): LaunchResponse {
+    fun clientInfo(@RequestBody request: ClientInfoRequest, authentication: Authentication): ClientInfoResponse {
         val instanceRef = dataRepository.findAuthenticatedInstance(authentication)
         dataRepository.updateClientInformation(
             instance = instanceRef,
@@ -21,7 +21,7 @@ class V2ClientInfoController(private val dataRepository: DataRepository) {
                 states = request.availableStates.map { it.toDto() }
             )
         )
-        return LaunchResponse("ok")
+        return ClientInfoResponse("ok")
     }
 
     private fun AvailableDeviceState.toDto() = DescriptiveDeviceStateDto(
@@ -37,7 +37,7 @@ class V2ClientInfoController(private val dataRepository: DataRepository) {
     )
 }
 
-data class LaunchRequest(
+data class ClientInfoRequest(
     val version: String,
     val availableStates: List<AvailableDeviceState>,
     val timezoneOffsetSeconds: Int?,
@@ -45,7 +45,7 @@ data class LaunchRequest(
     val knownApps: Map<String, App>?
 )
 
-data class LaunchResponse(
+data class ClientInfoResponse(
     val status: String
 )
 
