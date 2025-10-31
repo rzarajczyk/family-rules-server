@@ -3,7 +3,9 @@ HOST="http://localhost:8080"
 INSTANCE_NAME="test-instance"
 CLIENT_TYPE="TEST"
 USER="admin"
-PASS="admin"
+
+read -r -s -p "Password: " PASS
+echo
 
 ## Register instance
 OUTPUT=$(curl --header "Content-Type: application/json" \
@@ -42,3 +44,9 @@ curl --header "Content-Type: application/json" \
   --user "$INSTANCE_ID:$TOKEN" \
   --data "{\"instanceId\":\"$INSTANCE_ID\",\"screenTime\":600, \"applications\": {\"app1\": 400, \"app2\": 300}}" \
   "$HOST/api/v2/report"
+
+curl --header "Content-Type: application/json" \
+  --request POST \
+  --user "$INSTANCE_ID:$TOKEN" \
+  --data "{\"version\": \"v1\", \"availableStates\": []}" \
+  "$HOST/api/v2/client-info"

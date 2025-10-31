@@ -41,7 +41,7 @@ class BffOverviewController(
             val state = stateService.getDeviceState(instanceRef)
             val instance = dbConnector.getInstance(instanceRef)
             val availableStates = dbConnector.getAvailableDeviceStates(instanceRef)
-            val appGroupMemberships = dbConnector.getAppGroupMemberships(username, instance.id)
+            val appGroupMemberships = dbConnector.getAppGroupMemberships(instanceRef)
             val appGroups = dbConnector.getAppGroups(username)
             
             Instance(
@@ -352,7 +352,7 @@ class BffOverviewController(
             instances.forEach { instanceRef ->
                 val instance = dbConnector.getInstance(instanceRef)
                 val screenTimeDto = dbConnector.getScreenTimes(instanceRef, day)
-                val instanceMemberships = dbConnector.getAppGroupMemberships(username, instance.id)
+                val instanceMemberships = dbConnector.getAppGroupMemberships(instanceRef)
                     .filter { it.groupId == group.id }
                 
                 if (instanceMemberships.isNotEmpty()) {

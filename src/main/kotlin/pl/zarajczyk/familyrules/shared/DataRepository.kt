@@ -40,5 +40,5 @@ interface DataRepository {
     fun deleteAppGroup(username: String, groupId: String)
     fun addAppToGroup(username: String, instanceId: InstanceId, appPath: String, groupId: String)
     fun removeAppFromGroup(username: String, instanceId: InstanceId, appPath: String, groupId: String)
-    fun getAppGroupMemberships(username: String, instanceId: InstanceId): List<AppGroupMembershipDto>
+    fun getAppGroupMemberships(instance: InstanceRef): List<AppGroupMembershipDto>
 }

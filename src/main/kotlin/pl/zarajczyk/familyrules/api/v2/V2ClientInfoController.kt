@@ -27,7 +27,7 @@ class V2ClientInfoController(private val dataRepository: DataRepository) {
             return ClientInfoResponse(monitoredApps = emptyMap())
         }
 
-        val memberships = dataRepository.getAppGroupMemberships(authentication.name, instance.id)
+        val memberships = dataRepository.getAppGroupMemberships(instanceRef)
             .filter { it.groupId == groupId }
 
         val apps = memberships.associate { membership ->

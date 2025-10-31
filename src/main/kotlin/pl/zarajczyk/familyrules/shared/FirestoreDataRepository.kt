@@ -458,15 +458,13 @@ class FirestoreDataRepository(
             .get()
     }
 
-    override fun getAppGroupMemberships(username: String, instanceId: InstanceId): List<AppGroupMembershipDto> {
-        val memberships = firestore.collection("users")
-            .document(username)
-            .collection("instances")
-            .document(instanceId.toString())
+    override fun getAppGroupMemberships(instance: InstanceRef): List<AppGroupMembershipDto> {
+        val instanceDoc = (instance as FirestoreInstanceRef).document
+        val memberships = instanceDoc.reference
             .collection("appGroupMemberships")
             .get()
             .get()
-            
+
         return memberships.documents.map { doc ->
             AppGroupMembershipDto(
                 appPath = doc.getString("appPath") ?: "",
