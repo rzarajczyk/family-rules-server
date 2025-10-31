@@ -515,41 +515,93 @@ function showCreateGroupDialog(instanceId, appPath) {
 }
 
 function onAssociateGroupClicked(event) {
-    const instanceElement = event.target.closest('.instance-details')
+    const button = event.target.closest('.associate-group') || event.target
+    const instanceElement = button.closest('.instance-details')
     const instanceId = instanceElement?.dataset?.instanceid
     if (!instanceId) return
 
+    showAssociateGroupDropdown(button, instanceId)
+}
+
+function showAssociateGroupDropdown(anchorEl, instanceId) {
     const instanceData = (window.currentInstanceData || []).find(i => i.instanceId === instanceId)
     const groups = instanceData?.availableAppGroups || []
-    const current = instanceData?.associatedAppGroupId
+    const current = instanceData?.associatedAppGroupId || null
 
-    if (groups.length === 0) {
+    if (!groups.length) {
         M.toast({html: 'No app groups available. Create one first in Groups tab.'})
         return
     }
 
-    const choices = groups.map((g, idx) => `${idx + 1}. ${g.name}`).join('\n')
-    const defaultText = current ? `Current: ${groups.find(g => g.id === current)?.name || current}` : 'Current: none'
-    const answer = prompt(`${defaultText}\nSelect app group number (empty to clear):\n\n${choices}`)
-    if (answer === null) return
+    const dropdown = document.createElement('div')
+    dropdown.className = 'associate-group-dropdown'
+    dropdown.style.cssText = `
+        position: absolute;
+        background: white;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        z-index: 1000;
+        min-width: 180px;
+    `
 
-    const trimmed = answer.trim()
-    const index = trimmed === '' ? null : (parseInt(trimmed, 10) - 1)
-    let selectedId = null
-    if (index !== null) {
-        if (isNaN(index) || index < 0 || index >= groups.length) {
-            M.toast({html: 'Invalid selection'})
-            return
+    const addItem = (text, value, isActive = false) => {
+        const item = document.createElement('div')
+        item.className = 'dropdown-item'
+        item.style.cssText = `
+            padding: 8px 12px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        `
+        if (isActive) {
+            const icon = document.createElement('i')
+            icon.className = 'material-icons tiny'
+            icon.textContent = 'check'
+            item.appendChild(icon)
+        } else {
+            const spacer = document.createElement('span')
+            spacer.style.width = '18px'
+            spacer.style.display = 'inline-block'
+            item.appendChild(spacer)
         }
-        selectedId = groups[index].id
+        const label = document.createElement('span')
+        label.textContent = text
+        item.appendChild(label)
+        item.addEventListener('click', () => {
+            applyAssociateGroup(instanceId, value)
+            dropdown.remove()
+        })
+        dropdown.appendChild(item)
     }
 
+    // Clear option
+    addItem('None', null, current === null)
+    // Existing groups
+    groups.forEach(g => addItem(g.name, g.id, current === g.id))
+
+    const rect = anchorEl.getBoundingClientRect()
+    dropdown.style.left = `${rect.left + window.scrollX}px`
+    dropdown.style.top = `${rect.bottom + window.scrollY + 5}px`
+
+    document.body.appendChild(dropdown)
+
+    const close = (e) => {
+        if (!dropdown.contains(e.target)) {
+            dropdown.remove()
+            document.removeEventListener('click', close)
+        }
+    }
+    setTimeout(() => document.addEventListener('click', close), 0)
+}
+
+function applyAssociateGroup(instanceId, groupId) {
     fetch(`/bff/instance-associated-group?instanceId=${encodeURIComponent(instanceId)}`, {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ groupId: selectedId })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ groupId })
     }).then(r => {
         if (!r.ok) throw new Error('Failed')
         return r.json().catch(() => ({}))

@@ -6,7 +6,9 @@
             <span>{{instanceName}}</span>
             <span class="new badge screen-time" data-badge-caption="">{{#formatScreenTime}}{{screenTimeSeconds}}{{/formatScreenTime}}</span>
             {{#if associatedAppGroupId}}
-                <span class="new badge blue mr-2" data-badge-caption="">{{groupNameFrom availableAppGroups associatedAppGroupId}}</span>
+                <span class="new badge blue mr-2" data-badge-caption="">
+                    <i class="material-icons tiny">group_work</i>{{groupNameFrom availableAppGroups associatedAppGroupId}}
+                </span>
             {{/if}}
             {{#if forcedDeviceState}}
                 <span class="new badge orange mr-2" data-badge-caption="">
