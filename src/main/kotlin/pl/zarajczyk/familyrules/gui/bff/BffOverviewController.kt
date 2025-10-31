@@ -74,7 +74,7 @@ class BffOverviewController(
                             iconBase64 = knownApp?.iconBase64Png,
                             appGroups = appGroupsForThisApp
                         )
-                    },
+                    }.sortedByDescending { it.usageSeconds },
                 forcedDeviceState = availableStates
                     .firstOrNull { it.deviceState == state.forcedState }
                     ?.toDeviceStateDescription(),
