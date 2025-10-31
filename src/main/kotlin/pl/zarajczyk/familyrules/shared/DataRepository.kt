@@ -24,6 +24,7 @@ interface DataRepository {
     fun setInstanceSchedule(instance: InstanceRef, schedule: WeeklyScheduleDto)
     fun setForcedInstanceState(instance: InstanceRef, state: DeviceState?)
     fun updateClientInformation(instance: InstanceRef, clientInfo: ClientInfoDto)
+    fun setAssociatedAppGroup(instance: InstanceRef, groupId: String?)
     
     // Device states operations
     fun getAvailableDeviceStates(instance: InstanceRef): List<DescriptiveDeviceStateDto>

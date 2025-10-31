@@ -44,7 +44,8 @@ data class InstanceDto(
     val iconData: String? = null,
     val iconType: String? = null,
     val reportIntervalSeconds: Int?,
-    val knownApps: Map<String, AppDto>
+    val knownApps: Map<String, AppDto>,
+    val associatedAppGroupId: String? = null
 )
 
 data class UpdateInstanceDto(

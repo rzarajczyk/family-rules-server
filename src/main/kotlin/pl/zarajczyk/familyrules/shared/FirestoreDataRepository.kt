@@ -176,7 +176,8 @@ class FirestoreDataRepository(
                     .mapValues { AppDto(it.value.appName, it.value.iconBase64) }
             } catch (e: Exception) {
                 emptyMap()
-            }
+            },
+            associatedAppGroupId = doc.getString("associatedAppGroupId")
         )
     }
 
@@ -256,6 +257,11 @@ class FirestoreDataRepository(
         }
 
         batch.commit().get()
+    }
+
+    override fun setAssociatedAppGroup(instance: InstanceRef, groupId: String?) {
+        val doc = (instance as FirestoreInstanceRef).document
+        doc.reference.update("associatedAppGroupId", groupId).get()
     }
 
     override fun getAvailableDeviceStates(instance: InstanceRef): List<DescriptiveDeviceStateDto> {

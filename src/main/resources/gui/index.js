@@ -35,6 +35,9 @@ document.addEventListener("DOMContentLoaded", (event) => {
                 instances.querySelectorAll(".instance-buttons a.client-delete").forEach(it => {
                     it.addEventListener('click', onClientDeleteClicked)
                 })
+                instances.querySelectorAll(".instance-buttons a.associate-group").forEach(it => {
+                    it.addEventListener('click', onAssociateGroupClicked)
+                })
                 document.querySelectorAll("#instance-edit-save").forEach(it => {
                     it.addEventListener('click', onClientEditSaveClicked)
                 })
@@ -407,6 +410,53 @@ function resizeImage(file, onResize, width = 64, height = 64) {
             window.update = update
     })
 });
+
+function onAssociateGroupClicked(event) {
+    const instanceElement = event.target.closest('.instance-details')
+    const instanceId = instanceElement?.dataset?.instanceid
+    if (!instanceId) return
+
+    const instanceData = (window.currentInstanceData || []).find(i => i.instanceId === instanceId)
+    const groups = instanceData?.availableAppGroups || []
+    const current = instanceData?.associatedAppGroupId
+
+    if (groups.length === 0) {
+        M.toast({html: 'No app groups available. Create one first in Groups tab.'})
+        return
+    }
+
+    const choices = groups.map((g, idx) => `${idx + 1}. ${g.name}`).join('\n')
+    const defaultText = current ? `Current: ${groups.find(g => g.id === current)?.name || current}` : 'Current: none'
+    const answer = prompt(`${defaultText}\nSelect app group number (empty to clear):\n\n${choices}`)
+    if (answer === null) return
+
+    const trimmed = answer.trim()
+    const index = trimmed === '' ? null : (parseInt(trimmed, 10) - 1)
+    let selectedId = null
+    if (index !== null) {
+        if (isNaN(index) || index < 0 || index >= groups.length) {
+            M.toast({html: 'Invalid selection'})
+            return
+        }
+        selectedId = groups[index].id
+    }
+
+    fetch(`/bff/instance-associated-group?instanceId=${encodeURIComponent(instanceId)}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ groupId: selectedId })
+    }).then(r => {
+        if (!r.ok) throw new Error('Failed')
+        return r.json().catch(() => ({}))
+    }).then(() => {
+        M.toast({html: 'Associated app group updated'})
+        update()
+    }).catch(() => {
+        M.toast({html: 'Failed to update associated app group'})
+    })
+}
 
 // App Group functionality
 function initializeAppGroupHandlers() {

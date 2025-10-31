@@ -84,7 +84,8 @@ class BffOverviewController(
                     ?: throw RuntimeException("Instance ≪${instance.id}≫ doesn't have automatic state ≪${state.automaticState}≫"),
                 online = screenTimeDto.updatedAt.isOnline(instance.reportIntervalSeconds),
                 icon = instance.getIcon(),
-                availableAppGroups = appGroups
+                availableAppGroups = appGroups,
+                associatedAppGroupId = instance.associatedAppGroupId
             )
         })
     } catch (e: InvalidPassword) {
@@ -257,6 +258,16 @@ class BffOverviewController(
     ) {
         val instanceRef = dbConnector.findInstanceOrThrow(instanceId)
         dbConnector.deleteInstance(instanceRef)
+    }
+
+    @PostMapping("/bff/instance-associated-group")
+    fun setInstanceAssociatedGroup(
+        @RequestParam("instanceId") instanceId: InstanceId,
+        @RequestBody request: SetAssociatedGroupRequest
+    ): SetAssociatedGroupResponse {
+        val instanceRef = dbConnector.findInstanceOrThrow(instanceId)
+        dbConnector.setAssociatedAppGroup(instanceRef, request.groupId)
+        return SetAssociatedGroupResponse(success = true)
     }
 
     // App Groups BFF endpoints
@@ -450,7 +461,8 @@ data class Instance(
     val automaticDeviceState: DeviceStateDescription,
     val forcedDeviceState: DeviceStateDescription?,
     val online: Boolean,
-    val availableAppGroups: List<AppGroupDto>
+    val availableAppGroups: List<AppGroupDto>,
+    val associatedAppGroupId: String? = null
 )
 
 data class Icon(
@@ -563,4 +575,12 @@ data class AppGroupAppDetail(
 
 data class AppGroupStatisticsResponse(
     val groups: List<AppGroupStatistics>
+)
+
+data class SetAssociatedGroupRequest(
+    val groupId: String?
+)
+
+data class SetAssociatedGroupResponse(
+    val success: Boolean
 )
