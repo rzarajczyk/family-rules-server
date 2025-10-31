@@ -407,7 +407,6 @@ class BffOverviewController(
         title = title,
         icon = icon,
         description = description,
-        arguments = arguments.map { it.type }
     )
 
 }
@@ -435,7 +434,6 @@ data class DeviceStateDescription(
     val title: String,
     val icon: String?,
     val description: String?,
-    val arguments: List<String>
 )
 
 

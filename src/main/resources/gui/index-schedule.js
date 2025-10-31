@@ -114,7 +114,6 @@ function renderSchedule(data, content) {
                     ${state.title}
                 </span>
                 ${state.description ?  `<br><i>${state.description}</i>` : ""}
-                ${state.arguments && state.arguments.length > 0 ? `<br><i>Requires data: ${state.arguments.join(', ')}</i>` : ""}
             </span>
         </label>
         `

@@ -1,7 +1,7 @@
 package pl.zarajczyk.familyrules.shared
 
-import kotlinx.datetime.Instant
 import kotlinx.datetime.DayOfWeek
+import kotlinx.datetime.Instant
 import kotlinx.serialization.Serializable
 import java.util.*
 
@@ -63,15 +63,7 @@ data class DescriptiveDeviceStateDto(
     val title: String,
     val icon: String?,
     val description: String?,
-    val arguments: List<DeviceStateArgumentDto>
 )
-
-@Serializable
-data class DeviceStateArgumentDto(
-    val type: DeviceStateArgumentTypeDto
-)
-
-typealias DeviceStateArgumentTypeDto = String // APP_GROUP_SET
 
 data class AppDto(
     val appName: String,
