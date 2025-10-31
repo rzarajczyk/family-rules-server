@@ -21,7 +21,24 @@ class V2ClientInfoController(private val dataRepository: DataRepository) {
                 states = request.availableStates.map { it.toDto() }
             )
         )
-        return ClientInfoResponse("ok")
+        val instance = dataRepository.getInstance(instanceRef)
+        val groupId = instance.associatedAppGroupId
+        if (groupId.isNullOrBlank()) {
+            return ClientInfoResponse(monitoredApps = emptyMap())
+        }
+
+        val memberships = dataRepository.getAppGroupMemberships(authentication.name, instance.id)
+            .filter { it.groupId == groupId }
+
+        val apps = memberships.associate { membership ->
+            val known = instance.knownApps[membership.appPath]
+            membership.appPath to App(
+                appName = known?.appName ?: membership.appPath,
+                iconBase64Png = known?.iconBase64Png
+            )
+        }
+
+        return ClientInfoResponse(monitoredApps = apps)
     }
 
     private fun AvailableDeviceState.toDto() = DescriptiveDeviceStateDto(
@@ -46,7 +63,7 @@ data class ClientInfoRequest(
 )
 
 data class ClientInfoResponse(
-    val status: String
+    val monitoredApps: Map<String, App>
 )
 
 data class AvailableDeviceState(
