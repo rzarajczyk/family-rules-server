@@ -1,4 +1,4 @@
-package pl.zarajczyk.familyrules.shared
+package pl.zarajczyk.familyrules.adapter.firestore
 
 import com.google.cloud.firestore.Firestore
 import com.google.cloud.firestore.QueryDocumentSnapshot
@@ -9,11 +9,33 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.springframework.stereotype.Service
-import pl.zarajczyk.familyrules.api.v2.AvailableDeviceState
 import pl.zarajczyk.familyrules.gui.bff.SchedulePacker
+import pl.zarajczyk.familyrules.domain.AccessLevel
+import pl.zarajczyk.familyrules.domain.AppDto
+import pl.zarajczyk.familyrules.domain.AppGroupColorPalette
+import pl.zarajczyk.familyrules.domain.AppGroupDto
+import pl.zarajczyk.familyrules.domain.AppGroupMembershipDto
+import pl.zarajczyk.familyrules.domain.ClientInfoDto
+import pl.zarajczyk.familyrules.domain.DEFAULT_STATE
+import pl.zarajczyk.familyrules.domain.DataRepository
+import pl.zarajczyk.familyrules.domain.DescriptiveDeviceStateDto
+import pl.zarajczyk.familyrules.domain.DeviceState
+import pl.zarajczyk.familyrules.domain.IllegalInstanceName
+import pl.zarajczyk.familyrules.domain.InstanceAlreadyExists
+import pl.zarajczyk.familyrules.domain.InstanceDto
+import pl.zarajczyk.familyrules.domain.InstanceId
+import pl.zarajczyk.familyrules.domain.InstanceRef
+import pl.zarajczyk.familyrules.domain.InvalidPassword
+import pl.zarajczyk.familyrules.domain.NewInstanceDto
+import pl.zarajczyk.familyrules.domain.ScreenTimeDto
+import pl.zarajczyk.familyrules.domain.UpdateInstanceDto
+import pl.zarajczyk.familyrules.domain.UserDto
+import pl.zarajczyk.familyrules.domain.WeeklyScheduleDto
+import pl.zarajczyk.familyrules.domain.sha256
 import java.util.*
 import kotlin.String
 import kotlin.collections.Map
+import kotlin.collections.plus
 
 @Service
 class FirestoreDataRepository(
@@ -116,7 +138,7 @@ class FirestoreDataRepository(
             "clientType" to clientType,
             "clientVersion" to "v0",
             "clientTimezoneOffsetSeconds" to 0,
-            "schedule" to json.encodeToString(schedulePacker.pack(WeeklyScheduleDto.empty())),
+            "schedule" to json.encodeToString(schedulePacker.pack(WeeklyScheduleDto.Companion.empty())),
             "deleted" to false,
             "createdAt" to Clock.System.now().toString()
         )
@@ -165,7 +187,7 @@ class FirestoreDataRepository(
                 json.decodeFromString<WeeklyScheduleDto>(doc.getString("schedule") ?: "{}")
                     .let { schedulePacker.unpack(it) }
             } catch (e: Exception) {
-                WeeklyScheduleDto.empty()
+                WeeklyScheduleDto.Companion.empty()
             },
             iconData = doc.getString("iconData"),
             iconType = doc.getString("iconType"),

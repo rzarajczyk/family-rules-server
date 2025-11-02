@@ -2,9 +2,9 @@ package pl.zarajczyk.familyrules.gui.bff
 
 import kotlinx.datetime.DayOfWeek
 import org.springframework.stereotype.Service
-import pl.zarajczyk.familyrules.shared.DailyScheduleDto
-import pl.zarajczyk.familyrules.shared.PeriodDto
-import pl.zarajczyk.familyrules.shared.WeeklyScheduleDto
+import pl.zarajczyk.familyrules.domain.DailyScheduleDto
+import pl.zarajczyk.familyrules.domain.PeriodDto
+import pl.zarajczyk.familyrules.domain.WeeklyScheduleDto
 
 @Service
 class ScheduleUpdater {

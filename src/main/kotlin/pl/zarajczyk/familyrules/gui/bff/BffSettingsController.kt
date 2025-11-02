@@ -1,11 +1,9 @@
 package pl.zarajczyk.familyrules.gui.bff
 
-import org.springframework.http.HttpStatus
 import org.springframework.security.core.Authentication
 import org.springframework.web.bind.annotation.*
-import org.springframework.web.server.ResponseStatusException
-import pl.zarajczyk.familyrules.shared.DataRepository
-import pl.zarajczyk.familyrules.shared.InvalidPassword
+import pl.zarajczyk.familyrules.domain.DataRepository
+import pl.zarajczyk.familyrules.domain.InvalidPassword
 
 @RestController
 class BffSettingsController(

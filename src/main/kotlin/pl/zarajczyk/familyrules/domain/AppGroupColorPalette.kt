@@ -1,4 +1,4 @@
-package pl.zarajczyk.familyrules.shared
+package pl.zarajczyk.familyrules.domain
 
 object AppGroupColorPalette {
     

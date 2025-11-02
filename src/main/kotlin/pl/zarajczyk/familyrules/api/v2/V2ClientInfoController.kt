@@ -4,7 +4,7 @@ import org.springframework.security.core.Authentication
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RestController
-import pl.zarajczyk.familyrules.shared.*
+import pl.zarajczyk.familyrules.domain.*
 
 @RestController
 class V2ClientInfoController(private val dataRepository: DataRepository) {

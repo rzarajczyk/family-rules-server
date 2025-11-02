@@ -1,12 +1,13 @@
-package pl.zarajczyk.familyrules.shared
+package pl.zarajczyk.familyrules.adapter.firestore
 
 import com.google.cloud.firestore.Firestore
 import org.springframework.boot.context.event.ApplicationReadyEvent
-import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.event.EventListener
 import org.springframework.stereotype.Component
-import kotlin.properties.Delegates
+import pl.zarajczyk.familyrules.domain.AccessLevel
+import pl.zarajczyk.familyrules.domain.DatabaseInitializationProperties
+import pl.zarajczyk.familyrules.domain.sha256
 
 @Component
 @EnableConfigurationProperties(DatabaseInitializationProperties::class)

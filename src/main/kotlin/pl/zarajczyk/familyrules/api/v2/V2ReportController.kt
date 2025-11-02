@@ -6,7 +6,7 @@ import org.springframework.stereotype.Component
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RestController
-import pl.zarajczyk.familyrules.shared.*
+import pl.zarajczyk.familyrules.domain.*
 
 @Component
 class V2ReportController(private val dataRepository: DataRepository, private val stateService: StateService) {

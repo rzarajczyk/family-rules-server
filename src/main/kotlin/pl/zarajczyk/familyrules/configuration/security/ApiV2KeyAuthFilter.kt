@@ -1,4 +1,4 @@
-package pl.zarajczyk.familyrules.security
+package pl.zarajczyk.familyrules.configuration.security
 
 import jakarta.servlet.FilterChain
 import jakarta.servlet.ServletRequest
@@ -12,9 +12,9 @@ import org.springframework.security.authentication.BadCredentialsException
 import org.springframework.security.core.GrantedAuthority
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.web.filter.GenericFilterBean
-import pl.zarajczyk.familyrules.shared.DataRepository
-import pl.zarajczyk.familyrules.shared.InstanceId
-import pl.zarajczyk.familyrules.shared.decodeBasicAuth
+import pl.zarajczyk.familyrules.domain.DataRepository
+import pl.zarajczyk.familyrules.domain.InstanceId
+import pl.zarajczyk.familyrules.domain.decodeBasicAuth
 import java.time.Instant
 import java.util.concurrent.ConcurrentHashMap
 

@@ -1,8 +1,8 @@
-package pl.zarajczyk.familyrules.security
+package pl.zarajczyk.familyrules.configuration.security
 
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
-import pl.zarajczyk.familyrules.shared.sha256
+import pl.zarajczyk.familyrules.domain.sha256
 
 @Service
 class Sha256PasswordEncoder : PasswordEncoder {

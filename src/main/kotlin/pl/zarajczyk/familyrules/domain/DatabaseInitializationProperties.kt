@@ -1,4 +1,4 @@
-package pl.zarajczyk.familyrules.shared
+package pl.zarajczyk.familyrules.domain
 
 import org.springframework.boot.context.properties.ConfigurationProperties
 import kotlin.properties.Delegates
