@@ -12,23 +12,28 @@ import pl.zarajczyk.familyrules.shared.UserDto
 @Service
 class UsersService(private val dataRepository: DataRepository) : UserDetailsManager {
     override fun createUser(user: UserDetails?) {
-        TODO("Not yet implemented")
+        // SpringSecurity is used only for the authorization, not to user management
+        TODO("Not implemented")
     }
 
     override fun updateUser(user: UserDetails?) {
-        TODO("Not yet implemented")
+        // SpringSecurity is used only for the authorization, not to user management
+        TODO("Not implemented")
     }
 
     override fun deleteUser(username: String?) {
-        TODO("Not yet implemented")
+        // SpringSecurity is used only for the authorization, not to user management
+        TODO("Not// SpringSecurity is used only for the authorization, not to user management implemented")
     }
 
     override fun changePassword(oldPassword: String?, newPassword: String?) {
-        TODO("Not yet implemented")
+        // SpringSecurity is used only for the authorization, not to user management
+        TODO("Not implemented")
     }
 
     override fun userExists(username: String?): Boolean {
-        TODO("Not yet implemented")
+        // SpringSecurity is used only for the authorization, not to user management
+        TODO("Not implemented")
     }
 
     override fun loadUserByUsername(username: String): UserDetails {

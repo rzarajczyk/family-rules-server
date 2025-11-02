@@ -3,9 +3,12 @@ package pl.zarajczyk.familyrules.security
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.core.annotation.Order
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity
 import org.springframework.security.config.http.SessionCreationPolicy
+import org.springframework.security.crypto.password.PasswordEncoder
+import org.springframework.security.provisioning.UserDetailsManager
 import org.springframework.security.web.SecurityFilterChain
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter
 import pl.zarajczyk.familyrules.shared.DataRepository
@@ -13,6 +16,17 @@ import pl.zarajczyk.familyrules.shared.DataRepository
 @Configuration
 @EnableWebSecurity
 class SecurityConfig {
+
+    @Bean
+    fun authenticationProvider(
+        userDetailsManager: UserDetailsManager,
+        passwordEncoder: PasswordEncoder
+    ): DaoAuthenticationProvider {
+        val authProvider = DaoAuthenticationProvider()
+        authProvider.setUserDetailsService(userDetailsManager)
+        authProvider.setPasswordEncoder(passwordEncoder)
+        return authProvider
+    }
 
     @Bean
     @Order(1)
@@ -51,8 +65,13 @@ class SecurityConfig {
 
     @Bean
     @Order(3)
-    fun guiFilterChain(http: HttpSecurity): SecurityFilterChain {
+    fun guiFilterChain(
+        http: HttpSecurity,
+        userDetailsManager: UserDetailsManager,
+        authenticationProvider: DaoAuthenticationProvider
+    ): SecurityFilterChain {
         http
+            .authenticationProvider(authenticationProvider)
             .csrf { it.disable() }
             .authorizeHttpRequests { authorize ->
                 authorize
@@ -65,6 +84,7 @@ class SecurityConfig {
                 rm
                     .key("remember-me")
                     .rememberMeParameter("remember-me")
+                    .userDetailsService(userDetailsManager)
             }
             .formLogin { form ->
                 form.loginPage("/gui/login.html")
