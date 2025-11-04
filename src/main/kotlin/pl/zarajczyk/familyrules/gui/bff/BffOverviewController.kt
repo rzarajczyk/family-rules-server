@@ -9,24 +9,24 @@ import org.springframework.web.bind.annotation.*
 import org.springframework.web.server.ResponseStatusException
 import pl.zarajczyk.familyrules.domain.*
 import java.time.DayOfWeek
-import java.util.Base64
-import java.util.UUID
+import java.util.*
 
 @RestController
 class BffOverviewController(
     private val dbConnector: DataRepository,
     private val scheduleUpdater: ScheduleUpdater,
-    private val stateService: StateService
+    private val stateService: StateService,
+    private val deviceStateService: DeviceStateService,
 ) {
 
-    companion object {
-        private val DEFAULT_ICON = Icon(
-            type = "image/png",
-            data = Base64.getEncoder().encodeToString(
-                BffOverviewController::class.java.getResourceAsStream("/gui/default-icon.png")!!.readAllBytes()
-            )
-        )
-    }
+//    companion object {
+//        private val DEFAULT_ICON = Icon(
+//            type = "image/png",
+//            data = Base64.getEncoder().encodeToString(
+//                BffOverviewController::class.java.getResourceAsStream("/gui/default-icon.png")!!.readAllBytes()
+//            )
+//        )
+//    }
 
     @GetMapping("/bff/status")
     fun status(
@@ -43,13 +43,13 @@ class BffOverviewController(
             val availableStates = dbConnector.getAvailableDeviceStates(instanceRef)
             val appGroupMemberships = dbConnector.getAppGroupMemberships(instanceRef)
             val appGroups = dbConnector.getAppGroups(username)
-            
+
             Instance(
                 instanceId = instance.id,
                 instanceName = instance.name,
                 screenTimeSeconds = screenTimeDto.screenTimeSeconds,
                 appUsageSeconds = screenTimeDto.applicationsSeconds
-                    .map { (k, v) -> 
+                    .map { (k, v) ->
                         val knownApp = instance.knownApps[k]
                         val appGroupsForThisApp = appGroupMemberships
                             .filter { it.appPath == k }
@@ -76,11 +76,11 @@ class BffOverviewController(
                         )
                     }.sortedByDescending { it.usageSeconds },
                 forcedDeviceState = availableStates
-                    .firstOrNull { it.deviceState == state.forcedState }
-                    ?.toDeviceStateDescription(),
+                    .flatMap { it.toDeviceStateDescriptions(appGroups) }
+                    .firstOrNull { it.deviceState == state.forcedState },
                 automaticDeviceState = availableStates
+                    .flatMap { it.toDeviceStateDescriptions(appGroups) }
                     .firstOrNull { it.deviceState == state.automaticState }
-                    ?.toDeviceStateDescription()
                     ?: throw RuntimeException("Instance ≪${instance.id}≫ doesn't have automatic state ≪${state.automaticState}≫"),
                 online = screenTimeDto.updatedAt.isOnline(instance.reportIntervalSeconds),
                 icon = instance.getIcon(),
@@ -149,11 +149,13 @@ class BffOverviewController(
 
     @GetMapping("/bff/instance-schedule")
     fun getInstanceSchedule(
-        @RequestParam("instanceId") instanceId: InstanceId
+        @RequestParam("instanceId") instanceId: InstanceId,
+        authentication: Authentication,
     ): ScheduleResponse {
         val instanceRef = dbConnector.findInstanceOrThrow(instanceId)
         val instance = dbConnector.getInstance(instanceRef)
         val availableStates = dbConnector.getAvailableDeviceStates(instanceRef)
+        val appGroups = dbConnector.getAppGroups(authentication.name)
         return ScheduleResponse(
             schedules = instance.schedule.schedule
                 .mapKeys { (day, _) -> day.toDay() }
@@ -162,12 +164,13 @@ class BffOverviewController(
                         Period(
                             from = period.fromSeconds.toRoundedTimeOfDay(zeroMeansStepBack = false),
                             to = period.toSeconds.toRoundedTimeOfDay(zeroMeansStepBack = true),
-                            state = availableStates.firstOrNull { it.deviceState == period.deviceState }
-                                ?.toDeviceStateDescription(),
+                            state = availableStates
+                                .flatMap { it.toDeviceStateDescriptions(appGroups) }
+                                .firstOrNull { it.deviceState == period.deviceState }
                         )
                     })
                 },
-            availableStates = availableStates.map { it.toDeviceStateDescription() }
+            availableStates = availableStates.flatMap { it.toDeviceStateDescriptions(appGroups) }
         )
     }
 
@@ -231,15 +234,18 @@ class BffOverviewController(
 
     @GetMapping("/bff/instance-state")
     fun getInstanceState(
-        @RequestParam("instanceId") instanceId: InstanceId
+        @RequestParam("instanceId") instanceId: InstanceId,
+        authentication: Authentication,
     ): InstanceStateResponse {
         val instanceRef = dbConnector.findInstanceOrThrow(instanceId)
         val instance = dbConnector.getInstance(instanceRef)
+        val appGroups = dbConnector.getAppGroups(authentication.name)
         return InstanceStateResponse(
             instanceId = instanceId,
             instanceName = instance.name,
             forcedDeviceState = instance.forcedDeviceState,
-            availableStates = dbConnector.getAvailableDeviceStates(instanceRef).map { it.toDeviceStateDescription() }
+            availableStates = dbConnector.getAvailableDeviceStates(instanceRef)
+                .flatMap { it.toDeviceStateDescriptions(appGroups) }
         )
     }
 
@@ -341,34 +347,34 @@ class BffOverviewController(
         val username = authentication.name
         val instances = dbConnector.findInstances(username)
         val appGroups = dbConnector.getAppGroups(username)
-        
+
         val groupStats = appGroups.map { group ->
             // Calculate statistics across all instances
             var totalApps = 0
             var totalScreenTime = 0L
             val deviceCount = mutableSetOf<String>()
             val appDetails = mutableListOf<AppGroupAppDetail>()
-            
+
             instances.forEach { instanceRef ->
                 val instance = dbConnector.getInstance(instanceRef)
                 val screenTimeDto = dbConnector.getScreenTimes(instanceRef, day)
                 val instanceMemberships = dbConnector.getAppGroupMemberships(instanceRef)
                     .filter { it.groupId == group.id }
-                
+
                 if (instanceMemberships.isNotEmpty()) {
                     deviceCount.add(instance.id.toString())
                     totalApps += instanceMemberships.size
-                    
+
                     // Collect detailed app information for this group
                     instanceMemberships.forEach { membership ->
                         val appScreenTime = screenTimeDto.applicationsSeconds[membership.appPath] ?: 0L
                         totalScreenTime += appScreenTime
-                        
+
                         // Get app name and icon from known apps or use the path
                         val knownApp = instance.knownApps[membership.appPath]
                         val appName = knownApp?.appName ?: membership.appPath
                         val appIcon = knownApp?.iconBase64Png
-                        
+
                         appDetails.add(
                             AppGroupAppDetail(
                                 name = appName,
@@ -382,18 +388,18 @@ class BffOverviewController(
                     }
                 }
             }
-            
+
             // Calculate percentages for each app
             val appsWithPercentages = if (totalScreenTime > 0) {
                 appDetails.map { app ->
-                    app.copy(percentage = (app.screenTime.toDouble() / totalScreenTime * 100).let { 
+                    app.copy(percentage = (app.screenTime.toDouble() / totalScreenTime * 100).let {
                         (it * 100).toInt().toDouble() / 100 // Round to 2 decimal places
                     })
                 }.sortedByDescending { it.screenTime }
             } else {
                 appDetails.sortedByDescending { it.screenTime }
             }
-            
+
             val colorInfo = AppGroupColorPalette.getColorInfo(group.color)
             AppGroupStatistics(
                 id = group.id,
@@ -406,20 +412,25 @@ class BffOverviewController(
                 apps = appsWithPercentages
             )
         }
-        
+
         return AppGroupStatisticsResponse(groupStats)
     }
 
 
-    private fun Instant.isOnline(reportIntervalSeconds: Int? = null) = (Clock.System.now() - this).inWholeSeconds <= (reportIntervalSeconds ?: 60)
+    private fun Instant.isOnline(reportIntervalSeconds: Int? = null) =
+        (Clock.System.now() - this).inWholeSeconds <= (reportIntervalSeconds ?: 60)
 
-    private fun DescriptiveDeviceStateDto.toDeviceStateDescription() = DeviceStateDescription(
-        deviceState = deviceState,
-        title = title,
-        icon = icon,
-        description = description,
-        arguments = arguments.map { it.toString() }.toSet()
-    )
+    private fun DescriptiveDeviceStateDto.toDeviceStateDescriptions(appGroups: List<AppGroupDto>) =
+        deviceStateService.explode(this, appGroups)
+            .map {
+                DeviceStateDescriptionResponse(
+                    deviceState = it.deviceState,
+                    title = it.title,
+                    icon = it.icon,
+                    description = it.description,
+                    extra = it.extra
+                )
+            }
 
 }
 
@@ -429,7 +440,7 @@ data class InstanceStateResponse(
     val instanceId: InstanceId,
     val instanceName: String,
     val forcedDeviceState: DeviceState?,
-    val availableStates: List<DeviceStateDescription>
+    val availableStates: List<DeviceStateDescriptionResponse>
 )
 
 data class InstanceInfoResponse(
@@ -439,14 +450,14 @@ data class InstanceInfoResponse(
     val clientType: String,
     val clientVersion: String,
     val clientTimezoneOffsetSeconds: Int,
-    )
+)
 
-data class DeviceStateDescription(
+data class DeviceStateDescriptionResponse(
     val deviceState: DeviceState,
     val title: String,
     val icon: String?,
     val description: String?,
-    val arguments: Set<String>
+    val extra: String
 )
 
 
@@ -460,8 +471,8 @@ data class Instance(
     val icon: Icon,
     val screenTimeSeconds: Long,
     val appUsageSeconds: List<AppUsage>,
-    val automaticDeviceState: DeviceStateDescription,
-    val forcedDeviceState: DeviceStateDescription?,
+    val automaticDeviceState: DeviceStateDescriptionResponse,
+    val forcedDeviceState: DeviceStateDescriptionResponse?,
     val online: Boolean,
     val availableAppGroups: List<AppGroupDto>,
     val associatedAppGroupId: String? = null
@@ -487,7 +498,7 @@ data class InstanceState(
 
 data class ScheduleResponse(
     val schedules: Map<Day, DailySchedule>,
-    val availableStates: List<DeviceStateDescription>
+    val availableStates: List<DeviceStateDescriptionResponse>
 )
 
 data class DailySchedule(
@@ -497,7 +508,7 @@ data class DailySchedule(
 data class Period(
     val from: TimeOfDay,
     val to: TimeOfDay,
-    val state: DeviceStateDescription?,
+    val state: DeviceStateDescriptionResponse?,
 )
 
 data class TimeOfDay(

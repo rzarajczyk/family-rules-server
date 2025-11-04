@@ -67,7 +67,7 @@ data class DescriptiveDeviceStateDto(
     val arguments: Set<DeviceStateArgument>
 )
 
-enum class DeviceStateArgument { APP_LIST }
+enum class DeviceStateArgument { APP_GROUP }
 
 data class AppDto(
     val appName: String,
