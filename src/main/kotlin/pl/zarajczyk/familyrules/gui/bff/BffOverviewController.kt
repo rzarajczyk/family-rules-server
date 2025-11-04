@@ -418,6 +418,7 @@ class BffOverviewController(
         title = title,
         icon = icon,
         description = description,
+        arguments = arguments.map { it.toString() }.toSet()
     )
 
 }
@@ -445,6 +446,7 @@ data class DeviceStateDescription(
     val title: String,
     val icon: String?,
     val description: String?,
+    val arguments: Set<String>
 )
 
 

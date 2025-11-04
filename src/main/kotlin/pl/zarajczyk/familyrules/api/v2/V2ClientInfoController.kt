@@ -45,7 +45,8 @@ class V2ClientInfoController(private val dataRepository: DataRepository) {
         deviceState = deviceState,
         title = title,
         icon = icon,
-        description = description
+        description = description,
+        arguments = requires?.mapNotNull { it.toDeviceStateArgument() }?.toSet() ?: emptySet()
     )
 
     private fun App.toDto() = AppDto(
@@ -53,6 +54,13 @@ class V2ClientInfoController(private val dataRepository: DataRepository) {
         iconBase64Png = iconBase64Png
     )
 }
+
+private fun String.toDeviceStateArgument() =
+    try {
+        DeviceStateArgument.valueOf(this)
+    } catch (_: Exception) {
+        null
+    }
 
 data class ClientInfoRequest(
     val version: String,
@@ -70,7 +78,8 @@ data class AvailableDeviceState(
     val deviceState: DeviceState,
     val title: String,
     val icon: String?,
-    val description: String?
+    val description: String?,
+    val requires: Set<String>?
 )
 
 data class App(

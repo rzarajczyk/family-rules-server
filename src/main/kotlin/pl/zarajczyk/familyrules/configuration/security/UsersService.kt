@@ -5,9 +5,9 @@ import org.springframework.security.core.userdetails.UserDetails
 import org.springframework.security.core.userdetails.UsernameNotFoundException
 import org.springframework.security.provisioning.UserDetailsManager
 import org.springframework.stereotype.Service
-import pl.zarajczyk.familyrules.shared.AccessLevel
-import pl.zarajczyk.familyrules.shared.DataRepository
-import pl.zarajczyk.familyrules.shared.UserDto
+import pl.zarajczyk.familyrules.domain.AccessLevel
+import pl.zarajczyk.familyrules.domain.DataRepository
+import pl.zarajczyk.familyrules.domain.UserDto
 
 @Service
 class UsersService(private val dataRepository: DataRepository) : UserDetailsManager {

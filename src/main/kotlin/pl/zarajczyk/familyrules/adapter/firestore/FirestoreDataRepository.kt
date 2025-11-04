@@ -273,7 +273,8 @@ class FirestoreDataRepository(
                     "title" to state.title,
                     "icon" to state.icon,
                     "description" to state.description,
-                    "order" to index
+                    "order" to index,
+                    "arguments" to json.encodeToString(state.arguments)
                 )
             )
         }
@@ -301,6 +302,7 @@ class FirestoreDataRepository(
                 title = doc.getString("title") ?: "",
                 icon = doc.getString("icon"),
                 description = doc.getString("description"),
+                arguments = json.decodeFromString(doc.getString("arguments") ?: "[]")
             )
         }
 
@@ -502,6 +504,7 @@ class FirestoreDataRepository(
                 title = "Active",
                 icon = null,
                 description = null,
+                arguments = emptySet()
             )
         } else {
             this
