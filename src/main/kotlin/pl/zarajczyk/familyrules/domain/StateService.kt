@@ -23,7 +23,7 @@ class StateService(private val dataRepository: DataRepository) {
         )
     }
 
-    private fun WeeklyScheduleDto.getCurrentDeviceState(): DeviceState {
+    private fun WeeklyScheduleDto.getCurrentDeviceState(): DeviceStateDto {
         val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
         val day = now.dayOfWeek
         val currentSecondOfDay = now.time.toSecondOfDay()
@@ -40,7 +40,7 @@ class StateService(private val dataRepository: DataRepository) {
 }
 
 data class CurrentDeviceState(
-    val finalState: DeviceState,
-    val automaticState: DeviceState,
-    val forcedState: DeviceState?
+    val finalState: DeviceStateDto,
+    val automaticState: DeviceStateDto,
+    val forcedState: DeviceStateDto?
 )

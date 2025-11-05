@@ -9,33 +9,9 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.springframework.stereotype.Service
+import pl.zarajczyk.familyrules.domain.*
 import pl.zarajczyk.familyrules.gui.bff.SchedulePacker
-import pl.zarajczyk.familyrules.domain.AccessLevel
-import pl.zarajczyk.familyrules.domain.AppDto
-import pl.zarajczyk.familyrules.domain.AppGroupColorPalette
-import pl.zarajczyk.familyrules.domain.AppGroupDto
-import pl.zarajczyk.familyrules.domain.AppGroupMembershipDto
-import pl.zarajczyk.familyrules.domain.ClientInfoDto
-import pl.zarajczyk.familyrules.domain.DEFAULT_STATE
-import pl.zarajczyk.familyrules.domain.DataRepository
-import pl.zarajczyk.familyrules.domain.DescriptiveDeviceStateDto
-import pl.zarajczyk.familyrules.domain.DeviceState
-import pl.zarajczyk.familyrules.domain.IllegalInstanceName
-import pl.zarajczyk.familyrules.domain.InstanceAlreadyExists
-import pl.zarajczyk.familyrules.domain.InstanceDto
-import pl.zarajczyk.familyrules.domain.InstanceId
-import pl.zarajczyk.familyrules.domain.InstanceRef
-import pl.zarajczyk.familyrules.domain.InvalidPassword
-import pl.zarajczyk.familyrules.domain.NewInstanceDto
-import pl.zarajczyk.familyrules.domain.ScreenTimeDto
-import pl.zarajczyk.familyrules.domain.UpdateInstanceDto
-import pl.zarajczyk.familyrules.domain.UserDto
-import pl.zarajczyk.familyrules.domain.WeeklyScheduleDto
-import pl.zarajczyk.familyrules.domain.sha256
 import java.util.*
-import kotlin.String
-import kotlin.collections.Map
-import kotlin.collections.plus
 
 @Service
 class FirestoreDataRepository(
@@ -180,7 +156,9 @@ class FirestoreDataRepository(
         return InstanceDto(
             id = UUID.fromString(doc.getString("instanceId") ?: ""),
             name = doc.getString("instanceName") ?: "",
-            forcedDeviceState = doc.getString("forcedDeviceState"),
+            forcedDeviceState = doc.getString("forcedDeviceState")?.let {
+                DeviceStateDto(it, doc.getString("forcedDeviceStateExtra"))
+            },
             clientVersion = doc.getString("clientVersion") ?: "",
             clientType = doc.getString("clientType") ?: "",
             schedule = try {
@@ -224,9 +202,12 @@ class FirestoreDataRepository(
         doc.reference.update("schedule", json.encodeToString(schedulePacker.pack(schedule))).get()
     }
 
-    override fun setForcedInstanceState(instance: InstanceRef, state: DeviceState?) {
+    override fun setForcedInstanceState(instance: InstanceRef, state: DeviceStateDto?) {
         val doc = (instance as FirestoreInstanceRef).document
-        doc.reference.update("forcedDeviceState", state).get()
+        doc.reference.update(
+            "forcedDeviceState", state?.deviceState,
+            "forcedDeviceStateExtra", state?.extra
+        ).get()
     }
 
     override fun updateClientInformation(instance: InstanceRef, clientInfo: ClientInfoDto) {
@@ -287,7 +268,7 @@ class FirestoreDataRepository(
         doc.reference.update("associatedAppGroupId", groupId).get()
     }
 
-    override fun getAvailableDeviceStates(instance: InstanceRef): List<DescriptiveDeviceStateDto> {
+    override fun getAvailableDeviceStateTypes(instance: InstanceRef): List<DeviceStateTypeDto> {
         val instanceDoc = (instance as FirestoreInstanceRef).document
 
         val deviceStates = instanceDoc.reference
@@ -297,7 +278,7 @@ class FirestoreDataRepository(
             .get()
 
         val states = deviceStates.documents.map { doc ->
-            DescriptiveDeviceStateDto(
+            DeviceStateTypeDto(
                 deviceState = doc.getString("deviceState") ?: "",
                 title = doc.getString("title") ?: "",
                 icon = doc.getString("icon"),
@@ -497,10 +478,10 @@ class FirestoreDataRepository(
         }
     }
 
-    private fun List<DescriptiveDeviceStateDto>.ensureActiveIsPresent(): List<DescriptiveDeviceStateDto> {
-        return if (this.find { it.deviceState == DEFAULT_STATE } == null) {
-            this + DescriptiveDeviceStateDto(
-                deviceState = DEFAULT_STATE,
+    private fun List<DeviceStateTypeDto>.ensureActiveIsPresent(): List<DeviceStateTypeDto> {
+        return if (this.find { it.deviceState == DEFAULT_DEVICE_STATE } == null) {
+            this + DeviceStateTypeDto(
+                deviceState = DEFAULT_DEVICE_STATE,
                 title = "Active",
                 icon = null,
                 description = null,

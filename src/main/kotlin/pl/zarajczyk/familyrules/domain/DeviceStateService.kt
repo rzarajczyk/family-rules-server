@@ -1,32 +1,28 @@
 package pl.zarajczyk.familyrules.domain
 
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
 import org.springframework.stereotype.Service
 import pl.zarajczyk.familyrules.domain.DeviceStateArgument.APP_GROUP
 
 @Service
 class DeviceStateService() {
-    private val json = Json { ignoreUnknownKeys = true }
-
-    fun explode(deviceState: DescriptiveDeviceStateDto, appGroups: List<AppGroupDto>): List<ExplodedDeviceState> {
+    fun createActualInstances(deviceState: DeviceStateTypeDto, appGroups: List<AppGroupDto>): List<DeviceStateInstance> {
         if (deviceState.arguments.isEmpty()) {
-            return ExplodedDeviceState(
+            return DeviceStateInstance(
                 deviceState = deviceState.deviceState,
                 title = deviceState.title,
                 icon = deviceState.icon,
                 description = deviceState.description,
-                extra = ""
+                extra = null
             ).let { listOf(it) }
         }
         if (deviceState.arguments == setOf(APP_GROUP)) {
             return appGroups.map { appGroup ->
-                ExplodedDeviceState(
+                DeviceStateInstance(
                     deviceState = deviceState.deviceState,
                     title = "${deviceState.title} (${appGroup.name})",
                     icon = deviceState.icon,
                     description = "${deviceState.description} (${appGroup.name})",
-                    extra = json.encodeToString(mapOf(APP_GROUP.name to appGroup.id))
+                    extra = appGroup.id
                 )
             }
         }
@@ -35,10 +31,10 @@ class DeviceStateService() {
 
 }
 
-data class ExplodedDeviceState(
-    val deviceState: DeviceState,
+data class DeviceStateInstance(
+    val deviceState: String,
     val title: String,
     val icon: String?,
     val description: String?,
-    val extra: String
+    val extra: String?
 )

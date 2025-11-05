@@ -31,7 +31,7 @@ class V2ReportController(private val dataRepository: DataRepository, private val
         }
     }
 
-    private fun DeviceState.toReportResponse() = ReportResponse(deviceState = this)
+    private fun DeviceStateDto.toReportResponse() = ReportResponse(deviceState = this)
 
 }
 
@@ -41,5 +41,5 @@ data class ReportRequest(
 )
 
 data class ReportResponse(
-    val deviceState: DeviceState
+    val deviceState: DeviceStateDto
 )

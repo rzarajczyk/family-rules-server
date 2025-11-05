@@ -36,7 +36,7 @@ data class ScreenTimeDto(
 data class InstanceDto(
     val id: InstanceId,
     val name: String,
-    val forcedDeviceState: DeviceState?,
+    val forcedDeviceState: DeviceStateDto?,
     val clientType: String,
     val clientVersion: String,
     val schedule: WeeklyScheduleDto,
@@ -55,12 +55,20 @@ data class UpdateInstanceDto(
     val iconType: String?
 )
 
-typealias DeviceState = String
+const val DEFAULT_DEVICE_STATE = "ACTIVE"
 
-const val DEFAULT_STATE: DeviceState = "ACTIVE"
+@Serializable
+data class DeviceStateDto(
+    val deviceState: String,
+    val extra: String? = null
+) {
+    companion object {
+        fun default() = DeviceStateDto(DEFAULT_DEVICE_STATE, null)
+    }
+}
 
-data class DescriptiveDeviceStateDto(
-    val deviceState: DeviceState,
+data class DeviceStateTypeDto(
+    val deviceState: String,
     val title: String,
     val icon: String?,
     val description: String?,
@@ -79,7 +87,7 @@ data class ClientInfoDto(
     val timezoneOffsetSeconds: Int,
     val reportIntervalSeconds: Int?,
     val knownApps: Map<String, AppDto>,
-    val states: List<DescriptiveDeviceStateDto>
+    val states: List<DeviceStateTypeDto>
 )
 
 data class AppGroupDto(
@@ -112,7 +120,7 @@ data class DailyScheduleDto(
 data class PeriodDto(
     val fromSeconds: Long,
     val toSeconds: Long,
-    val deviceState: DeviceState
+    val deviceState: DeviceStateDto
 )
 
 interface InstanceRef

@@ -40,7 +40,7 @@ class BffOverviewController(
             val screenTimeDto = dbConnector.getScreenTimes(instanceRef, day)
             val state = stateService.getDeviceState(instanceRef)
             val instance = dbConnector.getInstance(instanceRef)
-            val availableStates = dbConnector.getAvailableDeviceStates(instanceRef)
+            val availableStates = dbConnector.getAvailableDeviceStateTypes(instanceRef)
             val appGroupMemberships = dbConnector.getAppGroupMemberships(instanceRef)
             val appGroups = dbConnector.getAppGroups(username)
 
@@ -77,10 +77,10 @@ class BffOverviewController(
                     }.sortedByDescending { it.usageSeconds },
                 forcedDeviceState = availableStates
                     .flatMap { it.toDeviceStateDescriptions(appGroups) }
-                    .firstOrNull { it.deviceState == state.forcedState },
+                    .firstOrNull { it.isEqualTo(state.forcedState) },
                 automaticDeviceState = availableStates
                     .flatMap { it.toDeviceStateDescriptions(appGroups) }
-                    .firstOrNull { it.deviceState == state.automaticState }
+                    .firstOrNull { it.isEqualTo(state.automaticState) }
                     ?: throw RuntimeException("Instance ≪${instance.id}≫ doesn't have automatic state ≪${state.automaticState}≫"),
                 online = screenTimeDto.updatedAt.isOnline(instance.reportIntervalSeconds),
                 icon = instance.getIcon(),
@@ -91,6 +91,9 @@ class BffOverviewController(
     } catch (e: InvalidPassword) {
         throw ResponseStatusException(HttpStatus.FORBIDDEN)
     }
+
+    private fun DeviceStateDescriptionResponse.isEqualTo(other: DeviceStateDto?) =
+        this.deviceState == other?.deviceState && this.extra == other?.extra
 
     private fun InstanceDto.getIcon() = if (iconType != null && iconData != null) {
         Icon(type = iconType, data = iconData)
@@ -154,7 +157,7 @@ class BffOverviewController(
     ): ScheduleResponse {
         val instanceRef = dbConnector.findInstanceOrThrow(instanceId)
         val instance = dbConnector.getInstance(instanceRef)
-        val availableStates = dbConnector.getAvailableDeviceStates(instanceRef)
+        val availableStates = dbConnector.getAvailableDeviceStateTypes(instanceRef)
         val appGroups = dbConnector.getAppGroups(authentication.name)
         return ScheduleResponse(
             schedules = instance.schedule.schedule
@@ -166,7 +169,7 @@ class BffOverviewController(
                             to = period.toSeconds.toRoundedTimeOfDay(zeroMeansStepBack = true),
                             state = availableStates
                                 .flatMap { it.toDeviceStateDescriptions(appGroups) }
-                                .firstOrNull { it.deviceState == period.deviceState }
+                                .firstOrNull { it.isEqualTo(period.deviceState) }
                         )
                     })
                 },
@@ -219,7 +222,7 @@ class BffOverviewController(
         val days: List<Day>,
         val from: TimeOfDay,
         val to: TimeOfDay,
-        val state: DeviceState,
+        val state: DeviceStateDto,
     )
 
     private fun Long.toRoundedTimeOfDay(roundToMinutes: Int = 15, zeroMeansStepBack: Boolean): TimeOfDay {
@@ -244,7 +247,7 @@ class BffOverviewController(
             instanceId = instanceId,
             instanceName = instance.name,
             forcedDeviceState = instance.forcedDeviceState,
-            availableStates = dbConnector.getAvailableDeviceStates(instanceRef)
+            availableStates = dbConnector.getAvailableDeviceStateTypes(instanceRef)
                 .flatMap { it.toDeviceStateDescriptions(appGroups) }
         )
     }
@@ -252,10 +255,16 @@ class BffOverviewController(
     @PostMapping("/bff/instance-state")
     fun setInstanceState(
         @RequestParam("instanceId") instanceId: InstanceId,
-        @RequestBody data: InstanceState
+        @RequestBody data: ForcedInstanceState
     ) {
         val instanceRef = dbConnector.findInstanceOrThrow(instanceId)
-        dbConnector.setForcedInstanceState(instanceRef, data.forcedDeviceState.emptyToNull())
+        val forcedDeviceState = data.forcedDeviceState.emptyToNull()?.let {
+            DeviceStateDto(
+                deviceState = it,
+                extra = data.extra?.emptyToNull()
+            )
+        }
+        dbConnector.setForcedInstanceState(instanceRef, forcedDeviceState)
     }
 
     @PostMapping("/bff/delete-instance")
@@ -420,8 +429,8 @@ class BffOverviewController(
     private fun Instant.isOnline(reportIntervalSeconds: Int? = null) =
         (Clock.System.now() - this).inWholeSeconds <= (reportIntervalSeconds ?: 60)
 
-    private fun DescriptiveDeviceStateDto.toDeviceStateDescriptions(appGroups: List<AppGroupDto>) =
-        deviceStateService.explode(this, appGroups)
+    private fun DeviceStateTypeDto.toDeviceStateDescriptions(appGroups: List<AppGroupDto>) =
+        deviceStateService.createActualInstances(this, appGroups)
             .map {
                 DeviceStateDescriptionResponse(
                     deviceState = it.deviceState,
@@ -434,30 +443,30 @@ class BffOverviewController(
 
 }
 
-private fun DeviceState?.emptyToNull(): DeviceState? = if (this.isNullOrBlank()) null else this
+private fun String?.emptyToNull(): String? = if (this.isNullOrBlank()) null else this
 
 data class InstanceStateResponse(
     val instanceId: InstanceId,
     val instanceName: String,
-    val forcedDeviceState: DeviceState?,
+    val forcedDeviceState: DeviceStateDto?,
     val availableStates: List<DeviceStateDescriptionResponse>
 )
 
 data class InstanceInfoResponse(
     val instanceId: InstanceId,
     val instanceName: String,
-    val forcedDeviceState: DeviceState?,
+    val forcedDeviceState: DeviceStateDto?,
     val clientType: String,
     val clientVersion: String,
     val clientTimezoneOffsetSeconds: Int,
 )
 
 data class DeviceStateDescriptionResponse(
-    val deviceState: DeviceState,
+    val deviceState: String,
     val title: String,
     val icon: String?,
     val description: String?,
-    val extra: String
+    val extra: String?
 )
 
 
@@ -492,8 +501,9 @@ data class AppUsage(
     val appGroups: List<AppGroupWithColor> = emptyList()
 )
 
-data class InstanceState(
-    val forcedDeviceState: DeviceState?
+data class ForcedInstanceState(
+    val forcedDeviceState: String?,
+    val extra: String?
 )
 
 data class ScheduleResponse(

@@ -22,12 +22,12 @@ interface DataRepository {
     fun updateInstance(instance: InstanceRef, update: UpdateInstanceDto)
     fun deleteInstance(instance: InstanceRef)
     fun setInstanceSchedule(instance: InstanceRef, schedule: WeeklyScheduleDto)
-    fun setForcedInstanceState(instance: InstanceRef, state: DeviceState?)
+    fun setForcedInstanceState(instance: InstanceRef, state: DeviceStateDto?)
     fun updateClientInformation(instance: InstanceRef, clientInfo: ClientInfoDto)
     fun setAssociatedAppGroup(instance: InstanceRef, groupId: String?)
     
     // Device states operations
-    fun getAvailableDeviceStates(instance: InstanceRef): List<DescriptiveDeviceStateDto>
+    fun getAvailableDeviceStateTypes(instance: InstanceRef): List<DeviceStateTypeDto>
     
     // Screen time operations
     fun saveReport(instance: InstanceRef, day: LocalDate, screenTimeSeconds: Long, applicationsSeconds: Map<String, Long>)

@@ -2,8 +2,8 @@ package pl.zarajczyk.familyrules.gui.bff
 
 import kotlinx.datetime.DayOfWeek
 import org.springframework.stereotype.Service
-import pl.zarajczyk.familyrules.domain.DEFAULT_STATE
 import pl.zarajczyk.familyrules.domain.DailyScheduleDto
+import pl.zarajczyk.familyrules.domain.DeviceStateDto
 import pl.zarajczyk.familyrules.domain.PeriodDto
 import pl.zarajczyk.familyrules.domain.WeeklyScheduleDto
 
@@ -30,18 +30,18 @@ class SchedulePacker {
             schedule = schedule.mapValues { (_, daily) ->
                 val updatedPeriods = mutableListOf<PeriodDto>()
                 if (daily.periods.isEmpty()) {
-                    updatedPeriods.add(PeriodDto(0, MAX, DEFAULT_STATE))
+                    updatedPeriods.add(PeriodDto(0, MAX, DeviceStateDto.default()))
                 } else {
                     var previousToSeconds: Long = 0
                     daily.periods.forEach { period ->
                         if (period.fromSeconds > previousToSeconds) {
-                            updatedPeriods.add(PeriodDto(previousToSeconds, period.fromSeconds, DEFAULT_STATE))
+                            updatedPeriods.add(PeriodDto(previousToSeconds, period.fromSeconds, DeviceStateDto.default()))
                         }
                         updatedPeriods.add(period)
                         previousToSeconds = period.toSeconds
                     }
                     if (daily.periods.last().toSeconds < MAX)
-                        updatedPeriods.add(PeriodDto(daily.periods.last().toSeconds, MAX, DEFAULT_STATE))
+                        updatedPeriods.add(PeriodDto(daily.periods.last().toSeconds, MAX, DeviceStateDto.default()))
                 }
                 DailyScheduleDto(updatedPeriods)
             }
@@ -74,7 +74,7 @@ class SchedulePacker {
 
     fun WeeklyScheduleDto.removeActivePeriods(): WeeklyScheduleDto {
         return WeeklyScheduleDto(schedule.mapValues { (_, daily) ->
-            val filteredPeriods = daily.periods.filter { it.deviceState != DEFAULT_STATE }
+            val filteredPeriods = daily.periods.filter { it.deviceState != DeviceStateDto.default() }
             DailyScheduleDto(filteredPeriods)
         })
     }

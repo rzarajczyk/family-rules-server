@@ -88,10 +88,11 @@ document.addEventListener("DOMContentLoaded", (event) => {
                         content.querySelectorAll('a').forEach(it => {
                             it.addEventListener('click', (e) => {
                                 let deviceState = e.target.closest('a').dataset["devicestate"]
+                                let extra = e.target.closest('a').dataset["extra"]
                                 console.log(`Setting state of ${instanceId} to ${deviceState}`)
                                 ServerRequest.fetch(`/bff/instance-state?instanceId=${instanceId}`, {
                                     method: 'POST',
-                                    body: JSON.stringify({forcedDeviceState: deviceState})
+                                    body: JSON.stringify({forcedDeviceState: deviceState, extra: extra})
                                 }).then(response => {
                                     Toast.info("Saved")
                                     M.Modal.getInstance(document.querySelector("#instance-state-modal")).close()

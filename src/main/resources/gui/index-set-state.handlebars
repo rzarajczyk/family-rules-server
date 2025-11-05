@@ -2,11 +2,10 @@
     <h5>Device state: <b>{{instanceName}}</b></h5>
     <div class="collection">
         {{#each availableStates}}
-            <a class="collection-item avatar {{#ifEquals ../forcedDeviceState deviceState}}active{{/ifEquals}}" href="#!" data-devicestate="{{deviceState}}">
+            <a class="collection-item avatar {{#ifEquals ../forcedDeviceState deviceState}}active{{/ifEquals}}" href="#!" data-devicestate="{{deviceState}}" data-extra="{{extra}}">
                 {{#if icon}}<svg class="circle" xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="{{#ifEquals ../forcedDeviceState deviceState}}var(--md-sys-color-on-primary){{/ifEquals}}{{#ifNotEquals ../forcedDeviceState deviceState}}#5f6368{{/ifNotEquals}}">{{{icon}}}</svg>{{/if}}
                 <span class="title">{{title}}</span>
                 {{#if description}}<p style="font-style: italic" class="pt-1">{{br description}}</p>{{/if}}
-                {{#if arguments}}<p style="font-style: italic" class="pt-1">Requires data: {{#each arguments}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}</p>{{/if}}
             </a>
         {{/each}}
     </div>

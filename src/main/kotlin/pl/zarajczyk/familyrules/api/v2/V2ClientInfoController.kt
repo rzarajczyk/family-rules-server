@@ -1,5 +1,6 @@
 package pl.zarajczyk.familyrules.api.v2
 
+import org.slf4j.LoggerFactory
 import org.springframework.security.core.Authentication
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
@@ -41,12 +42,12 @@ class V2ClientInfoController(private val dataRepository: DataRepository) {
         return ClientInfoResponse(restrictedApps = apps)
     }
 
-    private fun AvailableDeviceState.toDto() = DescriptiveDeviceStateDto(
+    private fun DeviceStateTypeRequest.toDto() = DeviceStateTypeDto(
         deviceState = deviceState,
         title = title,
         icon = icon,
         description = description,
-        arguments = requires?.mapNotNull { it.toDeviceStateArgument() }?.toSet() ?: emptySet()
+        arguments = arguments?.mapNotNull { it.toDeviceStateArgument() }?.toSet() ?: emptySet()
     )
 
     private fun App.toDto() = AppDto(
@@ -59,12 +60,14 @@ private fun String.toDeviceStateArgument() =
     try {
         DeviceStateArgument.valueOf(this)
     } catch (_: Exception) {
+        val logger = LoggerFactory.getLogger(javaClass)
+        logger.warn("Ignoring DeviceStateArgument $this")
         null
     }
 
 data class ClientInfoRequest(
     val version: String,
-    val availableStates: List<AvailableDeviceState>,
+    val availableStates: List<DeviceStateTypeRequest>,
     val timezoneOffsetSeconds: Int?,
     val reportIntervalSeconds: Int?,
     val knownApps: Map<String, App>?
@@ -74,12 +77,12 @@ data class ClientInfoResponse(
     val restrictedApps: Map<String, App>
 )
 
-data class AvailableDeviceState(
-    val deviceState: DeviceState,
+data class DeviceStateTypeRequest(
+    val deviceState: String,
     val title: String,
     val icon: String?,
     val description: String?,
-    val requires: Set<String>?
+    val arguments: Set<String>?
 )
 
 data class App(
