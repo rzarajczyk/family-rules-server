@@ -48,5 +48,5 @@ curl --header "Content-Type: application/json" \
 curl --header "Content-Type: application/json" \
   --request POST \
   --user "$INSTANCE_ID:$TOKEN" \
-  --data "{\"version\": \"v1\", \"availableStates\": []}" \
+  --data "{\"version\": \"v1\", \"availableStates\": [{\"deviceState\": \"S1\", \"title\": \"State S1\"}]}" \
   "$HOST/api/v2/client-info"

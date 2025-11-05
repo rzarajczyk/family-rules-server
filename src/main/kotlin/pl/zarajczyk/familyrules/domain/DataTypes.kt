@@ -67,6 +67,7 @@ data class DeviceStateDto(
     }
 }
 
+@Serializable
 data class DeviceStateTypeDto(
     val deviceState: String,
     val title: String,
@@ -75,6 +76,7 @@ data class DeviceStateTypeDto(
     val arguments: Set<DeviceStateArgument>
 )
 
+@Serializable
 enum class DeviceStateArgument { APP_GROUP }
 
 data class AppDto(

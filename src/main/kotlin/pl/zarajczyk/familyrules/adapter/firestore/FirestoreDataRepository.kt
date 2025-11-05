@@ -221,46 +221,16 @@ class FirestoreDataRepository(
             }
         )
 
+        val deviceStatesJson = json.encodeToString(clientInfo.states)
+
         // Update client information
         doc.reference.update(
             "clientVersion", clientInfo.version,
             "clientTimezoneOffsetSeconds", clientInfo.timezoneOffsetSeconds,
             "reportIntervalSeconds", clientInfo.reportIntervalSeconds,
-            "knownApps", knownAppsJson
+            "knownApps", knownAppsJson,
+            "deviceStates", deviceStatesJson
         ).get()
-
-        // Update device states
-        val batch = firestore.batch()
-
-        // Clear existing device states
-        val existingStates = doc.reference
-            .collection("deviceStates")
-            .get()
-            .get()
-
-        existingStates.documents.forEach { stateDoc ->
-            batch.delete(stateDoc.reference)
-        }
-
-        // Add new device states
-        clientInfo.states.forEachIndexed { index, state ->
-            val stateRef = doc.reference
-                .collection("deviceStates")
-                .document(state.deviceState)
-
-            batch.set(
-                stateRef, mapOf(
-                    "deviceState" to state.deviceState,
-                    "title" to state.title,
-                    "icon" to state.icon,
-                    "description" to state.description,
-                    "order" to index,
-                    "arguments" to json.encodeToString(state.arguments)
-                )
-            )
-        }
-
-        batch.commit().get()
     }
 
     override fun setAssociatedAppGroup(instance: InstanceRef, groupId: String?) {
@@ -271,23 +241,11 @@ class FirestoreDataRepository(
     override fun getAvailableDeviceStateTypes(instance: InstanceRef): List<DeviceStateTypeDto> {
         val instanceDoc = (instance as FirestoreInstanceRef).document
 
-        val deviceStates = instanceDoc.reference
-            .collection("deviceStates")
-            .orderBy("order")
-            .get()
-            .get()
-
-        val states = deviceStates.documents.map { doc ->
-            DeviceStateTypeDto(
-                deviceState = doc.getString("deviceState") ?: "",
-                title = doc.getString("title") ?: "",
-                icon = doc.getString("icon"),
-                description = doc.getString("description"),
-                arguments = json.decodeFromString(doc.getString("arguments") ?: "[]")
-            )
-        }
-
-        return states.ensureActiveIsPresent()
+        val deviceStatesJson = instanceDoc.getString("deviceStates")
+        return when {
+            deviceStatesJson.isNullOrBlank() -> emptyList()
+            else -> json.decodeFromString<List<DeviceStateTypeDto>>(deviceStatesJson)
+        }.ensureActiveIsPresent()
     }
 
     override fun saveReport(
