@@ -2,13 +2,14 @@ package pl.zarajczyk.familyrules.api.v2
 
 import org.springframework.security.core.Authentication
 import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RestController
 import pl.zarajczyk.familyrules.domain.*
 
 @RestController
 class V2AppGroupReportController(private val dataRepository: DataRepository) {
-    @GetMapping("/api/v2/group-report")
+    @PostMapping("/api/v2/group-report")
     fun appGroupReport(@RequestBody request: AppGroupReportRequest, authentication: Authentication): AppGroupReportResponse {
         val instanceRef = dataRepository.findAuthenticatedInstance(authentication)
         val instance = dataRepository.getInstance(instanceRef)
