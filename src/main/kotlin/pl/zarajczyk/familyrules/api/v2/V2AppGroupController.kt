@@ -8,7 +8,7 @@ import pl.zarajczyk.familyrules.domain.*
 
 @RestController
 class V2AppGroupController(private val dataRepository: DataRepository) {
-    @PostMapping("/api/v2/group-membership-for-device")
+    @PostMapping(value = ["/api/v2/group-membership-for-device", "/api/v2/group-report"])
     fun getMembership(@RequestBody request: AppGroupMembershipRequest, authentication: Authentication): AppGroupMembershipResponse {
         val instanceRef = dataRepository.findAuthenticatedInstance(authentication)
         val instance = dataRepository.getInstance(instanceRef)
