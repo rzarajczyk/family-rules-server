@@ -26,7 +26,7 @@ class V2AppGroupController(private val dataRepository: DataRepository) {
 
         return AppGroupMembershipResponse(
             appGroupId = request.appGroupId,
-            apps = apps
+            apps = apps.mapValues { (_, app) -> AppGroupApp(app.appName, app.iconBase64Png) }
         )
     }
 
@@ -62,7 +62,7 @@ class V2AppGroupController(private val dataRepository: DataRepository) {
                 val known = instance.knownApps[membership.appPath]
                 
                 membership.appPath to AppUsageReport(
-                    app = App(
+                    app = AppGroupApp(
                         appName = known?.appName ?: membership.appPath,
                         iconBase64Png = known?.iconBase64Png
                     ),
@@ -92,7 +92,7 @@ data class AppGroupMembershipRequest(
 
 data class AppGroupMembershipResponse(
     val appGroupId: String,
-    val apps: Map<String, App>
+    val apps: Map<String, AppGroupApp>
 )
 
 data class AppGroupsUsageReportResponse(
@@ -106,6 +106,11 @@ data class AppGroupUsageReport(
 )
 
 data class AppUsageReport(
-    val app: App,
+    val app: AppGroupApp,
     val uptimeSeconds: Long
+)
+
+data class AppGroupApp(
+    val appName: String,
+    val iconBase64Png: String?
 )
