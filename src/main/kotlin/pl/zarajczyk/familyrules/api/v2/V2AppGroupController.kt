@@ -26,7 +26,14 @@ class V2AppGroupController(private val dataRepository: DataRepository) {
 
         return AppGroupMembershipResponse(
             appGroupId = request.appGroupId,
-            apps = apps.mapValues { (_, app) -> AppGroupApp(app.appName, app.iconBase64Png) }
+            apps = apps.mapValues { (_, app) -> 
+                AppGroupApp(
+                    appName = app.appName,
+                    iconBase64Png = app.iconBase64Png,
+                    deviceName = instance.name,
+                    deviceId = instance.id.toString()
+                )
+            }
         )
     }
 
@@ -64,7 +71,9 @@ class V2AppGroupController(private val dataRepository: DataRepository) {
                 membership.appPath to AppUsageReport(
                     app = AppGroupApp(
                         appName = known?.appName ?: membership.appPath,
-                        iconBase64Png = known?.iconBase64Png
+                        iconBase64Png = known?.iconBase64Png,
+                        deviceName = instance.name,
+                        deviceId = instance.id.toString()
                     ),
                     uptimeSeconds = appScreenTime
                 )
@@ -112,5 +121,7 @@ data class AppUsageReport(
 
 data class AppGroupApp(
     val appName: String,
-    val iconBase64Png: String?
+    val iconBase64Png: String?,
+    val deviceName: String,
+    val deviceId: String
 )
