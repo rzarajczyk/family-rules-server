@@ -84,6 +84,7 @@ class V2AppGroupController(private val dataRepository: DataRepository) {
             
             AppGroupUsageReport(
                 appGroupId = group.id,
+                appGroupName = group.name,
                 apps = appsUsage,
                 totalTimeSeconds = totalTimeSeconds
             )
@@ -110,6 +111,7 @@ data class AppGroupsUsageReportResponse(
 
 data class AppGroupUsageReport(
     val appGroupId: String,
+    val appGroupName: String,
     val apps: Map<String, AppUsageReport>,
     val totalTimeSeconds: Long
 )
