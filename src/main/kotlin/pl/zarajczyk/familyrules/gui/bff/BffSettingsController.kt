@@ -1,31 +1,35 @@
 package pl.zarajczyk.familyrules.gui.bff
 
 import org.springframework.security.core.Authentication
-import org.springframework.web.bind.annotation.*
-import pl.zarajczyk.familyrules.domain.DataRepository
+import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.RestController
 import pl.zarajczyk.familyrules.domain.InvalidPassword
-import pl.zarajczyk.familyrules.domain.UsersRepository
+import pl.zarajczyk.familyrules.domain.UsersService
 
 @RestController
 class BffSettingsController(
-    private val usersRepository: UsersRepository
+    private val usersService: UsersService
 ) {
 
     @PostMapping("/bff/change-password")
     fun changePassword(
         @RequestBody request: ChangePasswordRequest,
         authentication: Authentication
-    ): ChangePasswordResponse = try {
+    ): ChangePasswordResponse =
+        usersService.withUserContext(authentication.name) { user ->
+            try {
 
-        usersRepository.validatePassword(authentication.name, request.currentPassword)
-        usersRepository.changePassword(authentication.name, request.newPassword)
-        
-        ChangePasswordResponse(success = true, message = "Password changed successfully")
-    } catch (e: InvalidPassword) {
-        ChangePasswordResponse(success = false, message = "Current password is incorrect")
-    } catch (e: Exception) {
-        ChangePasswordResponse(success = false, message = "Failed to change password")
-    }
+                user.validatePassword(request.currentPassword)
+                user.changePassword(request.newPassword)
+
+                ChangePasswordResponse(success = true, message = "Password changed successfully")
+            } catch (_: InvalidPassword) {
+                ChangePasswordResponse(success = false, message = "Current password is incorrect")
+            } catch (_: Exception) {
+                ChangePasswordResponse(success = false, message = "Failed to change password")
+            }
+        }
 }
 
 data class ChangePasswordRequest(

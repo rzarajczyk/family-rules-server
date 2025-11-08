@@ -8,7 +8,7 @@ import pl.zarajczyk.familyrules.domain.*
 
 @RestController
 class V2InitialSetupController(
-    private val usersRepository: UsersRepository,
+    private val usersService: UsersService,
     private val dataRepository: DataRepository
 ) {
 
@@ -18,13 +18,17 @@ class V2InitialSetupController(
         @RequestHeader("Authorization") authHeader: String
     ): RegisterInstanceResponse = try {
         val auth = authHeader.decodeBasicAuth()
-        usersRepository.validatePassword(auth.user, auth.pass)
-        val result = dataRepository.setupNewInstance(auth.user, data.instanceName, data.clientType)
-        RegisterInstanceResponse(
-            RegisterInstanceStatus.SUCCESS,
-            instanceId = result.instanceId.toString(),
-            token = result.token
-        )
+        usersService.withUserContext(auth.user) { user ->
+            user.validatePassword(auth.pass)
+            val result = dataRepository.setupNewInstance(auth.user, data.instanceName, data.clientType)
+            RegisterInstanceResponse(
+                RegisterInstanceStatus.SUCCESS,
+                instanceId = result.instanceId.toString(),
+                token = result.token
+            )
+        }
+    } catch (_: UserNotFoundException) {
+        RegisterInstanceResponse(RegisterInstanceStatus.INVALID_PASSWORD)
     } catch (_: InvalidPassword) {
         RegisterInstanceResponse(RegisterInstanceStatus.INVALID_PASSWORD)
     } catch (_: InstanceAlreadyExists) {

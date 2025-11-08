@@ -4,93 +4,98 @@ import org.springframework.http.HttpStatus
 import org.springframework.security.core.Authentication
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.server.ResponseStatusException
-import pl.zarajczyk.familyrules.domain.*
+import pl.zarajczyk.familyrules.domain.AccessLevel
+import pl.zarajczyk.familyrules.domain.User
+import pl.zarajczyk.familyrules.domain.UsersService
 
 @RestController
 class BffUserController(
-    private val usersRepository: UsersRepository
+    private val usersService: UsersService
 ) {
 
     @GetMapping("/bff/users")
-    fun getAllUsers(authentication: Authentication): GetUsersResponse {
-        // Check if user has admin access
-        val currentUser = usersRepository.findUser(authentication.name)
-        if (currentUser?.accessLevel != AccessLevel.ADMIN) {
-            throw ResponseStatusException(HttpStatus.FORBIDDEN, "Admin access required")
+    fun getAllUsers(authentication: Authentication): GetUsersResponse =
+        usersService.withUserContext(authentication.name) { user ->
+            user.mustBeAdmin()
+
+            GetUsersResponse(
+                users = usersService.listAllUsers().map {
+                    GetUsersUserResponse(it.username)
+                }
+            )
         }
-        
-        val users = usersRepository.getAllUsers()
-        return GetUsersResponse(users)
-    }
 
     @GetMapping("/bff/current-user")
-    fun getCurrentUser(authentication: Authentication): CurrentUserResponse {
-        val user = usersRepository.findUser(authentication.name)
-        return CurrentUserResponse(
-            username = authentication.name,
-            accessLevel = user?.accessLevel ?: AccessLevel.ADMIN
-        )
-    }
+    fun getCurrentUser(authentication: Authentication): CurrentUserResponse =
+        usersService.withUserContext(authentication.name) { user ->
+            CurrentUserResponse(
+                username = user.username,
+                accessLevel = user.accessLevel
+            )
+        }
 
     @DeleteMapping("/bff/users/{username}")
     fun deleteUser(
         @PathVariable username: String,
         authentication: Authentication
-    ): DeleteUserResponse {
-        // Check if user has admin access
-        val currentUser = usersRepository.findUser(authentication.name)
-        if (currentUser?.accessLevel != AccessLevel.ADMIN) {
-            throw ResponseStatusException(HttpStatus.FORBIDDEN, "Admin access required")
-        }
-        
-        // Prevent deleting self
-        if (username == authentication.name) {
-            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot delete your own account")
+    ): DeleteUserResponse =
+        usersService.withUserContext(authentication.name) { user ->
+            user.mustBeAdmin()
+
+            if (user.username == username) {
+                throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot delete your own account")
+            }
+
+            user.delete()
+
+            DeleteUserResponse(success = true, message = "User deleted successfully")
         }
 
-        usersRepository.deleteUser(username)
-        return DeleteUserResponse(success = true, message = "User deleted successfully")
-    }
 
     @PostMapping("/bff/users/{username}/reset-password")
     fun resetPassword(
         @PathVariable username: String,
         @RequestBody request: ResetPasswordRequest,
         authentication: Authentication
-    ): ResetPasswordResponse {
-        // Check if user has admin access
-        val currentUser = usersRepository.findUser(authentication.name)
-        if (currentUser?.accessLevel != AccessLevel.ADMIN) {
-            throw ResponseStatusException(HttpStatus.FORBIDDEN, "Admin access required")
-        }
+    ): ResetPasswordResponse =
+        usersService.withUserContext(authentication.name) { user ->
+            user.mustBeAdmin()
 
-        usersRepository.changePassword(username, request.newPassword)
-        return ResetPasswordResponse(success = true, message = "Password reset successfully")
-    }
+            user.changePassword(request.newPassword)
+
+            ResetPasswordResponse(success = true, message = "Password reset successfully")
+        }
 
     @PostMapping("/bff/users")
     fun createUser(
         @RequestBody request: CreateUserRequest,
         authentication: Authentication
-    ): CreateUserResponse {
-        // Check if user has admin access
-        val currentUser = usersRepository.findUser(authentication.name)
-        if (currentUser?.accessLevel != AccessLevel.ADMIN) {
-            throw ResponseStatusException(HttpStatus.FORBIDDEN, "Admin access required")
-        }
-        
-        // Check if user already exists
-        if (usersRepository.findUser(request.username) != null) {
-            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "User already exists")
+    ): CreateUserResponse =
+        usersService.withUserContext(authentication.name) { user ->
+            user.mustBeAdmin()
+
+            if (usersService.userExists(request.username)) {
+                throw ResponseStatusException(HttpStatus.BAD_REQUEST, "User already exists")
+            }
+
+            usersService.createUser(request.username, request.password, request.accessLevel)
+
+            CreateUserResponse(success = true, message = "User created successfully")
         }
 
-        usersRepository.createUser(request.username, request.password, request.accessLevel)
-        return CreateUserResponse(success = true, message = "User created successfully")
+    private fun User.mustBeAdmin() {
+        if (accessLevel != AccessLevel.ADMIN) {
+            throw ResponseStatusException(HttpStatus.FORBIDDEN, "Admin access required")
+        }
     }
 }
 
 data class GetUsersResponse(
-    val users: List<UserDto>
+    val users: List<GetUsersUserResponse>
+)
+
+data class GetUsersUserResponse(
+    val username: String
 )
 
 data class CurrentUserResponse(
