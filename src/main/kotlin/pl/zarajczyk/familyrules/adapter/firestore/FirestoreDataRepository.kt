@@ -17,7 +17,7 @@ import java.util.*
 class FirestoreDataRepository(
     private val firestore: Firestore,
     private val schedulePacker: SchedulePacker
-) : DataRepository {
+) : DataRepository, UsersRepository {
 
     private val json = Json { ignoreUnknownKeys = true }
 

@@ -4,10 +4,11 @@ import org.springframework.security.core.Authentication
 import org.springframework.web.bind.annotation.*
 import pl.zarajczyk.familyrules.domain.DataRepository
 import pl.zarajczyk.familyrules.domain.InvalidPassword
+import pl.zarajczyk.familyrules.domain.UsersRepository
 
 @RestController
 class BffSettingsController(
-    private val dataRepository: DataRepository
+    private val usersRepository: UsersRepository
 ) {
 
     @PostMapping("/bff/change-password")
@@ -15,11 +16,9 @@ class BffSettingsController(
         @RequestBody request: ChangePasswordRequest,
         authentication: Authentication
     ): ChangePasswordResponse = try {
-        // Validate current password
-        dataRepository.validatePassword(authentication.name, request.currentPassword)
-        
-        // Change to new password
-        dataRepository.changePassword(authentication.name, request.newPassword)
+
+        usersRepository.validatePassword(authentication.name, request.currentPassword)
+        usersRepository.changePassword(authentication.name, request.newPassword)
         
         ChangePasswordResponse(success = true, message = "Password changed successfully")
     } catch (e: InvalidPassword) {
