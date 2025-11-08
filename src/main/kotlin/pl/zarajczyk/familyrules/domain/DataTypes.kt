@@ -48,6 +48,11 @@ data class InstanceDto(
     val associatedAppGroupId: String? = null
 )
 
+data class BasicInstanceDto(
+    val id: InstanceId,
+    val name: String,
+)
+
 data class UpdateInstanceDto(
     val instanceId: InstanceId,
     val name: String,
@@ -101,6 +106,7 @@ data class AppGroupDto(
 
 data class AppGroupMembershipDto(
     val appPath: String,
+    val instance: BasicInstanceDto,
     val groupId: String
 )
 

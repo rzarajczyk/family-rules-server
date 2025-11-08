@@ -52,7 +52,7 @@ class V2AppGroupController(private val dataRepository: DataRepository) {
         val appGroups = dataRepository.getAppGroups(username)
         
         // Get memberships for this instance
-        val memberships = dataRepository.getAppGroupMemberships(instanceRef)
+        val memberships = dataRepository.getAppGroupMemberships(username)
         
         // Get today's screen time data
         val today = today()

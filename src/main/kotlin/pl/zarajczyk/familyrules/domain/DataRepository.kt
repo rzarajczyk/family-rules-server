@@ -20,6 +20,7 @@ interface DataRepository {
     fun validateInstanceToken(instanceId: InstanceId, instanceToken: String): InstanceId?
     fun setupNewInstance(username: String, instanceName: String, clientType: String): NewInstanceDto
     fun getInstance(instance: InstanceRef): InstanceDto
+    fun getInstanceBasicData(instance: InstanceRef): BasicInstanceDto
     fun updateInstance(instance: InstanceRef, update: UpdateInstanceDto)
     fun deleteInstance(instance: InstanceRef)
     fun setInstanceSchedule(instance: InstanceRef, schedule: WeeklyScheduleDto)
@@ -42,4 +43,5 @@ interface DataRepository {
     fun addAppToGroup(username: String, instanceId: InstanceId, appPath: String, groupId: String)
     fun removeAppFromGroup(username: String, instanceId: InstanceId, appPath: String, groupId: String)
     fun getAppGroupMemberships(instance: InstanceRef): List<AppGroupMembershipDto>
+    fun getAppGroupMemberships(username: String): List<AppGroupMembershipDto>
 }

@@ -69,7 +69,7 @@ class FirestoreDataRepository(
             "passwordSha256" to password.sha256(),
             "accessLevel" to accessLevel.name
         )
-        
+
         firestore.collection("users").document(username).set(userData).get()
     }
 
@@ -150,6 +150,14 @@ class FirestoreDataRepository(
             ?.firstOrNull()
             ?.let { FirestoreInstanceRef(it) }
 
+    override fun getInstanceBasicData(instanceRef: InstanceRef): BasicInstanceDto {
+        val doc = (instanceRef as FirestoreInstanceRef).document
+        return BasicInstanceDto(
+            id = UUID.fromString(doc.getString("instanceId") ?: ""),
+            name = doc.getString("instanceName") ?: "",
+        )
+    }
+
     override fun getInstance(instanceRef: InstanceRef): InstanceDto {
         val doc = (instanceRef as FirestoreInstanceRef).document
 
@@ -217,7 +225,8 @@ class FirestoreDataRepository(
             clientInfo.knownApps.mapValues {
                 FirestoreKnownApp(
                     appName = it.value.appName,
-                    iconBase64 = it.value.iconBase64Png)
+                    iconBase64 = it.value.iconBase64Png
+                )
             }
         )
 
@@ -284,8 +293,10 @@ class FirestoreDataRepository(
         if (!dayDoc.exists()) return emptyScreenTime()
 
         val totalSeconds = dayDoc.getLong("screenTime") ?: throw RuntimeException("Missing field ≪screenTime≫")
-        val applicationTimesJson = dayDoc.getString("applicationTimes") ?: throw RuntimeException("Missing field ≪applicationTimes≫")
-        val updatedAt = dayDoc.getString("updatedAt")?.let { Instant.parse(it) } ?: throw RuntimeException("Missing field ≪updatedAt≫")
+        val applicationTimesJson =
+            dayDoc.getString("applicationTimes") ?: throw RuntimeException("Missing field ≪applicationTimes≫")
+        val updatedAt = dayDoc.getString("updatedAt")?.let { Instant.parse(it) }
+            ?: throw RuntimeException("Missing field ≪updatedAt≫")
         try {
             val applicationTimes = json.decodeFromString<Map<String, Long>>(applicationTimesJson)
             return ScreenTimeDto(totalSeconds, applicationTimes, updatedAt)
@@ -300,26 +311,26 @@ class FirestoreDataRepository(
     override fun createAppGroup(username: String, groupName: String): AppGroupDto {
         val groupId = UUID.randomUUID().toString()
         val now = Clock.System.now()
-        
+
         // Get existing groups to determine next color
         val existingGroups = getAppGroups(username)
         val usedColors = existingGroups.map { it.color }.toSet()
         val nextColor = AppGroupColorPalette.getNextColor(usedColors)
-        
+
         val groupData = mapOf(
             "id" to groupId,
             "name" to groupName,
             "color" to nextColor,
             "createdAt" to now.toString()
         )
-        
+
         firestore.collection("users")
             .document(username)
             .collection("appGroups")
             .document(groupId)
             .set(groupData)
             .get()
-            
+
         return AppGroupDto(
             id = groupId,
             name = groupName,
@@ -335,7 +346,7 @@ class FirestoreDataRepository(
             .orderBy("name")
             .get()
             .get()
-            
+
         return groups.documents.map { doc ->
             AppGroupDto(
                 id = doc.getString("id") ?: "",
@@ -351,10 +362,10 @@ class FirestoreDataRepository(
             .document(username)
             .collection("appGroups")
             .document(groupId)
-            
+
         // Update the group name
         groupRef.update("name", newName).get()
-        
+
         // Get the updated group data
         val updatedGroup = groupRef.get().get()
         return AppGroupDto(
@@ -371,12 +382,12 @@ class FirestoreDataRepository(
             .whereEqualTo("groupId", groupId)
             .get()
             .get()
-            
+
         val batch = firestore.batch()
         memberships.documents.forEach { doc ->
             batch.delete(doc.reference)
         }
-        
+
         // Delete the group itself
         firestore.collection("users")
             .document(username)
@@ -384,20 +395,20 @@ class FirestoreDataRepository(
             .document(groupId)
             .delete()
             .get()
-            
+
         batch.commit().get()
     }
 
     override fun addAppToGroup(username: String, instanceId: InstanceId, appPath: String, groupId: String) {
         val membershipId = "${instanceId}_${appPath}_${groupId}".hashCode().toString()
-        
+
         val membershipData = mapOf(
             "appPath" to appPath,
             "groupId" to groupId,
             "instanceId" to instanceId.toString(),
             "username" to username
         )
-        
+
         firestore.collection("users")
             .document(username)
             .collection("instances")
@@ -410,7 +421,7 @@ class FirestoreDataRepository(
 
     override fun removeAppFromGroup(username: String, instanceId: InstanceId, appPath: String, groupId: String) {
         val membershipId = "${instanceId}_${appPath}_${groupId}".hashCode().toString()
-        
+
         firestore.collection("users")
             .document(username)
             .collection("instances")
@@ -428,12 +439,20 @@ class FirestoreDataRepository(
             .get()
             .get()
 
+        val instanceBasicData = getInstanceBasicData(instance)
+
         return memberships.documents.map { doc ->
             AppGroupMembershipDto(
                 appPath = doc.getString("appPath") ?: "",
-                groupId = doc.getString("groupId") ?: ""
+                groupId = doc.getString("groupId") ?: "",
+                instance = instanceBasicData
             )
         }
+    }
+
+    override fun getAppGroupMemberships(username: String): List<AppGroupMembershipDto> {
+        val instances = findInstances(username)
+        return instances.flatMap { getAppGroupMemberships(instance = it) }
     }
 
     private fun List<DeviceStateTypeDto>.ensureActiveIsPresent(): List<DeviceStateTypeDto> {
