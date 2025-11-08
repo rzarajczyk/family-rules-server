@@ -40,47 +40,50 @@ class V2AppGroupController(private val dataRepository: DataRepository) {
     @PostMapping("/api/v2/groups-usage-report")
     fun getAppGroupsUsageReport(authentication: Authentication): AppGroupsUsageReportResponse {
         val instanceRef = dataRepository.findAuthenticatedInstance(authentication)
-        val instance = dataRepository.getInstance(instanceRef)
-        
+
         // Get username from the instance document path
         // The path is /users/{username}/instances/{instanceId}
         val username = (instanceRef as pl.zarajczyk.familyrules.adapter.firestore.FirestoreInstanceRef)
             .document.reference.parent.parent?.id
             ?: throw RuntimeException("Cannot determine username from instance")
-        
-        // Get all app groups for the user
-        val appGroups = dataRepository.getAppGroups(username)
-        
-        // Get memberships for this instance
-        val memberships = dataRepository.getAppGroupMemberships(username)
-        
-        // Get today's screen time data
+
         val today = today()
-        val screenTimeDto = dataRepository.getScreenTimes(instanceRef, today)
-        
+        val appGroups = dataRepository.getAppGroups(username)
+        val instances = dataRepository.findInstances(username)
+
         // Build usage report for each app group
         val appGroupsUsage = appGroups.map { group ->
-            // Filter memberships for this group
-            val groupMemberships = memberships.filter { it.groupId == group.id }
-            
-            // Build app usage map for this group
-            val appsUsage = groupMemberships.associate { membership ->
-                val appScreenTime = screenTimeDto.applicationsSeconds[membership.appPath] ?: 0L
-                val known = instance.knownApps[membership.appPath]
-                
-                membership.appPath to AppUsageReport(
-                    app = AppGroupApp(
-                        appName = known?.appName ?: membership.appPath,
-                        iconBase64Png = known?.iconBase64Png,
-                        deviceName = instance.name,
-                        deviceId = instance.id.toString()
-                    ),
-                    uptimeSeconds = appScreenTime
-                )
+            var totalTimeSeconds = 0L
+            val appsUsage: MutableMap<String, AppUsageReport> = mutableMapOf()
+
+            instances.forEach { instanceRef ->
+                val instance = dataRepository.getInstance(instanceRef)
+                val screenTimeDto = dataRepository.getScreenTimes(instanceRef, today)
+                val instanceMemberships = dataRepository.getAppGroupMemberships(instanceRef)
+                    .filter { it.groupId == group.id }
+                if (instanceMemberships.isNotEmpty()) {
+                    instanceMemberships.forEach { membership ->
+                        val appScreenTimeSeconds = screenTimeDto.applicationsSeconds[membership.appPath] ?: 0L
+                        totalTimeSeconds += appScreenTimeSeconds
+
+                        val knownApp = instance.knownApps[membership.appPath]
+
+                        val appPath = membership.appPath
+                        val appName = knownApp?.appName ?: membership.appPath
+                        val appIcon = knownApp?.iconBase64Png
+
+                        appsUsage[appPath] = AppUsageReport(
+                            app = AppGroupApp(
+                                appName = appName,
+                                iconBase64Png = appIcon,
+                                deviceName = instance.name,
+                                deviceId = instance.id.toString()
+                            ),
+                            uptimeSeconds = appScreenTimeSeconds
+                        )
+                    }
+                }
             }
-            
-            // Calculate total time for the group
-            val totalTimeSeconds = appsUsage.values.sumOf { it.uptimeSeconds }
             
             AppGroupUsageReport(
                 appGroupId = group.id,
