@@ -6,12 +6,11 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException
 import org.springframework.security.provisioning.UserDetailsManager
 import org.springframework.stereotype.Service
 import pl.zarajczyk.familyrules.domain.AccessLevel
-import pl.zarajczyk.familyrules.domain.DataRepository
 import pl.zarajczyk.familyrules.domain.UserDto
 import pl.zarajczyk.familyrules.domain.UsersRepository
 
 @Service
-class UsersService(private val usersRepository: UsersRepository) : UserDetailsManager {
+class SpringSecurityUserDetailsManager(private val usersRepository: UsersRepository) : UserDetailsManager {
     override fun createUser(user: UserDetails?) {
         // SpringSecurity is used only for the authorization, not to user management
         TODO("Not implemented")
@@ -24,7 +23,7 @@ class UsersService(private val usersRepository: UsersRepository) : UserDetailsMa
 
     override fun deleteUser(username: String?) {
         // SpringSecurity is used only for the authorization, not to user management
-        TODO("Not// SpringSecurity is used only for the authorization, not to user management implemented")
+        TODO("Not implemented")
     }
 
     override fun changePassword(oldPassword: String?, newPassword: String?) {
