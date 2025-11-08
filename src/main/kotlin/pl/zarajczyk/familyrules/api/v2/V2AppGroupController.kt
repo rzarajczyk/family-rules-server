@@ -11,7 +11,7 @@ class V2AppGroupController(
     private val dataRepository: DataRepository,
     private val appGroupService: AppGroupService
 ) {
-    @PostMapping(value = ["/api/v2/group-membership-for-device", "/api/v2/group-report"])
+    @PostMapping("/api/v2/group-membership-for-device")
     fun getMembership(@RequestBody request: MembershipRequest, authentication: Authentication): MembershipResponse {
         val instanceRef = dataRepository.findAuthenticatedInstance(authentication)
         val instance = dataRepository.getInstance(instanceRef)
