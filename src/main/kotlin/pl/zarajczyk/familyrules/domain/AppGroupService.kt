@@ -15,7 +15,7 @@ class AppGroupService(private val dbConnector: DataRepository) {
         val groupStats = appGroups.map { group ->
             // Calculate statistics across all instances
             var totalApps = 0
-            var totalScreenTime = 0L
+            var totalScreenTimeSeconds = 0L
             val deviceCount = mutableSetOf<String>()
             val appDetails = mutableListOf<AppGroupAppReport>()
 
@@ -31,8 +31,8 @@ class AppGroupService(private val dbConnector: DataRepository) {
 
                     // Collect detailed app information for this group
                     instanceMemberships.forEach { membership ->
-                        val appScreenTime = screenTimeDto.applicationsSeconds[membership.appPath] ?: 0L
-                        totalScreenTime += appScreenTime
+                        val appScreenTimeSeconds = screenTimeDto.applicationsSeconds[membership.appPath] ?: 0L
+                        totalScreenTimeSeconds += appScreenTimeSeconds
 
                         // Get app name and icon from known apps or use the path
                         val knownApp = instance.knownApps[membership.appPath]
@@ -45,7 +45,7 @@ class AppGroupService(private val dbConnector: DataRepository) {
                                 packageName = membership.appPath,
                                 deviceName = instance.name,
                                 deviceId = instance.id.toString(),
-                                screenTime = appScreenTime,
+                                screenTime = appScreenTimeSeconds,
                                 percentage = 0.0, // Will be calculated below
                                 iconBase64 = appIcon
                             )
@@ -55,15 +55,15 @@ class AppGroupService(private val dbConnector: DataRepository) {
             }
 
             // Calculate percentages for each app
-            val appsWithPercentages = if (totalScreenTime > 0) {
+            val appsWithPercentages = if (totalScreenTimeSeconds > 0) {
                 appDetails.map { app ->
-                    app.copy(percentage = (app.screenTime.toDouble() / totalScreenTime * 100).let {
+                    app.copy(percentage = (app.screenTime.toDouble() / totalScreenTimeSeconds * 100).let {
                         (it * 100).toInt().toDouble() / 100 // Round to 2 decimal places
                     })
-                }.sortedByDescending { it.screenTime }
+                }
             } else {
-                appDetails.sortedByDescending { it.screenTime }
-            }
+                appDetails
+            }.sortedByDescending { it.screenTime }
 
             val colorInfo = AppGroupColorPalette.getColorInfo(group.color)
             AppGroupReport(
@@ -73,7 +73,7 @@ class AppGroupService(private val dbConnector: DataRepository) {
                 textColor = colorInfo?.text ?: "#000000",
                 appsCount = totalApps,
                 devicesCount = deviceCount.size,
-                totalScreenTime = totalScreenTime,
+                totalScreenTime = totalScreenTimeSeconds,
                 apps = appsWithPercentages
             )
         }
