@@ -50,7 +50,8 @@ dependencies {
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
     testImplementation("io.kotest:kotest-assertions-core:5.6.0")
     testImplementation(kotlin("test"))
-    testImplementation("org.testcontainers:testcontainers:1.20.0")
+    testImplementation("org.testcontainers:testcontainers:2.0.1")
+    testImplementation("org.testcontainers:testcontainers-gcloud:2.0.1")
     testImplementation("org.testcontainers:junit-jupiter:1.20.0")
     testImplementation("org.testcontainers:postgresql:1.20.0")
 }
