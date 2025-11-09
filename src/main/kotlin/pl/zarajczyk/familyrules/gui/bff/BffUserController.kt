@@ -46,7 +46,9 @@ class BffUserController(
                 throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot delete your own account")
             }
 
-            user.delete()
+            usersService.withUserContext(username) { userToBeDeleted ->
+                userToBeDeleted.delete()
+            }
 
             DeleteUserResponse(success = true, message = "User deleted successfully")
         }
@@ -61,7 +63,9 @@ class BffUserController(
         usersService.withUserContext(authentication.name) { user ->
             user.mustBeAdmin()
 
-            user.changePassword(request.newPassword)
+            usersService.withUserContext(username) { userToBeUpdated ->
+                userToBeUpdated.changePassword(request.newPassword)
+            }
 
             ResetPasswordResponse(success = true, message = "Password reset successfully")
         }
