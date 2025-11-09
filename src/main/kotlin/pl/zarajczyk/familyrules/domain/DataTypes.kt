@@ -7,7 +7,6 @@ import java.util.*
 
 typealias InstanceId = UUID
 
-class InvalidPassword : RuntimeException("Invalid password")
 class IllegalInstanceName(val instanceName: String) : RuntimeException("Instance $instanceName already exists")
 class InstanceAlreadyExists(val instanceName: String) : RuntimeException("Instance $instanceName has incorrect name")
 

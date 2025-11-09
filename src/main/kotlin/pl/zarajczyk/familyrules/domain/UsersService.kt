@@ -6,50 +6,54 @@ import org.springframework.stereotype.Service
 class UsersService(private val usersRepository: UsersRepository) {
 
     fun <T> withUserContext(username: String, action: (user: User) -> T): T {
-        val userDto = usersRepository.findUser(username) ?: throw UserNotFoundException(username)
-        val user = DtoBasedUser(userDto, usersRepository)
+        val ref = usersRepository.get(username) ?: throw UserNotFoundException(username)
+        val user = RefBasedUser(ref, usersRepository)
         return action(user)
     }
 
-    fun listAllUsers() = usersRepository.getAllUsers()
-        .map { DtoBasedUser(it, usersRepository) }
+    fun listAllUsers() = usersRepository.getAll()
+        .map { RefBasedUser(it, usersRepository) }
 
-    fun userExists(username: String) = usersRepository.findUser(username) != null
+    fun userExists(username: String) = usersRepository.get(username) != null
 
     fun createUser(username: String, password: String, accessLevel: AccessLevel) =
-        usersRepository.createUser(username, password, accessLevel)
+        usersRepository.createUser(username, password.sha256(), accessLevel)
 
 }
 
 class UserNotFoundException(username: String) : RuntimeException("User $username not found")
+class InvalidPassword : RuntimeException("Invalid password")
 
 interface User {
-    val username: String
-    val accessLevel: AccessLevel
+    fun get(): UserDto
 
     fun delete()
+
+    @Throws(InvalidPassword::class)
     fun validatePassword(password: String)
+
     fun changePassword(newPassword: String)
 }
 
-class DtoBasedUser(
-    val userDto: UserDto,
+class RefBasedUser(
+    val userRef: UserRef,
     val usersRepository: UsersRepository
 ) : User {
-    override val username: String
-        get() = userDto.username
-    override val accessLevel: AccessLevel
-        get() = userDto.accessLevel
+    override fun get(): UserDto {
+        return usersRepository.fetchDetails(userRef)
+    }
 
     override fun delete() {
-        usersRepository.deleteUser(userDto.username)
+        usersRepository.delete(userRef)
     }
 
     override fun validatePassword(password: String) {
-        usersRepository.validatePassword(userDto.username, password)
+        val user = usersRepository.fetchDetails(userRef)
+        if (user.passwordSha256 != password.sha256())
+            throw InvalidPassword()
     }
 
     override fun changePassword(newPassword: String) {
-        usersRepository.changePassword(userDto.username, newPassword)
+        usersRepository.update(userRef, newPassword.sha256())
     }
 }

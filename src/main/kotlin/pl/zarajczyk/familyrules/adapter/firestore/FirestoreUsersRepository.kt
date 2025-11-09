@@ -1,5 +1,6 @@
 package pl.zarajczyk.familyrules.adapter.firestore
 
+import com.google.cloud.firestore.DocumentReference
 import com.google.cloud.firestore.Firestore
 import org.springframework.stereotype.Service
 import pl.zarajczyk.familyrules.domain.*
@@ -8,55 +9,52 @@ import pl.zarajczyk.familyrules.domain.*
 class FirestoreUsersRepository(
     private val firestore: Firestore,
 ) : UsersRepository {
-    override fun findUser(username: String): UserDto? {
-        val doc = firestore.collection("users").document(username).get().get()
-        return if (doc.exists()) {
-            UserDto(
-                username = doc.getString("username") ?: username,
-                passwordSha256 = doc.getString("passwordSha256") ?: "",
-                accessLevel = doc.getString("accessLevel")?.let { AccessLevel.valueOf(it) } ?: AccessLevel.ADMIN
-            )
-        } else null
-    }
-
-    @Throws(InvalidPassword::class)
-    override fun validatePassword(username: String, password: String) {
-        val user = findUser(username)
-        if (user?.passwordSha256 != password.sha256()) {
-            throw InvalidPassword()
-        }
-    }
-
-    override fun changePassword(username: String, newPassword: String) {
-        val userRef = firestore.collection("users").document(username)
-        userRef.update("passwordSha256", newPassword.sha256()).get()
-    }
-
-    override fun getAllUsers(): List<UserDto> {
-        return firestore.collection("users")
-            .get()
-            .get()
-            .documents
-            .map { doc ->
-                UserDto(
-                    username = doc.getString("username") ?: doc.id,
-                    passwordSha256 = doc.getString("passwordSha256") ?: "",
-                    accessLevel = doc.getString("accessLevel")?.let { AccessLevel.valueOf(it) } ?: AccessLevel.ADMIN
-                )
+    override fun get(username: String): UserRef? {
+        return firestore
+            .collection("users")
+            .document(username)
+            .let {
+                if (it.get().get().exists())
+                    FirestoreUserRef(it)
+                else
+                    null
             }
     }
 
-    override fun deleteUser(username: String) {
-        firestore.collection("users").document(username).delete().get()
+    override fun fetchDetails(user: UserRef): UserDto {
+        val doc = (user as FirestoreUserRef).doc.get().get()
+        return UserDto(
+            username = doc.getString("username") ?: throw RuntimeException("Unable to find username for given user"),
+            passwordSha256 = doc.getString("passwordSha256") ?: throw RuntimeException("Unable to find password for given user"),
+            accessLevel = doc.getString("accessLevel")?.let { AccessLevel.valueOf(it) } ?: throw RuntimeException("Unable to find access level for given user")
+        )
     }
 
-    override fun createUser(username: String, password: String, accessLevel: AccessLevel) {
+    override fun update(user: UserRef, newPasswordHash: String) {
+        val userRef = (user as FirestoreUserRef).doc
+        userRef.update("passwordSha256", newPasswordHash).get()
+    }
+
+    override fun getAll(): List<UserRef> {
+        val snapshots = firestore.collection("users").get().get()
+        return snapshots.documents.map { FirestoreUserRef(it.reference) }
+    }
+
+    override fun delete(user: UserRef) {
+        (user as FirestoreUserRef).doc.delete().get()
+    }
+
+    override fun createUser(username: String, passwordHash: String, accessLevel: AccessLevel) {
         val userData = mapOf(
             "username" to username,
-            "passwordSha256" to password.sha256(),
+            "passwordSha256" to passwordHash,
             "accessLevel" to accessLevel.name
         )
 
         firestore.collection("users").document(username).set(userData).get()
     }
 }
+
+data class FirestoreUserRef(
+    val doc: DocumentReference
+) : UserRef

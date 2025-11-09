@@ -1,11 +1,12 @@
 package pl.zarajczyk.familyrules.domain
 
 interface UsersRepository {
-    // User operations
-    fun findUser(username: String): UserDto?
-    fun validatePassword(username: String, password: String)
-    fun changePassword(username: String, newPassword: String)
-    fun getAllUsers(): List<UserDto>
-    fun deleteUser(username: String)
-    fun createUser(username: String, password: String, accessLevel: AccessLevel)
+    fun createUser(username: String, passwordHash: String, accessLevel: AccessLevel)
+    fun get(username: String): UserRef?
+    fun getAll(): List<UserRef>
+    fun fetchDetails(user: UserRef): UserDto
+    fun update(user: UserRef, newPasswordHash: String)
+    fun delete(user: UserRef)
 }
+
+interface UserRef
