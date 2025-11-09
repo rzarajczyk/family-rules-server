@@ -3,17 +3,14 @@ package pl.zarajczyk.familyrules.gui.bff
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
-import org.springframework.http.HttpStatus
 import org.springframework.security.core.Authentication
 import org.springframework.web.bind.annotation.*
-import org.springframework.web.server.ResponseStatusException
 import pl.zarajczyk.familyrules.domain.*
-import java.time.DayOfWeek
 import java.util.*
 
 @RestController
 class BffAppGroupsController(
-    private val dbConnector: DataRepository,
+    private val appGroupRepository: AppGroupRepository,
     private val deviceStateService: DeviceStateService,
     private val appGroupService: AppGroupService
 ) {
@@ -24,14 +21,14 @@ class BffAppGroupsController(
         authentication: Authentication
     ): CreateAppGroupResponse {
         val username = authentication.name
-        val group = dbConnector.createAppGroup(username, request.name)
+        val group = appGroupRepository.createAppGroup(username, request.name)
         return CreateAppGroupResponse(group)
     }
 
     @GetMapping("/bff/app-groups")
     fun getAppGroups(authentication: Authentication): GetAppGroupsResponse {
         val username = authentication.name
-        val groups = dbConnector.getAppGroups(username)
+        val groups = appGroupRepository.getAppGroups(username)
         return GetAppGroupsResponse(groups)
     }
 
@@ -41,7 +38,7 @@ class BffAppGroupsController(
         authentication: Authentication
     ): DeleteAppGroupResponse {
         val username = authentication.name
-        dbConnector.deleteAppGroup(username, groupId)
+        appGroupRepository.deleteAppGroup(username, groupId)
         return DeleteAppGroupResponse(true)
     }
 
@@ -52,7 +49,7 @@ class BffAppGroupsController(
         authentication: Authentication
     ): RenameAppGroupResponse {
         val username = authentication.name
-        val updatedGroup = dbConnector.renameAppGroup(username, groupId, request.newName)
+        val updatedGroup = appGroupRepository.renameAppGroup(username, groupId, request.newName)
         return RenameAppGroupResponse(updatedGroup)
     }
 
@@ -63,7 +60,7 @@ class BffAppGroupsController(
         authentication: Authentication
     ): AddAppToGroupResponse {
         val username = authentication.name
-        dbConnector.addAppToGroup(username, request.instanceId, request.appPath, groupId)
+        appGroupRepository.addAppToGroup(username, request.instanceId, request.appPath, groupId)
         return AddAppToGroupResponse(true)
     }
 
@@ -75,7 +72,7 @@ class BffAppGroupsController(
         authentication: Authentication
     ): RemoveAppFromGroupResponse {
         val username = authentication.name
-        dbConnector.removeAppFromGroup(username, instanceId, appPath, groupId)
+        appGroupRepository.removeAppFromGroup(username, instanceId, appPath, groupId)
         return RemoveAppFromGroupResponse(true)
     }
 

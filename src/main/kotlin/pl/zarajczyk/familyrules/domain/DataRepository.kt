@@ -24,8 +24,9 @@ interface DataRepository {
     // Screen time operations
     fun saveReport(instance: InstanceRef, day: LocalDate, screenTimeSeconds: Long, applicationsSeconds: Map<String, Long>)
     fun getScreenTimes(instance: InstanceRef, day: LocalDate): ScreenTimeDto
-    
-    // App group operations
+}
+
+interface AppGroupRepository {
     fun createAppGroup(username: String, groupName: String): AppGroupDto
     fun getAppGroups(username: String): List<AppGroupDto>
     fun renameAppGroup(username: String, groupId: String, newName: String): AppGroupDto

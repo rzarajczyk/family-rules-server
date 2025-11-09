@@ -9,6 +9,7 @@ import pl.zarajczyk.familyrules.domain.*
 @RestController
 class V2AppGroupController(
     private val dataRepository: DataRepository,
+    private val appGroupRepository: AppGroupRepository,
     private val appGroupService: AppGroupService
 ) {
     @PostMapping("/api/v2/group-membership-for-device")
@@ -16,7 +17,7 @@ class V2AppGroupController(
         val instanceRef = dataRepository.findAuthenticatedInstance(authentication)
         val instance = dataRepository.getInstance(instanceRef)
 
-        val memberships = dataRepository.getAppGroupMemberships(instanceRef)
+        val memberships = appGroupRepository.getAppGroupMemberships(instanceRef)
         val groupMemberships = memberships.filter { it.groupId == request.appGroupId }
 
 

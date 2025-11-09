@@ -4,13 +4,13 @@ import kotlinx.datetime.LocalDate
 import org.springframework.stereotype.Service
 
 @Service
-class AppGroupService(private val dbConnector: DataRepository) {
+class AppGroupService(private val dataRepository: DataRepository, private val appGroupRepository: AppGroupRepository) {
     fun getReport(
         username: String,
         day: LocalDate
     ): List<AppGroupReport> {
-        val instances = dbConnector.findInstances(username)
-        val appGroups = dbConnector.getAppGroups(username)
+        val instances = dataRepository.findInstances(username)
+        val appGroups = appGroupRepository.getAppGroups(username)
 
         val groupStats = appGroups.map { group ->
             // Calculate statistics across all instances
@@ -20,9 +20,9 @@ class AppGroupService(private val dbConnector: DataRepository) {
             val appDetails = mutableListOf<AppGroupAppReport>()
 
             instances.forEach { instanceRef ->
-                val instance = dbConnector.getInstance(instanceRef)
-                val screenTimeDto = dbConnector.getScreenTimes(instanceRef, day)
-                val instanceMemberships = dbConnector.getAppGroupMemberships(instanceRef)
+                val instance = dataRepository.getInstance(instanceRef)
+                val screenTimeDto = dataRepository.getScreenTimes(instanceRef, day)
+                val instanceMemberships = appGroupRepository.getAppGroupMemberships(instanceRef)
                     .filter { it.groupId == group.id }
 
                 if (instanceMemberships.isNotEmpty()) {

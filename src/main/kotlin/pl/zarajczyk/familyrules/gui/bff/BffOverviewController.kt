@@ -14,6 +14,7 @@ import java.util.*
 @RestController
 class BffOverviewController(
     private val dbConnector: DataRepository,
+    private val appGroupRepository: AppGroupRepository,
     private val scheduleUpdater: ScheduleUpdater,
     private val stateService: StateService,
     private val deviceStateService: DeviceStateService,
@@ -41,8 +42,8 @@ class BffOverviewController(
             val state = stateService.getDeviceState(instanceRef)
             val instance = dbConnector.getInstance(instanceRef)
             val availableStates = dbConnector.getAvailableDeviceStateTypes(instanceRef)
-            val appGroupMemberships = dbConnector.getAppGroupMemberships(instanceRef)
-            val appGroups = dbConnector.getAppGroups(username)
+            val appGroupMemberships = appGroupRepository.getAppGroupMemberships(instanceRef)
+            val appGroups = appGroupRepository.getAppGroups(username)
 
             Instance(
                 instanceId = instance.id,
@@ -158,7 +159,7 @@ class BffOverviewController(
         val instanceRef = dbConnector.findInstanceOrThrow(instanceId)
         val instance = dbConnector.getInstance(instanceRef)
         val availableStates = dbConnector.getAvailableDeviceStateTypes(instanceRef)
-        val appGroups = dbConnector.getAppGroups(authentication.name)
+        val appGroups = appGroupRepository.getAppGroups(authentication.name)
         return ScheduleResponse(
             schedules = instance.schedule.schedule
                 .mapKeys { (day, _) -> day.toDay() }
@@ -242,7 +243,7 @@ class BffOverviewController(
     ): InstanceStateResponse {
         val instanceRef = dbConnector.findInstanceOrThrow(instanceId)
         val instance = dbConnector.getInstance(instanceRef)
-        val appGroups = dbConnector.getAppGroups(authentication.name)
+        val appGroups = appGroupRepository.getAppGroups(authentication.name)
         return InstanceStateResponse(
             instanceId = instanceId,
             instanceName = instance.name,
