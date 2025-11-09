@@ -1,9 +1,9 @@
-FROM eclipse-temurin:17-jdk AS build
+FROM eclipse-temurin:21-jdk AS build
 WORKDIR /app
 COPY ./ .
 RUN ./gradlew clean bootJar -x test --stacktrace --no-daemon
 
-FROM eclipse-temurin:17-jdk
+FROM eclipse-temurin:21-jdk
 EXPOSE 8080
 WORKDIR /app
 COPY --from=build /app/build/libs/app.jar app.jar
