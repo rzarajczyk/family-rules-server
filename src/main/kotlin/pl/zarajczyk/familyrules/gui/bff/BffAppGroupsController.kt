@@ -39,22 +39,27 @@ class BffAppGroupsController(
     fun deleteAppGroup(
         @PathVariable groupId: String,
         authentication: Authentication
-    ): DeleteAppGroupResponse {
-        val username = authentication.name
-        appGroupRepository.deleteAppGroup(username, groupId)
-        return DeleteAppGroupResponse(true)
-    }
+    ): DeleteAppGroupResponse =
+        usersService.withUserContext(authentication.name) { user ->
+            appGroupService.withAppGroupContext(user, groupId) { appGroup ->
+                appGroup.delete()
+                DeleteAppGroupResponse(true)
+            }
+        }
+
 
     @PutMapping("/bff/app-groups/{groupId}")
     fun renameAppGroup(
         @PathVariable groupId: String,
         @RequestBody request: RenameAppGroupRequest,
         authentication: Authentication
-    ): RenameAppGroupResponse {
-        val username = authentication.name
-        val updatedGroup = appGroupRepository.renameAppGroup(username, groupId, request.newName)
-        return RenameAppGroupResponse(updatedGroup)
-    }
+    ): RenameAppGroupResponse =
+        usersService.withUserContext(authentication.name) { user ->
+            appGroupService.withAppGroupContext(user, groupId) { appGroup ->
+                appGroup.rename(request.newName)
+                RenameAppGroupResponse(true)
+            }
+        }
 
     @PostMapping("/bff/app-groups/{groupId}/apps")
     fun addAppToGroup(
@@ -157,7 +162,7 @@ data class RenameAppGroupRequest(
 )
 
 data class RenameAppGroupResponse(
-    val group: AppGroupDto
+    val success: Boolean
 )
 
 data class AddAppToGroupRequest(

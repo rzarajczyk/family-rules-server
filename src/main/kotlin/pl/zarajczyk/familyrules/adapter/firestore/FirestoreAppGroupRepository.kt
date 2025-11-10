@@ -1,6 +1,7 @@
 package pl.zarajczyk.familyrules.adapter.firestore
 
 import com.google.cloud.firestore.DocumentReference
+import com.google.cloud.firestore.DocumentSnapshot
 import com.google.cloud.firestore.Firestore
 import org.springframework.stereotype.Service
 import pl.zarajczyk.familyrules.domain.AppGroupColorPalette
@@ -58,49 +59,27 @@ class FirestoreAppGroupRepository(
 
     override fun fetchDetails(appGroupRef: AppGroupRef): AppGroupDto {
         val data = (appGroupRef as FirestoreAppGroupRef).ref.get().get()
-        return AppGroupDto(
-            id = data.getString("id") ?: throw RuntimeException("AppGroup id not found"),
-            name = data.getString("name") ?: throw RuntimeException("AppGroup name not found"),
-            color = data.getString("color") ?: throw RuntimeException("AppGroup color not found"),
-        )
+        return data.readAppGroupDto()
     }
 
-//    override fun getAppGroups(username: String): List<AppGroupDto> {
-//        val groups = firestore.collection("users")
-//            .document(username)
-//            .collection("appGroups")
-//            .get()
-//            .get()
-//
-//        return groups.documents.map { doc ->
-//            AppGroupDto(
-//                id = doc.getString("id") ?: "",
-//                name = doc.getString("name") ?: "",
-//                color = doc.getString("color") ?: AppGroupColorPalette.getDefaultColor(),
-//            )
-//        }.sortedBy { it.name }
-//    }
+    private fun DocumentSnapshot.readAppGroupDto(): AppGroupDto =
+        AppGroupDto(
+            id = getString("id") ?: throw RuntimeException("AppGroup id not found"),
+            name = getString("name") ?: throw RuntimeException("AppGroup name not found"),
+            color = getString("color") ?: throw RuntimeException("AppGroup color not found"),
+        )
 
-    override fun renameAppGroup(username: String, groupId: String, newName: String): AppGroupDto {
-        val groupRef = firestore.collection("users")
-            .document(username)
-            .collection("appGroups")
-            .document(groupId)
+    override fun rename(appGroupRef: AppGroupRef, newName: String) {
+        val groupRef = (appGroupRef as FirestoreAppGroupRef).ref
 
         // Update the group name
         groupRef.update("name", newName).get()
-
-        // Get the updated group data
-        val updatedGroup = groupRef.get().get()
-        return AppGroupDto(
-            id = updatedGroup.getString("id") ?: groupId,
-            name = updatedGroup.getString("name") ?: newName,
-            color = updatedGroup.getString("color") ?: AppGroupColorPalette.getDefaultColor(),
-        )
     }
 
-    override fun deleteAppGroup(username: String, groupId: String) {
+    override fun delete(appGroupRef: AppGroupRef) {
         // First, remove all memberships for this group
+        val groupId = fetchDetails(appGroupRef).id
+        // TODO - to nie powinno być tutaj
         val memberships = firestore.collectionGroup("appGroupMemberships")
             .whereEqualTo("groupId", groupId)
             .get()
@@ -112,12 +91,7 @@ class FirestoreAppGroupRepository(
         }
 
         // Delete the group itself
-        firestore.collection("users")
-            .document(username)
-            .collection("appGroups")
-            .document(groupId)
-            .delete()
-            .get()
+        (appGroupRef as FirestoreAppGroupRef).ref.delete().get()
 
         batch.commit().get()
     }

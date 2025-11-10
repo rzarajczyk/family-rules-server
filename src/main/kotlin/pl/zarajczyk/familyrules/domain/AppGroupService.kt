@@ -6,6 +6,12 @@ import java.util.UUID
 
 @Service
 class AppGroupService(private val dataRepository: DataRepository, private val appGroupRepository: AppGroupRepository) {
+    fun <T> withAppGroupContext(user: User, groupId: String, action: (user: AppGroup) -> T): T {
+        val ref = appGroupRepository.get(user.asRef(), groupId) ?: throw AppGroupNotFoundException(groupId)
+        val user = RefBasedAppGroup(ref, appGroupRepository)
+        return action(user)
+    }
+
     fun createAppGroup(user: User, name: String): AppGroup {
         val groupId = UUID.randomUUID().toString()
         val usedColors = listAllAppGroups(user)
@@ -100,10 +106,16 @@ class AppGroupService(private val dataRepository: DataRepository, private val ap
     }
 }
 
+class AppGroupNotFoundException(groupId: String) : RuntimeException("AppGroup with id $groupId not found")
+
 interface AppGroup {
     fun asRef(): AppGroupRef
 
     fun get(): AppGroupDto
+
+    fun delete()
+
+    fun rename(newName: String)
 }
 
 class RefBasedAppGroup(
@@ -114,6 +126,14 @@ class RefBasedAppGroup(
 
     override fun get(): AppGroupDto {
         return appGroupRepository.fetchDetails(appGroupRef)
+    }
+
+    override fun delete() {
+        appGroupRepository.delete(appGroupRef)
+    }
+
+    override fun rename(newName: String) {
+        appGroupRepository.rename(appGroupRef, newName)
     }
 }
 

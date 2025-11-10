@@ -114,7 +114,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
         })
         .then(response => response.json())
         .then(data => {
-            if (data.group) {
+            if (data.success) {
                 // Reload the page to show updated groups
                 window.update();
             } else {
