@@ -1,15 +1,17 @@
 package pl.zarajczyk.familyrules.adapter.firestore
 
+import com.google.cloud.firestore.DocumentReference
 import com.google.cloud.firestore.Firestore
 import org.springframework.stereotype.Service
 import pl.zarajczyk.familyrules.domain.AppGroupColorPalette
 import pl.zarajczyk.familyrules.domain.AppGroupDto
 import pl.zarajczyk.familyrules.domain.AppGroupMembershipDto
+import pl.zarajczyk.familyrules.domain.AppGroupRef
 import pl.zarajczyk.familyrules.domain.AppGroupRepository
 import pl.zarajczyk.familyrules.domain.DataRepository
 import pl.zarajczyk.familyrules.domain.InstanceId
 import pl.zarajczyk.familyrules.domain.InstanceRef
-import java.util.UUID
+import pl.zarajczyk.familyrules.domain.UserRef
 
 @Service
 class FirestoreAppGroupRepository(
@@ -17,49 +19,67 @@ class FirestoreAppGroupRepository(
     private val dataRepository: DataRepository
 ): AppGroupRepository {
     // App group operations
-    override fun createAppGroup(username: String, groupName: String): AppGroupDto {
-        val groupId = UUID.randomUUID().toString()
-
-        // Get existing groups to determine next color
-        val existingGroups = getAppGroups(username)
-        val usedColors = existingGroups.map { it.color }.toSet()
-        val nextColor = AppGroupColorPalette.getNextColor(usedColors)
-
+    override fun createAppGroup(userRef: UserRef, groupId: String, name: String, color: String): AppGroupRef {
         val groupData = mapOf(
             "id" to groupId,
-            "name" to groupName,
-            "color" to nextColor,
+            "name" to name,
+            "color" to color,
         )
 
-        firestore.collection("users")
-            .document(username)
+        val doc = (userRef as FirestoreUserRef).doc
             .collection("appGroups")
             .document(groupId)
-            .set(groupData)
-            .get()
 
-        return AppGroupDto(
-            id = groupId,
-            name = groupName,
-            color = nextColor,
-        )
+        doc.set(groupData).get()
+
+        return FirestoreAppGroupRef(doc)
     }
 
-    override fun getAppGroups(username: String): List<AppGroupDto> {
-        val groups = firestore.collection("users")
-            .document(username)
+    override fun get(userRef: UserRef, groupId: String): AppGroupRef? {
+        return (userRef as FirestoreUserRef).doc
+            .collection("appGroups")
+            .document(groupId)
+            .let {
+                if (it.get().get().exists())
+                    FirestoreAppGroupRef(it)
+                else
+                    null
+            }
+    }
+
+    override fun getAll(userRef: UserRef): List<AppGroupRef> {
+        val snapshot = (userRef as FirestoreUserRef).doc
             .collection("appGroups")
             .get()
             .get()
 
-        return groups.documents.map { doc ->
-            AppGroupDto(
-                id = doc.getString("id") ?: "",
-                name = doc.getString("name") ?: "",
-                color = doc.getString("color") ?: AppGroupColorPalette.getDefaultColor(),
-            )
-        }.sortedBy { it.name }
+        return snapshot.documents.map { FirestoreAppGroupRef(it.reference) }
     }
+
+    override fun fetchDetails(appGroupRef: AppGroupRef): AppGroupDto {
+        val data = (appGroupRef as FirestoreAppGroupRef).ref.get().get()
+        return AppGroupDto(
+            id = data.getString("id") ?: throw RuntimeException("AppGroup id not found"),
+            name = data.getString("name") ?: throw RuntimeException("AppGroup name not found"),
+            color = data.getString("color") ?: throw RuntimeException("AppGroup color not found"),
+        )
+    }
+
+//    override fun getAppGroups(username: String): List<AppGroupDto> {
+//        val groups = firestore.collection("users")
+//            .document(username)
+//            .collection("appGroups")
+//            .get()
+//            .get()
+//
+//        return groups.documents.map { doc ->
+//            AppGroupDto(
+//                id = doc.getString("id") ?: "",
+//                name = doc.getString("name") ?: "",
+//                color = doc.getString("color") ?: AppGroupColorPalette.getDefaultColor(),
+//            )
+//        }.sortedBy { it.name }
+//    }
 
     override fun renameAppGroup(username: String, groupId: String, newName: String): AppGroupDto {
         val groupRef = firestore.collection("users")
@@ -158,3 +178,7 @@ class FirestoreAppGroupRepository(
         return instances.flatMap { getAppGroupMemberships(instance = it) }
     }
 }
+
+data class FirestoreAppGroupRef(
+    val ref: DocumentReference
+) : AppGroupRef

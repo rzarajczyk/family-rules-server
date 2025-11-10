@@ -17,6 +17,8 @@ class BffOverviewController(
     private val scheduleUpdater: ScheduleUpdater,
     private val stateService: StateService,
     private val deviceStateService: DeviceStateService,
+    private val appGroupService: AppGroupService,
+    private val usersService: UsersService
 ) {
 
 //    companion object {
@@ -42,7 +44,9 @@ class BffOverviewController(
             val instance = dbConnector.getInstance(instanceRef)
             val availableStates = dbConnector.getAvailableDeviceStateTypes(instanceRef)
             val appGroupMemberships = appGroupRepository.getAppGroupMemberships(instanceRef)
-            val appGroups = appGroupRepository.getAppGroups(username)
+            val appGroups = usersService.withUserContext(username) { user ->
+                appGroupService.listAllAppGroups(user).map { it.get() }
+            }
 
             Instance(
                 instanceId = instance.id,
@@ -157,7 +161,9 @@ class BffOverviewController(
         val instanceRef = dbConnector.findInstanceOrThrow(instanceId)
         val instance = dbConnector.getInstance(instanceRef)
         val availableStates = dbConnector.getAvailableDeviceStateTypes(instanceRef)
-        val appGroups = appGroupRepository.getAppGroups(authentication.name)
+        val appGroups = usersService.withUserContext(authentication.name) { user ->
+            appGroupService.listAllAppGroups(user).map { it.get() }
+        }
         return ScheduleResponse(
             schedules = instance.schedule.schedule
                 .mapKeys { (day, _) -> day.toDay() }
@@ -241,7 +247,9 @@ class BffOverviewController(
     ): InstanceStateResponse {
         val instanceRef = dbConnector.findInstanceOrThrow(instanceId)
         val instance = dbConnector.getInstance(instanceRef)
-        val appGroups = appGroupRepository.getAppGroups(authentication.name)
+        val appGroups = usersService.withUserContext(authentication.name) { user ->
+            appGroupService.listAllAppGroups(user).map { it.get() }
+        }
         return InstanceStateResponse(
             instanceId = instanceId,
             instanceName = instance.name,

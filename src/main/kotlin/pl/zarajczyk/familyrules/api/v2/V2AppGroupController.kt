@@ -4,13 +4,15 @@ import org.springframework.security.core.Authentication
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RestController
+import pl.zarajczyk.familyrules.adapter.firestore.FirestoreInstanceRef
 import pl.zarajczyk.familyrules.domain.*
 
 @RestController
 class V2AppGroupController(
     private val dataRepository: DataRepository,
     private val appGroupRepository: AppGroupRepository,
-    private val appGroupService: AppGroupService
+    private val appGroupService: AppGroupService,
+    private val usersService: UsersService
 ) {
     @PostMapping("/api/v2/group-membership-for-device")
     fun getMembership(@RequestBody request: MembershipRequest, authentication: Authentication): MembershipResponse {
@@ -42,11 +44,13 @@ class V2AppGroupController(
 
         // Get username from the instance document path
         // The path is /users/{username}/instances/{instanceId}
-        val username = (instanceRef as pl.zarajczyk.familyrules.adapter.firestore.FirestoreInstanceRef)
+        val username = (instanceRef as FirestoreInstanceRef)
             .document.reference.parent.parent?.id
             ?: throw RuntimeException("Cannot determine username from instance")
 
-        val report = appGroupService.getReport(username, today())
+        val report = usersService.withUserContext(username) { user ->
+            appGroupService.getReport(user, today())
+        }
 
         return AppGroupsUsageReportResponse(
             appGroups = report.map { it.toUsageReport() }

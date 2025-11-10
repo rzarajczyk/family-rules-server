@@ -10,6 +10,7 @@ import java.util.*
 
 @RestController
 class BffAppGroupsController(
+    private val usersService: UsersService,
     private val appGroupRepository: AppGroupRepository,
     private val deviceStateService: DeviceStateService,
     private val appGroupService: AppGroupService
@@ -19,18 +20,20 @@ class BffAppGroupsController(
     fun createAppGroup(
         @RequestBody request: CreateAppGroupRequest,
         authentication: Authentication
-    ): CreateAppGroupResponse {
-        val username = authentication.name
-        val group = appGroupRepository.createAppGroup(username, request.name)
-        return CreateAppGroupResponse(group)
-    }
+    ): CreateAppGroupResponse =
+        usersService.withUserContext(authentication.name) { user ->
+            val group = appGroupService.createAppGroup(user, request.name)
+            CreateAppGroupResponse(group.get())
+        }
+
 
     @GetMapping("/bff/app-groups")
-    fun getAppGroups(authentication: Authentication): GetAppGroupsResponse {
-        val username = authentication.name
-        val groups = appGroupRepository.getAppGroups(username)
-        return GetAppGroupsResponse(groups)
-    }
+    fun getAppGroups(authentication: Authentication): GetAppGroupsResponse =
+        usersService.withUserContext(authentication.name) { user ->
+            val groups = appGroupService.listAllAppGroups(user).map { it.get() }
+            GetAppGroupsResponse(groups)
+        }
+
 
     @DeleteMapping("/bff/app-groups/{groupId}")
     fun deleteAppGroup(
@@ -84,7 +87,9 @@ class BffAppGroupsController(
         val day = LocalDate.parse(date)
         val username = authentication.name
 
-        val report = appGroupService.getReport(username, day)
+        val report = usersService.withUserContext(username) { user ->
+            appGroupService.getReport(user, day)
+        }
 
         return AppGroupStatisticsResponse(
             groups = report.map {

@@ -44,14 +44,16 @@ class FirestoreUsersRepository(
         (user as FirestoreUserRef).doc.delete().get()
     }
 
-    override fun createUser(username: String, passwordHash: String, accessLevel: AccessLevel) {
+    override fun createUser(username: String, passwordHash: String, accessLevel: AccessLevel): UserRef {
         val userData = mapOf(
             "username" to username,
             "passwordSha256" to passwordHash,
             "accessLevel" to accessLevel.name
         )
 
-        firestore.collection("users").document(username).set(userData).get()
+        val doc = firestore.collection("users").document(username)
+        doc.set(userData).get()
+        return FirestoreUserRef(doc)
     }
 }
 

@@ -2,15 +2,33 @@ package pl.zarajczyk.familyrules.domain
 
 import kotlinx.datetime.LocalDate
 import org.springframework.stereotype.Service
+import java.util.UUID
 
 @Service
 class AppGroupService(private val dataRepository: DataRepository, private val appGroupRepository: AppGroupRepository) {
+    fun createAppGroup(user: User, name: String): AppGroup {
+        val groupId = UUID.randomUUID().toString()
+        val usedColors = listAllAppGroups(user)
+            .map { it.get().color }
+            .toSet()
+        val nextColor = AppGroupColorPalette.getNextColor(usedColors)
+
+        val appGroupRef = appGroupRepository.createAppGroup(user.asRef(), groupId, name, nextColor)
+
+        return RefBasedAppGroup(appGroupRef, appGroupRepository)
+    }
+
+    fun listAllAppGroups(user: User): List<AppGroup> {
+        return appGroupRepository.getAll(user.asRef())
+            .map { RefBasedAppGroup(it, appGroupRepository) }
+    }
+
     fun getReport(
-        username: String,
+        user: User,
         day: LocalDate
     ): List<AppGroupReport> {
-        val instances = dataRepository.findInstances(username)
-        val appGroups = appGroupRepository.getAppGroups(username)
+        val instances = dataRepository.findInstances(user.get().username)
+        val appGroups = listAllAppGroups(user).map { it.get() }
 
         val groupStats = appGroups.map { group ->
             // Calculate statistics across all instances
@@ -79,6 +97,23 @@ class AppGroupService(private val dataRepository: DataRepository, private val ap
         }
 
         return groupStats
+    }
+}
+
+interface AppGroup {
+    fun asRef(): AppGroupRef
+
+    fun get(): AppGroupDto
+}
+
+class RefBasedAppGroup(
+    val appGroupRef: AppGroupRef,
+    private val appGroupRepository: AppGroupRepository
+) : AppGroup {
+    override fun asRef() = appGroupRef
+
+    override fun get(): AppGroupDto {
+        return appGroupRepository.fetchDetails(appGroupRef)
     }
 }
 

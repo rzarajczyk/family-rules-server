@@ -16,8 +16,11 @@ class UsersService(private val usersRepository: UsersRepository) {
 
     fun userExists(username: String) = usersRepository.get(username) != null
 
-    fun createUser(username: String, password: String, accessLevel: AccessLevel) =
-        usersRepository.createUser(username, password.sha256(), accessLevel)
+    fun createUser(username: String, password: String, accessLevel: AccessLevel): User =
+        usersRepository
+            .createUser(username, password.sha256(), accessLevel)
+            .let { RefBasedUser(it, usersRepository) }
+
 
 }
 
@@ -25,6 +28,8 @@ class UserNotFoundException(username: String) : RuntimeException("User $username
 class InvalidPassword : RuntimeException("Invalid password")
 
 interface User {
+    fun asRef(): UserRef
+
     fun get(): UserDto
 
     fun delete()
@@ -37,8 +42,10 @@ interface User {
 
 class RefBasedUser(
     val userRef: UserRef,
-    val usersRepository: UsersRepository
+    private val usersRepository: UsersRepository
 ) : User {
+    override fun asRef(): UserRef = userRef
+
     override fun get(): UserDto {
         return usersRepository.fetchDetails(userRef)
     }
