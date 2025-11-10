@@ -9,7 +9,6 @@ import org.springframework.web.bind.annotation.*
 import org.springframework.web.server.ResponseStatusException
 import pl.zarajczyk.familyrules.domain.*
 import java.time.DayOfWeek
-import java.util.*
 
 @RestController
 class BffOverviewController(

@@ -1,8 +1,6 @@
 package pl.zarajczyk.familyrules.adapter.firestore
 
 import com.google.cloud.firestore.Firestore
-import kotlinx.datetime.Clock
-import kotlinx.datetime.Instant
 import org.springframework.stereotype.Service
 import pl.zarajczyk.familyrules.domain.AppGroupColorPalette
 import pl.zarajczyk.familyrules.domain.AppGroupDto
