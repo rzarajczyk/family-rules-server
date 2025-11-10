@@ -173,7 +173,6 @@ data class AppGroupWithColor(
     val name: String,
     val color: String,
     val textColor: String,
-    val createdAt: Instant
 )
 
 data class AppGroupStatistics(

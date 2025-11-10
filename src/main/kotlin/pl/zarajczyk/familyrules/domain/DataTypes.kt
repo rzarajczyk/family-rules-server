@@ -100,7 +100,6 @@ data class AppGroupDto(
     val id: String,
     val name: String,
     val color: String,
-    val createdAt: Instant
 )
 
 data class AppGroupMembershipDto(

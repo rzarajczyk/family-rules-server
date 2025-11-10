@@ -64,7 +64,6 @@ class BffOverviewController(
                                     name = group.name,
                                     color = group.color,
                                     textColor = colorInfo?.text ?: "#000000",
-                                    createdAt = group.createdAt
                                 )
                             }
                         AppUsage(

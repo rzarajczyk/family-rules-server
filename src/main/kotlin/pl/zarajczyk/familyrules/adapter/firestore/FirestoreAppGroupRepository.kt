@@ -21,7 +21,6 @@ class FirestoreAppGroupRepository(
     // App group operations
     override fun createAppGroup(username: String, groupName: String): AppGroupDto {
         val groupId = UUID.randomUUID().toString()
-        val now = Clock.System.now()
 
         // Get existing groups to determine next color
         val existingGroups = getAppGroups(username)
@@ -32,7 +31,6 @@ class FirestoreAppGroupRepository(
             "id" to groupId,
             "name" to groupName,
             "color" to nextColor,
-            "createdAt" to now.toString()
         )
 
         firestore.collection("users")
@@ -46,7 +44,6 @@ class FirestoreAppGroupRepository(
             id = groupId,
             name = groupName,
             color = nextColor,
-            createdAt = now
         )
     }
 
@@ -54,7 +51,6 @@ class FirestoreAppGroupRepository(
         val groups = firestore.collection("users")
             .document(username)
             .collection("appGroups")
-            .orderBy("name")
             .get()
             .get()
 
@@ -63,9 +59,8 @@ class FirestoreAppGroupRepository(
                 id = doc.getString("id") ?: "",
                 name = doc.getString("name") ?: "",
                 color = doc.getString("color") ?: AppGroupColorPalette.getDefaultColor(),
-                createdAt = doc.getString("createdAt")?.let { Instant.parse(it) } ?: Instant.DISTANT_PAST
             )
-        }
+        }.sortedBy { it.name }
     }
 
     override fun renameAppGroup(username: String, groupId: String, newName: String): AppGroupDto {
@@ -83,7 +78,6 @@ class FirestoreAppGroupRepository(
             id = updatedGroup.getString("id") ?: groupId,
             name = updatedGroup.getString("name") ?: newName,
             color = updatedGroup.getString("color") ?: AppGroupColorPalette.getDefaultColor(),
-            createdAt = updatedGroup.getString("createdAt")?.let { Instant.parse(it) } ?: Instant.DISTANT_PAST
         )
     }
 
