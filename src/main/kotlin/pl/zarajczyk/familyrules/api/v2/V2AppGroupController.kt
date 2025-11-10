@@ -4,47 +4,47 @@ import org.springframework.security.core.Authentication
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RestController
-import pl.zarajczyk.familyrules.adapter.firestore.FirestoreInstanceRef
+import pl.zarajczyk.familyrules.adapter.firestore.FirestoreDeviceRef
 import pl.zarajczyk.familyrules.domain.*
 
 @RestController
 class V2AppGroupController(
     private val dataRepository: DataRepository,
-    private val appGroupRepository: AppGroupRepository,
     private val appGroupService: AppGroupService,
     private val usersService: UsersService
 ) {
     @PostMapping("/api/v2/group-membership-for-device")
     fun getMembership(@RequestBody request: MembershipRequest, authentication: Authentication): MembershipResponse {
-        val instanceRef = dataRepository.findAuthenticatedInstance(authentication)
+        val instanceRef = dataRepository.findAuthenticatedDevice(authentication)
         val instance = dataRepository.getInstance(instanceRef)
 
-        val memberships = appGroupRepository.getAppGroupMemberships(instanceRef)
-        val groupMemberships = memberships.filter { it.groupId == request.appGroupId }
-
-
-        return MembershipResponse(
-            appGroupId = request.appGroupId,
-            apps = groupMemberships.map {
-                val known = instance.knownApps[it.appPath]
-                MembershipAppResponse(
-                    appPath = it.appPath,
-                    appName = known?.appName ?: it.appPath,
-                    iconBase64Png = known?.iconBase64Png,
-                    deviceName = instance.name,
-                    deviceId = instance.id.toString()
+        return usersService.withUserContext(dataRepository.getOwner(instanceRef)) { user ->
+            appGroupService.withAppGroupContext(user, request.appGroupId) { appGroup ->
+                val appTechnicalIds = appGroup.getMembers(instanceRef)
+                MembershipResponse(
+                    appGroupId = request.appGroupId,
+                    apps = appTechnicalIds.map { appTechnicalId ->
+                        val known = instance.knownApps[appTechnicalId]
+                        MembershipAppResponse(
+                            appPath = appTechnicalId,
+                            appName = known?.appName ?: appTechnicalId,
+                            iconBase64Png = known?.iconBase64Png,
+                            deviceName = instance.name,
+                            deviceId = instance.id.toString()
+                        )
+                    }
                 )
             }
-        )
+        }
     }
 
     @PostMapping("/api/v2/groups-usage-report")
     fun getAppGroupsUsageReport(authentication: Authentication): AppGroupsUsageReportResponse {
-        val instanceRef = dataRepository.findAuthenticatedInstance(authentication)
+        val instanceRef = dataRepository.findAuthenticatedDevice(authentication)
 
         // Get username from the instance document path
         // The path is /users/{username}/instances/{instanceId}
-        val username = (instanceRef as FirestoreInstanceRef)
+        val username = (instanceRef as FirestoreDeviceRef)
             .document.reference.parent.parent?.id
             ?: throw RuntimeException("Cannot determine username from instance")
 

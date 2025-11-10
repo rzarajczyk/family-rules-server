@@ -8,13 +8,13 @@ interface AppGroupRepository {
     fun rename(appGroupRef: AppGroupRef, newName: String)
     fun delete(appGroupRef: AppGroupRef)
 
-    fun addAppToGroup(username: String, instanceId: InstanceId, appPath: String, groupId: String)
-    fun removeAppFromGroup(username: String, instanceId: InstanceId, appPath: String, groupId: String)
-    fun getAppGroupMemberships(instance: InstanceRef): List<AppGroupMembershipDto>
-    fun getAppGroupMemberships(username: String): List<AppGroupMembershipDto>
+    fun addMember(appGroupRef: AppGroupRef, deviceRef: DeviceRef, appTechnicalId: String)
+    fun removeMember(appGroupRef: AppGroupRef, deviceRef: DeviceRef, appTechnicalId: String)
+    fun getMembers(appGroupRef: AppGroupRef, deviceRef: DeviceRef): Set<AppTechnicalId>
 }
 
 /**
  * Represents abstract reference to the database object related to the given app group
  */
 interface AppGroupRef
+typealias AppTechnicalId = String

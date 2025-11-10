@@ -33,40 +33,39 @@ class AppGroupService(private val dataRepository: DataRepository, private val ap
         user: User,
         day: LocalDate
     ): List<AppGroupReport> {
-        val instances = dataRepository.findInstances(user.get().username)
-        val appGroups = listAllAppGroups(user).map { it.get() }
+        val devices = dataRepository.findInstances(user.get().username)
+        val appGroups = appGroupRepository.getAll(user.asRef())
 
-        val groupStats = appGroups.map { group ->
+        val groupStats = appGroups.map { appGroupRef ->
             // Calculate statistics across all instances
             var totalApps = 0
             var totalScreenTimeSeconds = 0L
             val deviceCount = mutableSetOf<String>()
             val appDetails = mutableListOf<AppGroupAppReport>()
 
-            instances.forEach { instanceRef ->
-                val instance = dataRepository.getInstance(instanceRef)
-                val screenTimeDto = dataRepository.getScreenTimes(instanceRef, day)
-                val instanceMemberships = appGroupRepository.getAppGroupMemberships(instanceRef)
-                    .filter { it.groupId == group.id }
+            devices.forEach { deviceRef ->
+                val instance = dataRepository.getInstance(deviceRef)
+                val screenTimeDto = dataRepository.getScreenTimes(deviceRef, day)
+                val appTechnicalIds = appGroupRepository.getMembers(appGroupRef, deviceRef)
 
-                if (instanceMemberships.isNotEmpty()) {
+                if (appTechnicalIds.isNotEmpty()) {
                     deviceCount.add(instance.id.toString())
-                    totalApps += instanceMemberships.size
+                    totalApps += appTechnicalIds.size
 
                     // Collect detailed app information for this group
-                    instanceMemberships.forEach { membership ->
-                        val appScreenTimeSeconds = screenTimeDto.applicationsSeconds[membership.appPath] ?: 0L
+                    appTechnicalIds.forEach { appTechnicalId ->
+                        val appScreenTimeSeconds = screenTimeDto.applicationsSeconds[appTechnicalId] ?: 0L
                         totalScreenTimeSeconds += appScreenTimeSeconds
 
                         // Get app name and icon from known apps or use the path
-                        val knownApp = instance.knownApps[membership.appPath]
-                        val appName = knownApp?.appName ?: membership.appPath
+                        val knownApp = instance.knownApps[appTechnicalId]
+                        val appName = knownApp?.appName ?: appTechnicalId
                         val appIcon = knownApp?.iconBase64Png
 
                         appDetails.add(
                             AppGroupAppReport(
                                 name = appName,
-                                packageName = membership.appPath,
+                                packageName = appTechnicalId,
                                 deviceName = instance.name,
                                 deviceId = instance.id.toString(),
                                 screenTime = appScreenTimeSeconds,
@@ -89,6 +88,7 @@ class AppGroupService(private val dataRepository: DataRepository, private val ap
                 appDetails
             }.sortedByDescending { it.screenTime }
 
+            val group = appGroupRepository.fetchDetails(appGroupRef)
             val colorInfo = AppGroupColorPalette.getColorInfo(group.color)
             AppGroupReport(
                 id = group.id,
@@ -116,9 +116,17 @@ interface AppGroup {
     fun delete()
 
     fun rename(newName: String)
+
+    fun containsMember(deviceRef: DeviceRef, appTechnicalId: AppTechnicalId): Boolean
+
+    fun getMembers(deviceRef: DeviceRef): Set<AppTechnicalId>
+
+    fun addMember(deviceRef: DeviceRef, appTechnicalId: AppTechnicalId)
+
+    fun removeMember(deviceRef: DeviceRef, appTechnicalId: AppTechnicalId)
 }
 
-class RefBasedAppGroup(
+data class RefBasedAppGroup(
     val appGroupRef: AppGroupRef,
     private val appGroupRepository: AppGroupRepository
 ) : AppGroup {
@@ -134,6 +142,22 @@ class RefBasedAppGroup(
 
     override fun rename(newName: String) {
         appGroupRepository.rename(appGroupRef, newName)
+    }
+
+    override fun containsMember(deviceRef: DeviceRef, appTechnicalId: AppTechnicalId): Boolean {
+        return getMembers(deviceRef).contains(appTechnicalId)
+    }
+
+    override fun getMembers(deviceRef: DeviceRef): Set<AppTechnicalId> {
+        return appGroupRepository.getMembers(appGroupRef, deviceRef)
+    }
+
+    override fun addMember(deviceRef: DeviceRef, appTechnicalId: AppTechnicalId) {
+        appGroupRepository.addMember(appGroupRef, deviceRef, appTechnicalId)
+    }
+
+    override fun removeMember(deviceRef: DeviceRef, appTechnicalId: AppTechnicalId) {
+        appGroupRepository.removeMember(appGroupRef, deviceRef, appTechnicalId)
     }
 }
 

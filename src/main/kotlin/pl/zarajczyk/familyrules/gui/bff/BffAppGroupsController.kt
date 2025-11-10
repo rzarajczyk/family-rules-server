@@ -11,9 +11,9 @@ import java.util.*
 @RestController
 class BffAppGroupsController(
     private val usersService: UsersService,
-    private val appGroupRepository: AppGroupRepository,
     private val deviceStateService: DeviceStateService,
-    private val appGroupService: AppGroupService
+    private val appGroupService: AppGroupService,
+    private val dataRepository: DataRepository
 ) {
 
     @PostMapping("/bff/app-groups")
@@ -66,11 +66,14 @@ class BffAppGroupsController(
         @PathVariable groupId: String,
         @RequestBody request: AddAppToGroupRequest,
         authentication: Authentication
-    ): AddAppToGroupResponse {
-        val username = authentication.name
-        appGroupRepository.addAppToGroup(username, request.instanceId, request.appPath, groupId)
-        return AddAppToGroupResponse(true)
-    }
+    ): AddAppToGroupResponse =
+        usersService.withUserContext(authentication.name) { user ->
+            appGroupService.withAppGroupContext(user, groupId) { appGroup ->
+                val deviceRef = dataRepository.findDeviceOrThrow(request.instanceId)
+                appGroup.addMember(deviceRef, request.appPath)
+                AddAppToGroupResponse(true)
+            }
+        }
 
     @DeleteMapping("/bff/app-groups/{groupId}/apps/{appPath}")
     fun removeAppFromGroup(
@@ -78,11 +81,15 @@ class BffAppGroupsController(
         @PathVariable appPath: String,
         @RequestParam instanceId: UUID,
         authentication: Authentication
-    ): RemoveAppFromGroupResponse {
-        val username = authentication.name
-        appGroupRepository.removeAppFromGroup(username, instanceId, appPath, groupId)
-        return RemoveAppFromGroupResponse(true)
-    }
+    ): RemoveAppFromGroupResponse =
+        usersService.withUserContext(authentication.name) { user ->
+            appGroupService.withAppGroupContext(user, groupId) { appGroup ->
+                val deviceRef = dataRepository.findDeviceOrThrow(instanceId)
+                appGroup.addMember(deviceRef, appPath)
+                RemoveAppFromGroupResponse(true)
+            }
+        }
+
 
     @GetMapping("/bff/app-groups/statistics")
     fun getAppGroupStatistics(

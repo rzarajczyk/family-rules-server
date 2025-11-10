@@ -6,6 +6,7 @@ import kotlinx.serialization.Serializable
 import java.util.*
 
 typealias InstanceId = UUID
+typealias DeviceId = InstanceId
 
 class IllegalInstanceName(val instanceName: String) : RuntimeException("Instance $instanceName already exists")
 class InstanceAlreadyExists(val instanceName: String) : RuntimeException("Instance $instanceName has incorrect name")
@@ -130,3 +131,5 @@ data class PeriodDto(
 )
 
 interface InstanceRef
+typealias DeviceRef = InstanceRef
+

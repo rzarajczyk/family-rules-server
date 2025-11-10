@@ -86,7 +86,7 @@ class FirestoreDataRepository(
             .get()
             .get()
             .documents
-            .map { FirestoreInstanceRef(it) }
+            .map { FirestoreDeviceRef(it) }
 
     override fun findInstance(instanceId: InstanceId): InstanceRef? =
         firestore.collectionGroup("instances")
@@ -96,10 +96,10 @@ class FirestoreDataRepository(
             .get()
             ?.documents
             ?.firstOrNull()
-            ?.let { FirestoreInstanceRef(it) }
+            ?.let { FirestoreDeviceRef(it) }
 
     override fun getInstanceBasicData(instanceRef: InstanceRef): BasicInstanceDto {
-        val doc = (instanceRef as FirestoreInstanceRef).document
+        val doc = (instanceRef as FirestoreDeviceRef).document
         return BasicInstanceDto(
             id = UUID.fromString(doc.getString("instanceId") ?: ""),
             name = doc.getString("instanceName") ?: "",
@@ -107,7 +107,7 @@ class FirestoreDataRepository(
     }
 
     override fun getInstance(instanceRef: InstanceRef): InstanceDto {
-        val doc = (instanceRef as FirestoreInstanceRef).document
+        val doc = (instanceRef as FirestoreDeviceRef).document
 
         return InstanceDto(
             id = UUID.fromString(doc.getString("instanceId") ?: ""),
@@ -138,7 +138,7 @@ class FirestoreDataRepository(
     }
 
     override fun updateInstance(instance: InstanceRef, update: UpdateInstanceDto) {
-        val doc = (instance as FirestoreInstanceRef).document
+        val doc = (instance as FirestoreDeviceRef).document
 
         doc.reference.update(
             "instanceName", update.name,
@@ -148,18 +148,18 @@ class FirestoreDataRepository(
     }
 
     override fun deleteInstance(instance: InstanceRef) {
-        val doc = (instance as FirestoreInstanceRef).document
+        val doc = (instance as FirestoreDeviceRef).document
 
         doc.reference.update("deleted", true).get()
     }
 
     override fun setInstanceSchedule(instance: InstanceRef, schedule: WeeklyScheduleDto) {
-        val doc = (instance as FirestoreInstanceRef).document
+        val doc = (instance as FirestoreDeviceRef).document
         doc.reference.update("schedule", json.encodeToString(schedulePacker.pack(schedule))).get()
     }
 
     override fun setForcedInstanceState(instance: InstanceRef, state: DeviceStateDto?) {
-        val doc = (instance as FirestoreInstanceRef).document
+        val doc = (instance as FirestoreDeviceRef).document
         doc.reference.update(
             "forcedDeviceState", state?.deviceState,
             "forcedDeviceStateExtra", state?.extra
@@ -167,7 +167,7 @@ class FirestoreDataRepository(
     }
 
     override fun updateClientInformation(instance: InstanceRef, clientInfo: ClientInfoDto) {
-        val doc = (instance as FirestoreInstanceRef).document
+        val doc = (instance as FirestoreDeviceRef).document
 
         val knownAppsJson = json.encodeToString(
             clientInfo.knownApps.mapValues {
@@ -191,12 +191,12 @@ class FirestoreDataRepository(
     }
 
     override fun setAssociatedAppGroup(instance: InstanceRef, groupId: String?) {
-        val doc = (instance as FirestoreInstanceRef).document
+        val doc = (instance as FirestoreDeviceRef).document
         doc.reference.update("associatedAppGroupId", groupId).get()
     }
 
     override fun getAvailableDeviceStateTypes(instance: InstanceRef): List<DeviceStateTypeDto> {
-        val instanceDoc = (instance as FirestoreInstanceRef).document
+        val instanceDoc = (instance as FirestoreDeviceRef).document
 
         val deviceStatesJson = instanceDoc.getString("deviceStates")
         return when {
@@ -211,7 +211,7 @@ class FirestoreDataRepository(
         screenTimeSeconds: Long,
         applicationsSeconds: Map<String, Long>
     ) {
-        val instanceDoc = (instanceRef as FirestoreInstanceRef).document
+        val instanceDoc = (instanceRef as FirestoreDeviceRef).document
 
         val applicationTimesJson = json.encodeToString(applicationsSeconds)
 
@@ -230,7 +230,7 @@ class FirestoreDataRepository(
     }
 
     override fun getScreenTimes(instance: InstanceRef, day: LocalDate): ScreenTimeDto {
-        val instanceDoc = (instance as FirestoreInstanceRef).document
+        val instanceDoc = (instance as FirestoreDeviceRef).document
 
         val dayDoc = instanceDoc.reference
             .collection("screenTimes")
@@ -270,6 +270,16 @@ class FirestoreDataRepository(
             this
         }
     }
+
+    override fun getOwner(deviceRef: DeviceRef): UserRef {
+        val doc = (deviceRef as FirestoreDeviceRef)
+            .document
+            .reference
+            .parent
+            .parent
+            ?: throw UserNotFoundException("owner for device")
+        return FirestoreUserRef(doc)
+    }
 }
 
 @Serializable
@@ -278,4 +288,4 @@ class FirestoreKnownApp(
     val iconBase64: String?
 )
 
-class FirestoreInstanceRef(val document: QueryDocumentSnapshot) : InstanceRef
+class FirestoreDeviceRef(val document: QueryDocumentSnapshot) : InstanceRef

@@ -11,6 +11,12 @@ class UsersService(private val usersRepository: UsersRepository) {
         return action(user)
     }
 
+    @Deprecated("avoid refs on a Service level")
+    fun <T> withUserContext(ref: UserRef, action: (user: User) -> T): T {
+        val user = RefBasedUser(ref, usersRepository)
+        return action(user)
+    }
+
     fun listAllUsers() = usersRepository.getAll()
         .map { RefBasedUser(it, usersRepository) }
 
@@ -23,9 +29,6 @@ class UsersService(private val usersRepository: UsersRepository) {
 
 
 }
-
-class UserNotFoundException(username: String) : RuntimeException("User $username not found")
-class InvalidPassword : RuntimeException("Invalid password")
 
 interface User {
     fun asRef(): UserRef
@@ -64,3 +67,6 @@ class RefBasedUser(
         usersRepository.update(userRef, newPassword.sha256())
     }
 }
+
+class UserNotFoundException(username: String) : RuntimeException("User $username not found")
+class InvalidPassword : RuntimeException("Invalid password")

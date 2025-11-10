@@ -5,7 +5,7 @@ import pl.zarajczyk.familyrules.domain.DeviceStateArgument.APP_GROUP
 
 @Service
 class DeviceStateService() {
-    fun createActualInstances(deviceState: DeviceStateTypeDto, appGroups: List<AppGroupDto>): List<DeviceStateInstance> {
+    fun createActualInstances(deviceState: DeviceStateTypeDto, appGroups: Collection<AppGroupDto>): List<DeviceStateInstance> {
         if (deviceState.arguments.isEmpty()) {
             return DeviceStateInstance(
                 deviceState = deviceState.deviceState,

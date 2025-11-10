@@ -11,7 +11,7 @@ import pl.zarajczyk.familyrules.domain.*
 class V2ClientInfoController(private val dataRepository: DataRepository) {
     @PostMapping(value = ["/api/v2/launch", "/api/v2/client-info"])
     fun clientInfo(@RequestBody request: ClientInfoRequest, authentication: Authentication): ClientInfoResponse {
-        val instanceRef = dataRepository.findAuthenticatedInstance(authentication)
+        val instanceRef = dataRepository.findAuthenticatedDevice(authentication)
         dataRepository.updateClientInformation(
             instance = instanceRef,
             clientInfo = ClientInfoDto(

@@ -19,7 +19,7 @@ class V2ReportController(private val dataRepository: DataRepository, private val
             @RequestBody report: ReportRequest,
             authentication: Authentication,
         ): ReportResponse {
-            val instanceRef = dataRepository.findAuthenticatedInstance(authentication)
+            val instanceRef = dataRepository.findAuthenticatedDevice(authentication)
             dataRepository.saveReport(
                 instance = instanceRef,
                 day = today(),

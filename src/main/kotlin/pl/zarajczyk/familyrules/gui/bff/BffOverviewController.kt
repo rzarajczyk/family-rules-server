@@ -13,7 +13,6 @@ import java.time.DayOfWeek
 @RestController
 class BffOverviewController(
     private val dbConnector: DataRepository,
-    private val appGroupRepository: AppGroupRepository,
     private val scheduleUpdater: ScheduleUpdater,
     private val stateService: StateService,
     private val deviceStateService: DeviceStateService,
@@ -38,40 +37,38 @@ class BffOverviewController(
         val day = LocalDate.parse(date)
         val instances = dbConnector.findInstances(authentication.name)
         val username = authentication.name
-        StatusResponse(instances.map { instanceRef ->
-            val screenTimeDto = dbConnector.getScreenTimes(instanceRef, day)
-            val state = stateService.getDeviceState(instanceRef)
-            val instance = dbConnector.getInstance(instanceRef)
-            val availableStates = dbConnector.getAvailableDeviceStateTypes(instanceRef)
-            val appGroupMemberships = appGroupRepository.getAppGroupMemberships(instanceRef)
+        StatusResponse(instances.map { deviceRef ->
+            val screenTimeDto = dbConnector.getScreenTimes(deviceRef, day)
+            val state = stateService.getDeviceState(deviceRef)
+            val instance = dbConnector.getInstance(deviceRef)
+            val availableStates = dbConnector.getAvailableDeviceStateTypes(deviceRef)
             val appGroups = usersService.withUserContext(username) { user ->
-                appGroupService.listAllAppGroups(user).map { it.get() }
+                appGroupService.listAllAppGroups(user)
             }
+            val appGroupsDtos = appGroups.associateWith { it.get() }
 
             Instance(
                 instanceId = instance.id,
                 instanceName = instance.name,
                 screenTimeSeconds = screenTimeDto.screenTimeSeconds,
                 appUsageSeconds = screenTimeDto.applicationsSeconds
-                    .map { (k, v) ->
-                        val knownApp = instance.knownApps[k]
-                        val appGroupsForThisApp = appGroupMemberships
-                            .filter { it.appPath == k }
-                            .mapNotNull { membership ->
-                                appGroups.find { it.id == membership.groupId }
-                            }
-                            .map { group ->
-                                val colorInfo = AppGroupColorPalette.getColorInfo(group.color)
+                    .map { (appTechnicalId, v) ->
+                        val knownApp = instance.knownApps[appTechnicalId]
+                        val appGroupsForThisApp = appGroups
+                            .filter { it.containsMember(deviceRef, appTechnicalId) }
+                            .map { group -> appGroupsDtos.getValue(group) }
+                            .map { groupDto ->
+                                val colorInfo = AppGroupColorPalette.getColorInfo(groupDto.color)
                                 AppGroupWithColor(
-                                    id = group.id,
-                                    name = group.name,
-                                    color = group.color,
+                                    id = groupDto.id,
+                                    name = groupDto.name,
+                                    color = groupDto.color,
                                     textColor = colorInfo?.text ?: "#000000",
                                 )
                             }
                         AppUsage(
-                            name = k,
-                            path = k,
+                            name = appTechnicalId,
+                            path = appTechnicalId,
                             usageSeconds = v,
                             appName = knownApp?.appName,
                             iconBase64 = knownApp?.iconBase64Png,
@@ -79,19 +76,19 @@ class BffOverviewController(
                         )
                     }.sortedByDescending { it.usageSeconds },
                 forcedDeviceState = availableStates
-                    .flatMap { it.toDeviceStateDescriptions(appGroups) }
+                    .flatMap { it.toDeviceStateDescriptions(appGroupsDtos.values) }
                     .firstOrNull { it.isEqualTo(state.forcedState) },
                 automaticDeviceState = availableStates
-                    .flatMap { it.toDeviceStateDescriptions(appGroups) }
+                    .flatMap { it.toDeviceStateDescriptions(appGroupsDtos.values) }
                     .firstOrNull { it.isEqualTo(state.automaticState) }
                     ?: throw RuntimeException("Instance ≪${instance.id}≫ doesn't have automatic state ≪${state.automaticState}≫"),
                 online = screenTimeDto.updatedAt.isOnline(instance.reportIntervalSeconds),
                 icon = instance.getIcon(),
-                availableAppGroups = appGroups,
+                availableAppGroups = appGroupsDtos.values.toList(),
                 associatedAppGroupId = instance.associatedAppGroupId
             )
         })
-    } catch (e: InvalidPassword) {
+    } catch (_: InvalidPassword) {
         throw ResponseStatusException(HttpStatus.FORBIDDEN)
     }
 
@@ -108,7 +105,7 @@ class BffOverviewController(
     fun getInstanceInfo(
         @RequestParam("instanceId") instanceId: InstanceId
     ): InstanceInfoResponse {
-        val instanceRef = dbConnector.findInstanceOrThrow(instanceId)
+        val instanceRef = dbConnector.findDeviceOrThrow(instanceId)
         val instance = dbConnector.getInstance(instanceRef)
         return InstanceInfoResponse(
             instanceId = instanceId,
@@ -124,7 +121,7 @@ class BffOverviewController(
     fun getInstanceEditInfo(
         @RequestParam("instanceId") instanceId: InstanceId
     ): InstanceEditInfo {
-        val instanceRef = dbConnector.findInstanceOrThrow(instanceId)
+        val instanceRef = dbConnector.findDeviceOrThrow(instanceId)
         val instance = dbConnector.getInstance(instanceRef)
         return InstanceEditInfo(
             instanceName = instance.name,
@@ -137,7 +134,7 @@ class BffOverviewController(
         @RequestParam("instanceId") instanceId: InstanceId,
         @RequestBody data: InstanceEditInfo
     ) {
-        val instanceRef = dbConnector.findInstanceOrThrow(instanceId)
+        val instanceRef = dbConnector.findDeviceOrThrow(instanceId)
         dbConnector.updateInstance(
             instanceRef, UpdateInstanceDto(
                 instanceId = instanceId,
@@ -158,7 +155,7 @@ class BffOverviewController(
         @RequestParam("instanceId") instanceId: InstanceId,
         authentication: Authentication,
     ): ScheduleResponse {
-        val instanceRef = dbConnector.findInstanceOrThrow(instanceId)
+        val instanceRef = dbConnector.findDeviceOrThrow(instanceId)
         val instance = dbConnector.getInstance(instanceRef)
         val availableStates = dbConnector.getAvailableDeviceStateTypes(instanceRef)
         val appGroups = usersService.withUserContext(authentication.name) { user ->
@@ -209,7 +206,7 @@ class BffOverviewController(
         @RequestParam("instanceId") instanceId: InstanceId,
         @RequestBody data: AddPeriodRequest
     ) {
-        val instanceRef = dbConnector.findInstanceOrThrow(instanceId)
+        val instanceRef = dbConnector.findDeviceOrThrow(instanceId)
         val instance = dbConnector.getInstance(instanceRef)
         val schedule = instance.schedule
         val period = PeriodDto(
@@ -245,7 +242,7 @@ class BffOverviewController(
         @RequestParam("instanceId") instanceId: InstanceId,
         authentication: Authentication,
     ): InstanceStateResponse {
-        val instanceRef = dbConnector.findInstanceOrThrow(instanceId)
+        val instanceRef = dbConnector.findDeviceOrThrow(instanceId)
         val instance = dbConnector.getInstance(instanceRef)
         val appGroups = usersService.withUserContext(authentication.name) { user ->
             appGroupService.listAllAppGroups(user).map { it.get() }
@@ -264,7 +261,7 @@ class BffOverviewController(
         @RequestParam("instanceId") instanceId: InstanceId,
         @RequestBody data: ForcedInstanceState
     ) {
-        val instanceRef = dbConnector.findInstanceOrThrow(instanceId)
+        val instanceRef = dbConnector.findDeviceOrThrow(instanceId)
         val forcedDeviceState = data.forcedDeviceState.emptyToNull()?.let {
             DeviceStateDto(
                 deviceState = it,
@@ -278,7 +275,7 @@ class BffOverviewController(
     fun deleteInstance(
         @RequestParam("instanceId") instanceId: InstanceId
     ) {
-        val instanceRef = dbConnector.findInstanceOrThrow(instanceId)
+        val instanceRef = dbConnector.findDeviceOrThrow(instanceId)
         dbConnector.deleteInstance(instanceRef)
     }
 
@@ -287,7 +284,7 @@ class BffOverviewController(
         @RequestParam("instanceId") instanceId: InstanceId,
         @RequestBody request: SetAssociatedGroupRequest
     ): SetAssociatedGroupResponse {
-        val instanceRef = dbConnector.findInstanceOrThrow(instanceId)
+        val instanceRef = dbConnector.findDeviceOrThrow(instanceId)
         dbConnector.setAssociatedAppGroup(instanceRef, request.groupId)
         return SetAssociatedGroupResponse(success = true)
     }
@@ -295,7 +292,7 @@ class BffOverviewController(
     private fun Instant.isOnline(reportIntervalSeconds: Int? = null) =
         (Clock.System.now() - this).inWholeSeconds <= (reportIntervalSeconds ?: 60)
 
-    private fun DeviceStateTypeDto.toDeviceStateDescriptions(appGroups: List<AppGroupDto>) =
+    private fun DeviceStateTypeDto.toDeviceStateDescriptions(appGroups: Collection<AppGroupDto>) =
         deviceStateService.createActualInstances(this, appGroups)
             .map {
                 DeviceStateDescriptionResponse(

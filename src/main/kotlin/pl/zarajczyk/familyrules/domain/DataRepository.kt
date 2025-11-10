@@ -3,7 +3,7 @@ package pl.zarajczyk.familyrules.domain
 import kotlinx.datetime.LocalDate
 
 interface DataRepository {
-    fun findInstance(id: InstanceId): InstanceRef?
+    fun findInstance(id: InstanceId): DeviceRef?
     fun findInstances(username: String): List<InstanceRef>
     
     // Instance operations
@@ -24,5 +24,7 @@ interface DataRepository {
     // Screen time operations
     fun saveReport(instance: InstanceRef, day: LocalDate, screenTimeSeconds: Long, applicationsSeconds: Map<String, Long>)
     fun getScreenTimes(instance: InstanceRef, day: LocalDate): ScreenTimeDto
+
+    fun getOwner(deviceRef: DeviceRef): UserRef
 }
 
