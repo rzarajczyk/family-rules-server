@@ -85,7 +85,7 @@ class BffAppGroupsController(
         usersService.withUserContext(authentication.name) { user ->
             appGroupService.withAppGroupContext(user, groupId) { appGroup ->
                 val deviceRef = dataRepository.findDeviceOrThrow(instanceId)
-                appGroup.addMember(deviceRef, appPath)
+                appGroup.removeMember(deviceRef, appPath)
                 RemoveAppFromGroupResponse(true)
             }
         }
@@ -128,25 +128,7 @@ class BffAppGroupsController(
         )
     }
 
-
-    private fun Instant.isOnline(reportIntervalSeconds: Int? = null) =
-        (Clock.System.now() - this).inWholeSeconds <= (reportIntervalSeconds ?: 60)
-
-    private fun DeviceStateTypeDto.toDeviceStateDescriptions(appGroups: List<AppGroupDto>) =
-        deviceStateService.createActualInstances(this, appGroups)
-            .map {
-                DeviceStateDescriptionResponse(
-                    deviceState = it.deviceState,
-                    title = it.title,
-                    icon = it.icon,
-                    description = it.description,
-                    extra = it.extra
-                )
-            }
-
 }
-
-private fun String?.emptyToNull(): String? = if (this.isNullOrBlank()) null else this
 
 data class CreateAppGroupRequest(
     val name: String

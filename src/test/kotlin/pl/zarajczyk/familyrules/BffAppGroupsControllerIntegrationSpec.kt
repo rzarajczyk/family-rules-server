@@ -1,7 +1,6 @@
 package pl.zarajczyk.familyrules
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.google.cloud.firestore.Firestore
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.extensions.spring.SpringExtension
 import io.kotest.matchers.collections.shouldBeEmpty
@@ -11,6 +10,7 @@ import io.kotest.matchers.collections.shouldNotContain
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldNotBeBlank
+import io.kotest.matchers.string.shouldNotBeEmpty
 import org.hamcrest.Matchers.containsString
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
@@ -27,7 +27,12 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.*
 import org.testcontainers.gcloud.FirestoreEmulatorContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
-import java.util.*
+import pl.zarajczyk.familyrules.domain.AccessLevel
+import pl.zarajczyk.familyrules.domain.AppGroupRepository
+import pl.zarajczyk.familyrules.domain.DataRepository
+import pl.zarajczyk.familyrules.domain.DeviceId
+import pl.zarajczyk.familyrules.domain.UserRef
+import pl.zarajczyk.familyrules.domain.UsersRepository
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc
@@ -42,10 +47,16 @@ class BffAppGroupsControllerIntegrationSpec : FunSpec() {
     private lateinit var mockMvc: MockMvc
 
     @Autowired
-    private lateinit var firestore: Firestore
+    private lateinit var objectMapper: ObjectMapper
 
     @Autowired
-    private lateinit var objectMapper: ObjectMapper
+    private lateinit var appGroupRepository: AppGroupRepository
+
+    @Autowired
+    private lateinit var usersRepository: UsersRepository
+
+    @Autowired
+    private lateinit var dataRepository: DataRepository
 
     companion object {
         @Container
@@ -64,28 +75,20 @@ class BffAppGroupsControllerIntegrationSpec : FunSpec() {
     init {
         val adminUsername = "admin"
         val testUsername = "testuser-${System.currentTimeMillis()}"
-        val testPassword = "testpass123"
-        val sharedInstanceId = UUID.randomUUID() // Shared across all contexts
+        lateinit var deviceId: DeviceId
+        lateinit var userRef: UserRef
+
+        beforeSpec {
+            userRef = usersRepository.createUser(testUsername, "pass", AccessLevel.PARENT)
+            deviceId = dataRepository.setupNewInstance(testUsername, "Test instance", "TEST").instanceId
+        }
+
+        afterSpec {
+            dataRepository.deleteInstance(dataRepository.findInstance(deviceId)!!)
+            usersRepository.delete(userRef)
+        }
 
         context("POST /bff/app-groups - create app group") {
-            test("setup - create test user") {
-                val createUserRequest = """
-                    {
-                        "username": "$testUsername",
-                        "password": "$testPassword",
-                        "accessLevel": "PARENT"
-                    }
-                """.trimIndent()
-
-                mockMvc.perform(
-                    post("/bff/users")
-                        .with(SecurityMockMvcRequestPostProcessors.user(adminUsername))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(createUserRequest)
-                )
-                    .andExpect(status().isOk)
-            }
-
             test("should create app group successfully") {
                 val createGroupRequest = """
                     {
@@ -111,19 +114,15 @@ class BffAppGroupsControllerIntegrationSpec : FunSpec() {
                 group.get("id").asText().shouldNotBeBlank()
                 group.get("name").asText() shouldBe "Social Media"
                 group.get("color").asText().shouldNotBeBlank()
-            }
 
-            test("should verify app group exists in database") {
-                val groupsSnapshot = firestore.collection("users")
-                    .document(testUsername)
-                    .collection("appGroups")
-                    .get()
-                    .get()
+                val groupId = group.get("id").asText()
 
-                groupsSnapshot.documents shouldHaveSize 1
-                val groupDoc = groupsSnapshot.documents[0]
-                groupDoc.getString("name") shouldBe "Social Media"
-                groupDoc.getString("color").shouldNotBeBlank()
+                val appGroupRef = appGroupRepository.get(userRef, groupId)!!
+                val dto = appGroupRepository.fetchDetails(appGroupRef)
+
+                dto.id shouldBe groupId
+                dto.name shouldBe "Social Media"
+                dto.color.shouldNotBeBlank()
             }
 
             test("should create multiple app groups with different names") {
@@ -142,14 +141,12 @@ class BffAppGroupsControllerIntegrationSpec : FunSpec() {
                     .andExpect(status().isOk)
                     .andExpect(jsonPath("$.group.name").value("Games"))
 
-                val groupsSnapshot = firestore.collection("users")
-                    .document(testUsername)
-                    .collection("appGroups")
-                    .get()
-                    .get()
+                val appGroups = appGroupRepository.getAll(userRef)
+                appGroups shouldHaveSize 2
+                val groupNames = appGroups
+                    .map { appGroupRepository.fetchDetails(it) }
+                    .map { it.name }
 
-                groupsSnapshot.documents shouldHaveSize 2
-                val groupNames = groupsSnapshot.documents.map { it.getString("name") }
                 groupNames shouldContain "Social Media"
                 groupNames shouldContain "Games"
             }
@@ -224,7 +221,8 @@ class BffAppGroupsControllerIntegrationSpec : FunSpec() {
                 groups.toList().shouldBeEmpty()
 
                 // Cleanup
-                firestore.collection("users").document(newUsername).delete().get()
+                val ref = usersRepository.get(newUsername)!!
+                usersRepository.delete(ref)
             }
 
             test("should redirect to login page for unauthenticated request") {
@@ -267,25 +265,17 @@ class BffAppGroupsControllerIntegrationSpec : FunSpec() {
                         .content(renameRequest)
                 )
                     .andExpect(status().isOk)
-                    .andExpect(jsonPath("$.group").exists())
-                    .andExpect(jsonPath("$.group.id").value(groupIdToRename))
-                    .andExpect(jsonPath("$.group.name").value("Social Networks"))
+                    .andExpect(jsonPath("$.success").value(true))
                     .andReturn()
-
-                val response = objectMapper.readTree(result.response.contentAsString)
-                response.get("group").get("name").asText() shouldBe "Social Networks"
             }
 
             test("should verify renamed group in database") {
-                val groupDoc = firestore.collection("users")
-                    .document(testUsername)
-                    .collection("appGroups")
-                    .document(groupIdToRename!!)
-                    .get()
-                    .get()
+                val appGroupRef = appGroupRepository.get(userRef, groupIdToRename!!)!!
+                val dto = appGroupRepository.fetchDetails(appGroupRef)
 
-                groupDoc.exists() shouldBe true
-                groupDoc.getString("name") shouldBe "Social Networks"
+                dto.id shouldBe groupIdToRename
+                dto.name shouldBe "Social Networks"
+                dto.color.shouldNotBeEmpty()
             }
 
             test("should verify renamed group in list") {
@@ -370,14 +360,9 @@ class BffAppGroupsControllerIntegrationSpec : FunSpec() {
             }
 
             test("should verify group is deleted from database") {
-                val groupDoc = firestore.collection("users")
-                    .document(testUsername)
-                    .collection("appGroups")
-                    .document(groupIdToDelete!!)
-                    .get()
-                    .get()
+                val appGroupRef = appGroupRepository.get(userRef, groupIdToDelete!!)
 
-                groupDoc.exists() shouldBe false
+                appGroupRef shouldBe null
             }
 
             test("should verify deleted group not in list") {
@@ -406,7 +391,6 @@ class BffAppGroupsControllerIntegrationSpec : FunSpec() {
 
         context("POST /bff/app-groups/{groupId}/apps - add app to group") {
             var groupId: String? = null
-            val instanceId = sharedInstanceId
             val appPath = "com.example.testapp"
 
             test("should get group ID for app management tests") {
@@ -428,7 +412,7 @@ class BffAppGroupsControllerIntegrationSpec : FunSpec() {
             test("should add app to group successfully") {
                 val addAppRequest = """
                     {
-                        "instanceId": "$instanceId",
+                        "instanceId": "$deviceId",
                         "appPath": "$appPath"
                     }
                 """.trimIndent()
@@ -444,27 +428,19 @@ class BffAppGroupsControllerIntegrationSpec : FunSpec() {
             }
 
             test("should verify app membership exists in database") {
-                val membershipSnapshot = firestore.collection("users")
-                    .document(testUsername)
-                    .collection("instances")
-                    .document(instanceId.toString())
-                    .collection("appGroupMemberships")
-                    .whereEqualTo("groupId", groupId)
-                    .whereEqualTo("appPath", appPath)
-                    .get()
-                    .get()
+                val appGroupRef = appGroupRepository.get(userRef, groupId!!)!!
+                val deviceRef = dataRepository.findInstance(deviceId)!!
+                val members = appGroupRepository.getMembers(appGroupRef, deviceRef)
 
-                membershipSnapshot.documents shouldHaveSize 1
-                val membership = membershipSnapshot.documents[0]
-                membership.getString("appPath") shouldBe appPath
-                membership.getString("groupId") shouldBe groupId
+                members shouldHaveSize 1
+                members shouldContain appPath
             }
 
             test("should add multiple apps to same group") {
                 val appPath2 = "com.example.anotherapp"
                 val addAppRequest = """
                     {
-                        "instanceId": "$instanceId",
+                        "instanceId": "$deviceId",
                         "appPath": "$appPath2"
                     }
                 """.trimIndent()
@@ -478,22 +454,19 @@ class BffAppGroupsControllerIntegrationSpec : FunSpec() {
                     .andExpect(status().isOk)
                     .andExpect(jsonPath("$.success").value(true))
 
-                val membershipSnapshot = firestore.collection("users")
-                    .document(testUsername)
-                    .collection("instances")
-                    .document(instanceId.toString())
-                    .collection("appGroupMemberships")
-                    .whereEqualTo("groupId", groupId)
-                    .get()
-                    .get()
+                val appGroupRef = appGroupRepository.get(userRef, groupId!!)!!
+                val deviceRef = dataRepository.findInstance(deviceId)!!
+                val members = appGroupRepository.getMembers(appGroupRef, deviceRef)
 
-                membershipSnapshot.documents shouldHaveSize 2
+                members shouldHaveSize 2
+                members shouldContain appPath
+                members shouldContain appPath2
             }
 
             test("should redirect to login page for unauthenticated request") {
                 val addAppRequest = """
                     {
-                        "instanceId": "$instanceId",
+                        "instanceId": "$deviceId",
                         "appPath": "com.example.test"
                     }
                 """.trimIndent()
@@ -510,7 +483,6 @@ class BffAppGroupsControllerIntegrationSpec : FunSpec() {
 
         context("DELETE /bff/app-groups/{groupId}/apps/{appPath} - remove app from group") {
             var groupId: String? = null
-            val instanceId = sharedInstanceId
             val appPath = "com.example.testapp"
 
             test("should get group ID for removal tests") {
@@ -530,52 +502,38 @@ class BffAppGroupsControllerIntegrationSpec : FunSpec() {
             }
 
             test("should verify app exists in group before removal") {
-                val membershipSnapshot = firestore.collectionGroup("appGroupMemberships")
-                    .whereEqualTo("username", testUsername)
-                    .whereEqualTo("groupId", groupId)
-                    .whereEqualTo("appPath", appPath)
-                    .get()
-                    .get()
+                val appGroup = appGroupRepository.get(userRef, groupId!!)!!
+                val device = dataRepository.findInstance(deviceId)!!
+                val members = appGroupRepository.getMembers(appGroup, device)
 
-                membershipSnapshot.documents shouldHaveSize 1
+                members shouldHaveSize 2
+                members shouldContain appPath
+                members shouldContain "com.example.anotherapp"
             }
 
             test("should remove app from group successfully") {
                 mockMvc.perform(
                     delete("/bff/app-groups/$groupId/apps/$appPath")
                         .with(SecurityMockMvcRequestPostProcessors.user(testUsername))
-                        .param("instanceId", instanceId.toString())
+                        .param("instanceId", deviceId.toString())
                 )
                     .andExpect(status().isOk)
                     .andExpect(jsonPath("$.success").value(true))
             }
 
             test("should verify app membership is removed from database") {
-                val membershipSnapshot = firestore.collectionGroup("appGroupMemberships")
-                    .whereEqualTo("username", testUsername)
-                    .whereEqualTo("groupId", groupId)
-                    .whereEqualTo("appPath", appPath)
-                    .get()
-                    .get()
+                val appGroup = appGroupRepository.get(userRef, groupId!!)!!
+                val device = dataRepository.findInstance(deviceId)!!
+                val members = appGroupRepository.getMembers(appGroup, device)
 
-                membershipSnapshot.documents.shouldBeEmpty()
-            }
-
-            test("should verify other app still exists in group") {
-                val membershipSnapshot = firestore.collectionGroup("appGroupMemberships")
-                    .whereEqualTo("username", testUsername)
-                    .whereEqualTo("groupId", groupId)
-                    .get()
-                    .get()
-
-                membershipSnapshot.documents shouldHaveSize 1
-                membershipSnapshot.documents[0].getString("appPath") shouldBe "com.example.anotherapp"
+                members shouldHaveSize 1
+                members shouldContain "com.example.anotherapp"
             }
 
             test("should redirect to login page for unauthenticated request") {
                 mockMvc.perform(
                     delete("/bff/app-groups/$groupId/apps/$appPath")
-                        .param("instanceId", instanceId.toString())
+                        .param("instanceId", deviceId.toString())
                 )
                     .andExpect(status().is3xxRedirection)
                     .andExpect(header().string("Location", containsString("/gui/login.html")))
@@ -680,27 +638,24 @@ class BffAppGroupsControllerIntegrationSpec : FunSpec() {
             }
 
             test("verify groups are isolated in database") {
-                val user1Groups = firestore.collection("users")
-                    .document(user1Username)
-                    .collection("appGroups")
-                    .get()
-                    .get()
+                val user1Ref = usersRepository.get(user1Username)!!
+                val user1AppGroupNames = appGroupRepository.getAll(user1Ref)
+                    .map { appGroupRepository.fetchDetails(it) }
+                    .map { it.name }
+                val user2Ref = usersRepository.get(user2Username)!!
+                val user2AppGroupNames = appGroupRepository.getAll(user2Ref)
+                    .map { appGroupRepository.fetchDetails(it) }
+                    .map { it.name }
 
-                val user2Groups = firestore.collection("users")
-                    .document(user2Username)
-                    .collection("appGroups")
-                    .get()
-                    .get()
-
-                user1Groups.documents shouldHaveSize 1
-                user2Groups.documents shouldHaveSize 1
-                user1Groups.documents[0].getString("name") shouldBe "User1 Group"
-                user2Groups.documents[0].getString("name") shouldBe "User2 Group"
+                user1AppGroupNames shouldHaveSize 1
+                user2AppGroupNames shouldHaveSize 1
+                user1AppGroupNames shouldContain  "User1 Group"
+                user2AppGroupNames shouldContain  "User2 Group"
             }
 
             test("cleanup - delete test users") {
                 listOf(user1Username, user2Username).forEach { username ->
-                    firestore.collection("users").document(username).delete().get()
+                    usersRepository.delete(usersRepository.get(username)!!)
                 }
             }
         }
@@ -788,10 +743,6 @@ class BffAppGroupsControllerIntegrationSpec : FunSpec() {
 
                 val response = objectMapper.readTree(result.response.getContentAsString(Charsets.UTF_8))
                 response.get("group").get("name").asText() shouldBe unicodeName
-            }
-
-            test("cleanup - delete test user") {
-                firestore.collection("users").document(testUsername).delete().get()
             }
         }
     }

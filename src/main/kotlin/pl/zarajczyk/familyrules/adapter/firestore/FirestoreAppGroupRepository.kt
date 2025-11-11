@@ -98,7 +98,7 @@ class FirestoreAppGroupRepository(
     ): DocumentReference {
         val deviceId = dataRepository.getInstance(deviceRef).id.toString()
         val ref = (appGroupRef as FirestoreAppGroupRef).ref
-            .collection("membership")
+            .collection("members")
             .document(deviceId)
         return ref
     }
