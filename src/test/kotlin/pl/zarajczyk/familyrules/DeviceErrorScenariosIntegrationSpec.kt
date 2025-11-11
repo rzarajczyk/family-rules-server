@@ -4,8 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.google.cloud.firestore.Firestore
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.extensions.spring.SpringExtension
-import io.kotest.matchers.shouldBe
-import io.kotest.matchers.shouldNotBe
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
@@ -20,7 +18,7 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import org.testcontainers.gcloud.FirestoreEmulatorContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
-import pl.zarajczyk.familyrules.domain.DataRepository
+import pl.zarajczyk.familyrules.domain.DevicesRepository
 import java.util.*
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -39,7 +37,7 @@ class DeviceErrorScenariosIntegrationSpec : FunSpec() {
     private lateinit var firestore: Firestore
 
     @Autowired
-    private lateinit var dataRepository: DataRepository
+    private lateinit var devicesRepository: DevicesRepository
 
     @Autowired
     private lateinit var objectMapper: ObjectMapper

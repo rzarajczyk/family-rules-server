@@ -29,7 +29,7 @@ import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import pl.zarajczyk.familyrules.domain.AccessLevel
 import pl.zarajczyk.familyrules.domain.AppGroupRepository
-import pl.zarajczyk.familyrules.domain.DataRepository
+import pl.zarajczyk.familyrules.domain.DevicesRepository
 import pl.zarajczyk.familyrules.domain.DeviceId
 import pl.zarajczyk.familyrules.domain.UserRef
 import pl.zarajczyk.familyrules.domain.UsersRepository
@@ -56,7 +56,7 @@ class BffAppGroupsControllerIntegrationSpec : FunSpec() {
     private lateinit var usersRepository: UsersRepository
 
     @Autowired
-    private lateinit var dataRepository: DataRepository
+    private lateinit var devicesRepository: DevicesRepository
 
     companion object {
         @Container
@@ -80,11 +80,11 @@ class BffAppGroupsControllerIntegrationSpec : FunSpec() {
 
         beforeSpec {
             userRef = usersRepository.createUser(testUsername, "pass", AccessLevel.PARENT)
-            deviceId = dataRepository.setupNewInstance(testUsername, "Test instance", "TEST").instanceId
+            deviceId = devicesRepository.setupNewInstance(testUsername, "Test instance", "TEST").instanceId
         }
 
         afterSpec {
-            dataRepository.deleteInstance(dataRepository.findInstance(deviceId)!!)
+            devicesRepository.delete(devicesRepository.get(deviceId)!!)
             usersRepository.delete(userRef)
         }
 
@@ -429,7 +429,7 @@ class BffAppGroupsControllerIntegrationSpec : FunSpec() {
 
             test("should verify app membership exists in database") {
                 val appGroupRef = appGroupRepository.get(userRef, groupId!!)!!
-                val deviceRef = dataRepository.findInstance(deviceId)!!
+                val deviceRef = devicesRepository.get(deviceId)!!
                 val members = appGroupRepository.getMembers(appGroupRef, deviceRef)
 
                 members shouldHaveSize 1
@@ -455,7 +455,7 @@ class BffAppGroupsControllerIntegrationSpec : FunSpec() {
                     .andExpect(jsonPath("$.success").value(true))
 
                 val appGroupRef = appGroupRepository.get(userRef, groupId!!)!!
-                val deviceRef = dataRepository.findInstance(deviceId)!!
+                val deviceRef = devicesRepository.get(deviceId)!!
                 val members = appGroupRepository.getMembers(appGroupRef, deviceRef)
 
                 members shouldHaveSize 2
@@ -503,7 +503,7 @@ class BffAppGroupsControllerIntegrationSpec : FunSpec() {
 
             test("should verify app exists in group before removal") {
                 val appGroup = appGroupRepository.get(userRef, groupId!!)!!
-                val device = dataRepository.findInstance(deviceId)!!
+                val device = devicesRepository.get(deviceId)!!
                 val members = appGroupRepository.getMembers(appGroup, device)
 
                 members shouldHaveSize 2
@@ -523,7 +523,7 @@ class BffAppGroupsControllerIntegrationSpec : FunSpec() {
 
             test("should verify app membership is removed from database") {
                 val appGroup = appGroupRepository.get(userRef, groupId!!)!!
-                val device = dataRepository.findInstance(deviceId)!!
+                val device = devicesRepository.get(deviceId)!!
                 val members = appGroupRepository.getMembers(appGroup, device)
 
                 members shouldHaveSize 1

@@ -12,14 +12,14 @@ import org.springframework.security.authentication.BadCredentialsException
 import org.springframework.security.core.GrantedAuthority
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.web.filter.GenericFilterBean
-import pl.zarajczyk.familyrules.domain.DataRepository
+import pl.zarajczyk.familyrules.domain.DevicesRepository
 import pl.zarajczyk.familyrules.domain.InstanceId
 import pl.zarajczyk.familyrules.domain.decodeBasicAuth
 import java.time.Instant
 import java.util.concurrent.ConcurrentHashMap
 
 class ApiV2KeyAuthFilter(
-    private val dataRepository: DataRepository,
+    private val devicesRepository: DevicesRepository,
     private val excludedUris: Set<String>
 ) : GenericFilterBean() {
     
@@ -84,7 +84,7 @@ class ApiV2KeyAuthFilter(
         }
 
         cleanupExpiredEntries()
-        val validatedInstanceId = dataRepository.validateInstanceToken(instanceId, auth.pass)
+        val validatedInstanceId = devicesRepository.validateInstanceToken(instanceId, auth.pass)
         return if (validatedInstanceId != null) {
             logger.info("Instance ≪${validatedInstanceId}≫ validated successfully using the database")
             cacheValidationResult(cacheKey, instanceId)

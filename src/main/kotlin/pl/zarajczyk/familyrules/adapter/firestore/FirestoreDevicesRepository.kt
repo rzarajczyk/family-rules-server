@@ -14,10 +14,10 @@ import pl.zarajczyk.familyrules.gui.bff.SchedulePacker
 import java.util.*
 
 @Service
-class FirestoreDataRepository(
+class FirestoreDevicesRepository(
     private val firestore: Firestore,
     private val schedulePacker: SchedulePacker
-) : DataRepository {
+) : DevicesRepository {
 
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -77,7 +77,7 @@ class FirestoreDataRepository(
         return NewInstanceDto(instanceId, instanceToken)
     }
 
-    override fun findInstances(username: String): List<InstanceRef> =
+    override fun getAll(username: String): List<InstanceRef> =
         firestore.collection("users")
             .document(username)
             .collection("instances")
@@ -88,7 +88,7 @@ class FirestoreDataRepository(
             .documents
             .map { FirestoreDeviceRef(it) }
 
-    override fun findInstance(instanceId: InstanceId): InstanceRef? =
+    override fun get(instanceId: InstanceId): InstanceRef? =
         firestore.collectionGroup("instances")
             .whereEqualTo("instanceId", instanceId.toString())
             .whereEqualTo("deleted", false)
@@ -106,7 +106,7 @@ class FirestoreDataRepository(
         )
     }
 
-    override fun getInstance(instanceRef: InstanceRef): InstanceDto {
+    override fun fetchDetails(instanceRef: InstanceRef): InstanceDto {
         val doc = (instanceRef as FirestoreDeviceRef).document
 
         return InstanceDto(
@@ -147,7 +147,7 @@ class FirestoreDataRepository(
         ).get()
     }
 
-    override fun deleteInstance(instance: InstanceRef) {
+    override fun delete(instance: InstanceRef) {
         val doc = (instance as FirestoreDeviceRef).document
 
         doc.reference.update("deleted", true).get()

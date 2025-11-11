@@ -8,11 +8,11 @@ import org.springframework.web.bind.annotation.RestController
 import pl.zarajczyk.familyrules.domain.*
 
 @RestController
-class V2ClientInfoController(private val dataRepository: DataRepository) {
+class V2ClientInfoController(private val devicesRepository: DevicesRepository) {
     @PostMapping(value = ["/api/v2/launch", "/api/v2/client-info"])
     fun clientInfo(@RequestBody request: ClientInfoRequest, authentication: Authentication): ClientInfoResponse {
-        val instanceRef = dataRepository.findAuthenticatedDevice(authentication)
-        dataRepository.updateClientInformation(
+        val instanceRef = devicesRepository.findAuthenticatedDevice(authentication)
+        devicesRepository.updateClientInformation(
             instance = instanceRef,
             clientInfo = ClientInfoDto(
                 version = request.version,

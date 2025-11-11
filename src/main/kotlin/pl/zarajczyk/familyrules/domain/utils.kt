@@ -7,9 +7,9 @@ import java.security.MessageDigest
 import java.util.*
 
 import org.springframework.security.core.Authentication
-fun DataRepository.findDeviceOrThrow(id: DeviceId) = this.findInstance(id) ?: throw RuntimeException("Device ≪$id≫ not found")
+fun DevicesRepository.findDeviceOrThrow(id: DeviceId) = this.get(id) ?: throw RuntimeException("Device ≪$id≫ not found")
 
-fun DataRepository.findAuthenticatedDevice(authentication: Authentication) = findDeviceOrThrow(authentication.principal as DeviceId)
+fun DevicesRepository.findAuthenticatedDevice(authentication: Authentication) = findDeviceOrThrow(authentication.principal as DeviceId)
 
 fun String?.decodeBasicAuth(): BasicAuth {
     if (this == null || this.lowercase().startsWith("Basic"))

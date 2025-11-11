@@ -4,8 +4,8 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Primary
-import pl.zarajczyk.familyrules.adapter.firestore.FirestoreDataRepository
-import pl.zarajczyk.familyrules.domain.DataRepository
+import pl.zarajczyk.familyrules.adapter.firestore.FirestoreDevicesRepository
+import pl.zarajczyk.familyrules.domain.DevicesRepository
 
 @Configuration
 class DataRepositoryConfiguration {
@@ -16,8 +16,8 @@ class DataRepositoryConfiguration {
     @Bean
     @Primary
     fun dataRepository(
-        firestoreDataRepository: FirestoreDataRepository
-    ): DataRepository {
+        firestoreDataRepository: FirestoreDevicesRepository
+    ): DevicesRepository {
         return when (databaseType.lowercase()) {
             "firestore" -> firestoreDataRepository
             else -> throw IllegalArgumentException("Unsupported database type: $databaseType. Only 'firestore' is supported.")

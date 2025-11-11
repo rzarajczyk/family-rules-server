@@ -12,7 +12,7 @@ import java.time.DayOfWeek
 
 @RestController
 class BffOverviewController(
-    private val dbConnector: DataRepository,
+    private val dbConnector: DevicesRepository,
     private val scheduleUpdater: ScheduleUpdater,
     private val stateService: StateService,
     private val deviceStateService: DeviceStateService,
@@ -35,12 +35,12 @@ class BffOverviewController(
         authentication: Authentication,
     ): StatusResponse = try {
         val day = LocalDate.parse(date)
-        val instances = dbConnector.findInstances(authentication.name)
+        val instances = dbConnector.getAll(authentication.name)
         val username = authentication.name
         StatusResponse(instances.map { deviceRef ->
             val screenTimeDto = dbConnector.getScreenTimes(deviceRef, day)
             val state = stateService.getDeviceState(deviceRef)
-            val instance = dbConnector.getInstance(deviceRef)
+            val instance = dbConnector.fetchDetails(deviceRef)
             val availableStates = dbConnector.getAvailableDeviceStateTypes(deviceRef)
             val appGroups = usersService.withUserContext(username) { user ->
                 appGroupService.listAllAppGroups(user)
@@ -106,7 +106,7 @@ class BffOverviewController(
         @RequestParam("instanceId") instanceId: InstanceId
     ): InstanceInfoResponse {
         val instanceRef = dbConnector.findDeviceOrThrow(instanceId)
-        val instance = dbConnector.getInstance(instanceRef)
+        val instance = dbConnector.fetchDetails(instanceRef)
         return InstanceInfoResponse(
             instanceId = instanceId,
             instanceName = instance.name,
@@ -122,7 +122,7 @@ class BffOverviewController(
         @RequestParam("instanceId") instanceId: InstanceId
     ): InstanceEditInfo {
         val instanceRef = dbConnector.findDeviceOrThrow(instanceId)
-        val instance = dbConnector.getInstance(instanceRef)
+        val instance = dbConnector.fetchDetails(instanceRef)
         return InstanceEditInfo(
             instanceName = instance.name,
             icon = instance.getIcon()
@@ -156,7 +156,7 @@ class BffOverviewController(
         authentication: Authentication,
     ): ScheduleResponse {
         val instanceRef = dbConnector.findDeviceOrThrow(instanceId)
-        val instance = dbConnector.getInstance(instanceRef)
+        val instance = dbConnector.fetchDetails(instanceRef)
         val availableStates = dbConnector.getAvailableDeviceStateTypes(instanceRef)
         val appGroups = usersService.withUserContext(authentication.name) { user ->
             appGroupService.listAllAppGroups(user).map { it.get() }
@@ -207,7 +207,7 @@ class BffOverviewController(
         @RequestBody data: AddPeriodRequest
     ) {
         val instanceRef = dbConnector.findDeviceOrThrow(instanceId)
-        val instance = dbConnector.getInstance(instanceRef)
+        val instance = dbConnector.fetchDetails(instanceRef)
         val schedule = instance.schedule
         val period = PeriodDto(
             fromSeconds = (data.from.hour * 3600 + data.from.minute * 60).toLong(),
@@ -243,7 +243,7 @@ class BffOverviewController(
         authentication: Authentication,
     ): InstanceStateResponse {
         val instanceRef = dbConnector.findDeviceOrThrow(instanceId)
-        val instance = dbConnector.getInstance(instanceRef)
+        val instance = dbConnector.fetchDetails(instanceRef)
         val appGroups = usersService.withUserContext(authentication.name) { user ->
             appGroupService.listAllAppGroups(user).map { it.get() }
         }
@@ -276,7 +276,7 @@ class BffOverviewController(
         @RequestParam("instanceId") instanceId: InstanceId
     ) {
         val instanceRef = dbConnector.findDeviceOrThrow(instanceId)
-        dbConnector.deleteInstance(instanceRef)
+        dbConnector.delete(instanceRef)
     }
 
     @PostMapping("/bff/instance-associated-group")

@@ -11,7 +11,7 @@ import pl.zarajczyk.familyrules.domain.*
 @Service
 class FirestoreAppGroupRepository(
     private val firestore: Firestore,
-    private val dataRepository: DataRepository
+    private val devicesRepository: DevicesRepository
 ) : AppGroupRepository {
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -96,7 +96,7 @@ class FirestoreAppGroupRepository(
         appGroupRef: AppGroupRef,
         deviceRef: DeviceRef
     ): DocumentReference {
-        val deviceId = dataRepository.getInstance(deviceRef).id.toString()
+        val deviceId = devicesRepository.fetchDetails(deviceRef).id.toString()
         val ref = (appGroupRef as FirestoreAppGroupRef).ref
             .collection("members")
             .document(deviceId)

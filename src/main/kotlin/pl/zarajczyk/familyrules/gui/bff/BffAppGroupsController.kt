@@ -1,7 +1,5 @@
 package pl.zarajczyk.familyrules.gui.bff
 
-import kotlinx.datetime.Clock
-import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
 import org.springframework.security.core.Authentication
 import org.springframework.web.bind.annotation.*
@@ -13,7 +11,7 @@ class BffAppGroupsController(
     private val usersService: UsersService,
     private val deviceStateService: DeviceStateService,
     private val appGroupService: AppGroupService,
-    private val dataRepository: DataRepository
+    private val devicesRepository: DevicesRepository
 ) {
 
     @PostMapping("/bff/app-groups")
@@ -69,7 +67,7 @@ class BffAppGroupsController(
     ): AddAppToGroupResponse =
         usersService.withUserContext(authentication.name) { user ->
             appGroupService.withAppGroupContext(user, groupId) { appGroup ->
-                val deviceRef = dataRepository.findDeviceOrThrow(request.instanceId)
+                val deviceRef = devicesRepository.findDeviceOrThrow(request.instanceId)
                 appGroup.addMember(deviceRef, request.appPath)
                 AddAppToGroupResponse(true)
             }
@@ -84,7 +82,7 @@ class BffAppGroupsController(
     ): RemoveAppFromGroupResponse =
         usersService.withUserContext(authentication.name) { user ->
             appGroupService.withAppGroupContext(user, groupId) { appGroup ->
-                val deviceRef = dataRepository.findDeviceOrThrow(instanceId)
+                val deviceRef = devicesRepository.findDeviceOrThrow(instanceId)
                 appGroup.removeMember(deviceRef, appPath)
                 RemoveAppFromGroupResponse(true)
             }

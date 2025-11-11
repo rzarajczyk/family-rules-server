@@ -9,16 +9,16 @@ import pl.zarajczyk.familyrules.domain.*
 
 @RestController
 class V2AppGroupController(
-    private val dataRepository: DataRepository,
+    private val devicesRepository: DevicesRepository,
     private val appGroupService: AppGroupService,
     private val usersService: UsersService
 ) {
     @PostMapping("/api/v2/group-membership-for-device")
     fun getMembership(@RequestBody request: MembershipRequest, authentication: Authentication): MembershipResponse {
-        val instanceRef = dataRepository.findAuthenticatedDevice(authentication)
-        val instance = dataRepository.getInstance(instanceRef)
+        val instanceRef = devicesRepository.findAuthenticatedDevice(authentication)
+        val instance = devicesRepository.fetchDetails(instanceRef)
 
-        return usersService.withUserContext(dataRepository.getOwner(instanceRef)) { user ->
+        return usersService.withUserContext(devicesRepository.getOwner(instanceRef)) { user ->
             appGroupService.withAppGroupContext(user, request.appGroupId) { appGroup ->
                 val appTechnicalIds = appGroup.getMembers(instanceRef)
                 MembershipResponse(
@@ -40,7 +40,7 @@ class V2AppGroupController(
 
     @PostMapping("/api/v2/groups-usage-report")
     fun getAppGroupsUsageReport(authentication: Authentication): AppGroupsUsageReportResponse {
-        val instanceRef = dataRepository.findAuthenticatedDevice(authentication)
+        val instanceRef = devicesRepository.findAuthenticatedDevice(authentication)
 
         // Get username from the instance document path
         // The path is /users/{username}/instances/{instanceId}

@@ -22,7 +22,7 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import org.testcontainers.gcloud.FirestoreEmulatorContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
-import pl.zarajczyk.familyrules.domain.DataRepository
+import pl.zarajczyk.familyrules.domain.DevicesRepository
 import pl.zarajczyk.familyrules.domain.InstanceRef
 import pl.zarajczyk.familyrules.domain.today
 import java.util.*
@@ -43,7 +43,7 @@ class DeviceHappyPathIntegrationSpec : FunSpec() {
     private lateinit var firestore: Firestore
 
     @Autowired
-    private lateinit var dataRepository: DataRepository
+    private lateinit var devicesRepository: DevicesRepository
 
     @Autowired
     private lateinit var objectMapper: ObjectMapper
@@ -196,9 +196,9 @@ class DeviceHappyPathIntegrationSpec : FunSpec() {
 
         test("step 7 - should verify first report data in database") {
             val today = today()
-            instanceRef = dataRepository.findInstance(UUID.fromString(instanceId))!!
+            instanceRef = devicesRepository.get(UUID.fromString(instanceId))!!
             
-            val firstScreenTime = dataRepository.getScreenTimes(instanceRef, today)
+            val firstScreenTime = devicesRepository.getScreenTimes(instanceRef, today)
             firstScreenTime.screenTimeSeconds shouldBe 600L
             firstScreenTime.applicationsSeconds["com.example.app1"] shouldBe 400L
             firstScreenTime.applicationsSeconds["com.example.app2"] shouldBe 200L
@@ -236,7 +236,7 @@ class DeviceHappyPathIntegrationSpec : FunSpec() {
         test("step 9 - should verify second report overwrote first report in database") {
             val today = today()
             
-            val secondScreenTime = dataRepository.getScreenTimes(instanceRef, today)
+            val secondScreenTime = devicesRepository.getScreenTimes(instanceRef, today)
             secondScreenTime.screenTimeSeconds shouldBe 1200L
             secondScreenTime.applicationsSeconds["com.example.app1"] shouldBe 800L
             secondScreenTime.applicationsSeconds["com.example.app2"] shouldBe 400L

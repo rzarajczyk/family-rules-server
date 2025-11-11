@@ -5,7 +5,7 @@ import org.springframework.stereotype.Service
 import java.util.UUID
 
 @Service
-class AppGroupService(private val dataRepository: DataRepository, private val appGroupRepository: AppGroupRepository) {
+class AppGroupService(private val devicesRepository: DevicesRepository, private val appGroupRepository: AppGroupRepository) {
     fun <T> withAppGroupContext(user: User, groupId: String, action: (user: AppGroup) -> T): T {
         val ref = appGroupRepository.get(user.asRef(), groupId) ?: throw AppGroupNotFoundException(groupId)
         val user = RefBasedAppGroup(ref, appGroupRepository)
@@ -33,7 +33,7 @@ class AppGroupService(private val dataRepository: DataRepository, private val ap
         user: User,
         day: LocalDate
     ): List<AppGroupReport> {
-        val devices = dataRepository.findInstances(user.get().username)
+        val devices = devicesRepository.getAll(user.get().username)
         val appGroups = appGroupRepository.getAll(user.asRef())
 
         val groupStats = appGroups.map { appGroupRef ->
@@ -44,8 +44,8 @@ class AppGroupService(private val dataRepository: DataRepository, private val ap
             val appDetails = mutableListOf<AppGroupAppReport>()
 
             devices.forEach { deviceRef ->
-                val instance = dataRepository.getInstance(deviceRef)
-                val screenTimeDto = dataRepository.getScreenTimes(deviceRef, day)
+                val instance = devicesRepository.fetchDetails(deviceRef)
+                val screenTimeDto = devicesRepository.getScreenTimes(deviceRef, day)
                 val appTechnicalIds = appGroupRepository.getMembers(appGroupRef, deviceRef)
 
                 if (appTechnicalIds.isNotEmpty()) {

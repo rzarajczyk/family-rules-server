@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RestController
 import pl.zarajczyk.familyrules.domain.*
 
 @Component
-class V2ReportController(private val dataRepository: DataRepository, private val stateService: StateService) {
+class V2ReportController(private val devicesRepository: DevicesRepository, private val stateService: StateService) {
 
     @RestController
     inner class ReportRestController {
@@ -19,8 +19,8 @@ class V2ReportController(private val dataRepository: DataRepository, private val
             @RequestBody report: ReportRequest,
             authentication: Authentication,
         ): ReportResponse {
-            val instanceRef = dataRepository.findAuthenticatedDevice(authentication)
-            dataRepository.saveReport(
+            val instanceRef = devicesRepository.findAuthenticatedDevice(authentication)
+            devicesRepository.saveReport(
                 instance = instanceRef,
                 day = today(),
                 screenTimeSeconds = report.screenTimeSeconds,
