@@ -1,6 +1,8 @@
 package pl.zarajczyk.familyrules.domain
 
 import org.springframework.stereotype.Service
+import pl.zarajczyk.familyrules.domain.port.UserRef
+import pl.zarajczyk.familyrules.domain.port.UsersRepository
 
 @Service
 class UsersService(private val usersRepository: UsersRepository) {
@@ -33,7 +35,7 @@ class UsersService(private val usersRepository: UsersRepository) {
 interface User {
     fun asRef(): UserRef
 
-    fun get(): UserDto
+    fun get(): UserDetails
 
     fun delete()
 
@@ -49,8 +51,10 @@ class RefBasedUser(
 ) : User {
     override fun asRef(): UserRef = userRef
 
-    override fun get(): UserDto {
-        return usersRepository.fetchDetails(userRef)
+    override fun get(): UserDetails {
+        return usersRepository.fetchDetails(userRef).let {
+            UserDetails(it.username, it.passwordSha256, it.accessLevel)
+        }
     }
 
     override fun delete() {
@@ -70,3 +74,9 @@ class RefBasedUser(
 
 class UserNotFoundException(username: String) : RuntimeException("User $username not found")
 class InvalidPassword : RuntimeException("Invalid password")
+
+data class UserDetails(
+    val username: String,
+    val passwordSha256: String,
+    val accessLevel: AccessLevel = AccessLevel.ADMIN
+)

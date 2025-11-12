@@ -21,8 +21,8 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import org.testcontainers.gcloud.FirestoreEmulatorContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
-import pl.zarajczyk.familyrules.domain.DevicesRepository
-import pl.zarajczyk.familyrules.domain.UsersRepository
+import pl.zarajczyk.familyrules.domain.port.DevicesRepository
+import pl.zarajczyk.familyrules.domain.port.UsersRepository
 import pl.zarajczyk.familyrules.domain.InstanceRef
 import pl.zarajczyk.familyrules.domain.today
 import java.util.*

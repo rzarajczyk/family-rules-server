@@ -6,8 +6,8 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException
 import org.springframework.security.provisioning.UserDetailsManager
 import org.springframework.stereotype.Service
 import pl.zarajczyk.familyrules.domain.AccessLevel
-import pl.zarajczyk.familyrules.domain.UserDto
-import pl.zarajczyk.familyrules.domain.UsersRepository
+import pl.zarajczyk.familyrules.domain.port.UserDetailsDto
+import pl.zarajczyk.familyrules.domain.port.UsersRepository
 
 @Service
 class SpringSecurityUserDetailsManager(private val usersRepository: UsersRepository) : UserDetailsManager {
@@ -44,7 +44,7 @@ class SpringSecurityUserDetailsManager(private val usersRepository: UsersReposit
     }
 }
 
-data class DtoBasedUserDetails(private val dto: UserDto) : UserDetails {
+data class DtoBasedUserDetails(private val dto: UserDetailsDto) : UserDetails {
     override fun getAuthorities(): Collection<GrantedAuthority> = listOf(
         AccessLevelAuthority(dto.accessLevel)
     )

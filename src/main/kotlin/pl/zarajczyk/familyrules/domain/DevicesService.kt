@@ -1,6 +1,8 @@
 package pl.zarajczyk.familyrules.domain
 
 import org.springframework.stereotype.Service
+import pl.zarajczyk.familyrules.domain.port.DevicesRepository
+import pl.zarajczyk.familyrules.domain.port.UsersRepository
 
 @Service
 class DevicesService(

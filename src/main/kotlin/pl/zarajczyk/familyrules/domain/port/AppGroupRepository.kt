@@ -1,4 +1,7 @@
-package pl.zarajczyk.familyrules.domain
+package pl.zarajczyk.familyrules.domain.port
+
+import pl.zarajczyk.familyrules.domain.AppGroupDto
+import pl.zarajczyk.familyrules.domain.DeviceRef
 
 interface AppGroupRepository {
     fun createAppGroup(userRef: UserRef, groupId: String, name: String, color: String): AppGroupRef

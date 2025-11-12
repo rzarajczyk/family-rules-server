@@ -12,7 +12,7 @@ import org.springframework.security.authentication.BadCredentialsException
 import org.springframework.security.core.GrantedAuthority
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.web.filter.GenericFilterBean
-import pl.zarajczyk.familyrules.domain.DevicesRepository
+import pl.zarajczyk.familyrules.domain.port.DevicesRepository
 import pl.zarajczyk.familyrules.domain.InstanceId
 import pl.zarajczyk.familyrules.domain.decodeBasicAuth
 import java.time.Instant

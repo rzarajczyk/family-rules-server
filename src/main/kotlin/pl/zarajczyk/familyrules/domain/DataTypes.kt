@@ -16,12 +16,6 @@ enum class AccessLevel {
     PARENT
 }
 
-data class UserDto(
-    val username: String,
-    val passwordSha256: String,
-    val accessLevel: AccessLevel = AccessLevel.ADMIN
-)
-
 data class NewDeviceDto(
     val instanceId: InstanceId,
     val token: String

@@ -4,6 +4,7 @@ import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.springframework.stereotype.Service
+import pl.zarajczyk.familyrules.domain.port.DevicesRepository
 
 @Service
 class StateService(private val devicesRepository: DevicesRepository) {

@@ -1,7 +1,7 @@
 package pl.zarajczyk.familyrules
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import pl.zarajczyk.familyrules.domain.UsersRepository
+import pl.zarajczyk.familyrules.domain.port.UsersRepository
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.extensions.spring.SpringExtension
 import io.kotest.matchers.shouldBe

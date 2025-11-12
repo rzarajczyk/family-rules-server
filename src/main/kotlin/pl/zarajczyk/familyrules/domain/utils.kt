@@ -7,6 +7,8 @@ import java.security.MessageDigest
 import java.util.*
 
 import org.springframework.security.core.Authentication
+import pl.zarajczyk.familyrules.domain.port.DevicesRepository
+
 fun DevicesRepository.findDeviceOrThrow(id: DeviceId) = this.get(id) ?: throw RuntimeException("Device ≪$id≫ not found")
 
 fun DevicesRepository.findAuthenticatedDevice(authentication: Authentication) = findDeviceOrThrow(authentication.principal as DeviceId)

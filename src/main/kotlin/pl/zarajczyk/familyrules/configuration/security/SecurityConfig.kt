@@ -11,7 +11,7 @@ import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.security.provisioning.UserDetailsManager
 import org.springframework.security.web.SecurityFilterChain
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter
-import pl.zarajczyk.familyrules.domain.DevicesRepository
+import pl.zarajczyk.familyrules.domain.port.DevicesRepository
 
 @Configuration
 @EnableWebSecurity

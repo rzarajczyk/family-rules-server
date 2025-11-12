@@ -2,6 +2,10 @@ package pl.zarajczyk.familyrules.domain
 
 import kotlinx.datetime.LocalDate
 import org.springframework.stereotype.Service
+import pl.zarajczyk.familyrules.domain.port.AppGroupRef
+import pl.zarajczyk.familyrules.domain.port.AppGroupRepository
+import pl.zarajczyk.familyrules.domain.port.AppTechnicalId
+import pl.zarajczyk.familyrules.domain.port.DevicesRepository
 import java.util.UUID
 
 @Service
