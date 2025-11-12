@@ -13,6 +13,7 @@ interface DevicesRepository {
     fun fetchDetails(instance: DeviceRef): DeviceDto
     fun updateInstance(instance: DeviceRef, update: UpdateInstanceDto)
     fun delete(instance: DeviceRef)
+
     fun setInstanceSchedule(instance: DeviceRef, schedule: WeeklyScheduleDto)
     fun setForcedInstanceState(instance: DeviceRef, state: DeviceStateDto?)
     fun updateClientInformation(instance: DeviceRef, clientInfo: ClientInfoDto)
