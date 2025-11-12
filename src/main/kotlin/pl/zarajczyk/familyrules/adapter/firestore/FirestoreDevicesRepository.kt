@@ -10,7 +10,9 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.springframework.stereotype.Service
 import pl.zarajczyk.familyrules.domain.*
+import pl.zarajczyk.familyrules.domain.port.DeviceRef
 import pl.zarajczyk.familyrules.domain.port.DevicesRepository
+import pl.zarajczyk.familyrules.domain.port.InstanceRef
 import pl.zarajczyk.familyrules.domain.port.UserRef
 import pl.zarajczyk.familyrules.gui.bff.SchedulePacker
 import java.util.*

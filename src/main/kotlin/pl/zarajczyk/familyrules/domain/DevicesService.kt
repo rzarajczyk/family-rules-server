@@ -24,3 +24,6 @@ class DevicesService(
         return devicesRepository.createNewDevice(userRef, deviceName, clientType)
     }
 }
+
+class IllegalInstanceName(val instanceName: String) : RuntimeException("Instance $instanceName already exists")
+class InstanceAlreadyExists(val instanceName: String) : RuntimeException("Instance $instanceName has incorrect name")

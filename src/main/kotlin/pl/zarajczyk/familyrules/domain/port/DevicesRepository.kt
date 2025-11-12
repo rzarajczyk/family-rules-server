@@ -1,17 +1,7 @@
 package pl.zarajczyk.familyrules.domain.port
 
 import kotlinx.datetime.LocalDate
-import pl.zarajczyk.familyrules.domain.BasicDeviceDto
-import pl.zarajczyk.familyrules.domain.ClientInfoDto
-import pl.zarajczyk.familyrules.domain.DeviceDto
-import pl.zarajczyk.familyrules.domain.DeviceId
-import pl.zarajczyk.familyrules.domain.DeviceRef
-import pl.zarajczyk.familyrules.domain.DeviceStateDto
-import pl.zarajczyk.familyrules.domain.DeviceStateTypeDto
-import pl.zarajczyk.familyrules.domain.NewDeviceDto
-import pl.zarajczyk.familyrules.domain.ScreenTimeDto
-import pl.zarajczyk.familyrules.domain.UpdateInstanceDto
-import pl.zarajczyk.familyrules.domain.WeeklyScheduleDto
+import pl.zarajczyk.familyrules.domain.*
 
 interface DevicesRepository {
     fun get(id: DeviceId): DeviceRef?
@@ -38,3 +28,6 @@ interface DevicesRepository {
 
     fun getOwner(deviceRef: DeviceRef): UserRef
 }
+
+interface InstanceRef
+typealias DeviceRef = InstanceRef

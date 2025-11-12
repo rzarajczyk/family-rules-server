@@ -10,6 +10,7 @@ import pl.zarajczyk.familyrules.domain.*
 import pl.zarajczyk.familyrules.domain.port.AppGroupDto
 import pl.zarajczyk.familyrules.domain.port.AppGroupRef
 import pl.zarajczyk.familyrules.domain.port.AppGroupRepository
+import pl.zarajczyk.familyrules.domain.port.DeviceRef
 import pl.zarajczyk.familyrules.domain.port.DevicesRepository
 import pl.zarajczyk.familyrules.domain.port.UserRef
 

@@ -3,18 +3,7 @@ package pl.zarajczyk.familyrules.domain
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.Instant
 import kotlinx.serialization.Serializable
-import java.util.*
 
-typealias InstanceId = UUID
-typealias DeviceId = InstanceId
-
-class IllegalInstanceName(val instanceName: String) : RuntimeException("Instance $instanceName already exists")
-class InstanceAlreadyExists(val instanceName: String) : RuntimeException("Instance $instanceName has incorrect name")
-
-enum class AccessLevel {
-    ADMIN,
-    PARENT
-}
 
 data class NewDeviceDto(
     val instanceId: InstanceId,
@@ -111,7 +100,4 @@ data class PeriodDto(
     val toSeconds: Long,
     val deviceState: DeviceStateDto
 )
-
-interface InstanceRef
-typealias DeviceRef = InstanceRef
 
