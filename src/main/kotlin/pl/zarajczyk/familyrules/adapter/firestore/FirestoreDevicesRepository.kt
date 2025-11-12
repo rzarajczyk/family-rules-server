@@ -21,37 +21,35 @@ class FirestoreDevicesRepository(
 
     private val json = Json { ignoreUnknownKeys = true }
 
-    override fun validateInstanceToken(instanceId: InstanceId, instanceToken: String): InstanceId? {
+    override fun validateDeviceToken(deviceId: InstanceId, deviceToken: String): InstanceId? {
         // Find the instance across all users
         val instances = firestore.collectionGroup("instances")
-            .whereEqualTo("instanceId", instanceId.toString())
-            .whereEqualTo("instanceTokenSha256", instanceToken.sha256())
+            .whereEqualTo("instanceId", deviceId.toString())
+            .whereEqualTo("instanceTokenSha256", deviceToken.sha256())
             .whereEqualTo("deleted", false)
             .get()
             .get()
 
-        return if (instances.isEmpty) null else instanceId
+        return if (instances.isEmpty) null else deviceId
     }
 
-    @Throws(IllegalInstanceName::class, InstanceAlreadyExists::class)
-    override fun setupNewInstance(username: String, instanceName: String, clientType: String): NewInstanceDto {
-        if (instanceName.length < 3) {
-            throw IllegalInstanceName(instanceName)
-        }
-
-        // Check if instance name already exists for this user
-        val existingInstances = firestore.collection("users")
-            .document(username)
+    override fun getByName(user: UserRef, deviceName: String): DeviceRef? {
+        return (user as FirestoreUserRef).doc
             .collection("instances")
-            .whereEqualTo("instanceName", instanceName)
+            .whereEqualTo("instanceName", deviceName)
             .whereEqualTo("deleted", false)
             .get()
             .get()
+            ?.documents
+            ?.firstOrNull()
+            ?.let { FirestoreDeviceRef(it) }
+    }
 
-        if (!existingInstances.isEmpty) {
-            throw InstanceAlreadyExists(instanceName)
-        }
-
+    override fun createNewDevice(
+        user: UserRef,
+        instanceName: String,
+        clientType: String
+    ): NewDeviceDto {
         val instanceId = UUID.randomUUID()
         val instanceToken = UUID.randomUUID().toString()
 
@@ -67,16 +65,16 @@ class FirestoreDevicesRepository(
             "createdAt" to Clock.System.now().toString()
         )
 
-        firestore.collection("users")
-            .document(username)
+        (user as FirestoreUserRef).doc
             .collection("instances")
             .document(instanceId.toString())
             .set(instanceData)
             .get()
 
-        return NewInstanceDto(instanceId, instanceToken)
+        return NewDeviceDto(instanceId, instanceToken)
     }
 
+    // TODO: UserRef
     override fun getAll(username: String): List<InstanceRef> =
         firestore.collection("users")
             .document(username)
@@ -98,18 +96,18 @@ class FirestoreDevicesRepository(
             ?.firstOrNull()
             ?.let { FirestoreDeviceRef(it) }
 
-    override fun getInstanceBasicData(instanceRef: InstanceRef): BasicInstanceDto {
+    override fun fetchBasicData(instanceRef: InstanceRef): BasicDeviceDto {
         val doc = (instanceRef as FirestoreDeviceRef).document
-        return BasicInstanceDto(
+        return BasicDeviceDto(
             id = UUID.fromString(doc.getString("instanceId") ?: ""),
             name = doc.getString("instanceName") ?: "",
         )
     }
 
-    override fun fetchDetails(instanceRef: InstanceRef): InstanceDto {
+    override fun fetchDetails(instanceRef: InstanceRef): DeviceDto {
         val doc = (instanceRef as FirestoreDeviceRef).document
 
-        return InstanceDto(
+        return DeviceDto(
             id = UUID.fromString(doc.getString("instanceId") ?: ""),
             name = doc.getString("instanceName") ?: "",
             forcedDeviceState = doc.getString("forcedDeviceState")?.let {
@@ -254,7 +252,6 @@ class FirestoreDevicesRepository(
     }
 
     fun emptyScreenTime() = ScreenTimeDto(0, emptyMap(), Instant.DISTANT_PAST)
-
 
 
     private fun List<DeviceStateTypeDto>.ensureActiveIsPresent(): List<DeviceStateTypeDto> {

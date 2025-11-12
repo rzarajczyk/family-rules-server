@@ -5,12 +5,12 @@ import kotlinx.datetime.LocalDate
 interface DevicesRepository {
     fun get(id: DeviceId): DeviceRef?
     fun getAll(username: String): List<DeviceRef>
+    fun getByName(user: UserRef, deviceName: String): DeviceRef?
     
-    // Instance operations
-    fun validateInstanceToken(instanceId: DeviceId, instanceToken: String): DeviceId?
-    fun setupNewInstance(username: String, instanceName: String, clientType: String): NewInstanceDto
-    fun fetchDetails(instance: DeviceRef): InstanceDto
-    fun getInstanceBasicData(instance: DeviceRef): BasicInstanceDto
+    fun validateDeviceToken(deviceId: DeviceId, deviceToken: String): DeviceId?
+    fun createNewDevice(user: UserRef, instanceName: String, clientType: String): NewDeviceDto
+    fun fetchDetails(instance: DeviceRef): DeviceDto
+    fun fetchBasicData(instance: DeviceRef): BasicDeviceDto
     fun updateInstance(instance: DeviceRef, update: UpdateInstanceDto)
     fun delete(instance: DeviceRef)
     fun setInstanceSchedule(instance: DeviceRef, schedule: WeeklyScheduleDto)

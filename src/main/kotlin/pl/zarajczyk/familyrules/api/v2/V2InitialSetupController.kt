@@ -9,7 +9,7 @@ import pl.zarajczyk.familyrules.domain.*
 @RestController
 class V2InitialSetupController(
     private val usersService: UsersService,
-    private val devicesRepository: DevicesRepository
+    private val devicesService: DevicesService
 ) {
 
     @PostMapping(value = ["/api/v2/register-instance"])
@@ -20,7 +20,7 @@ class V2InitialSetupController(
         val auth = authHeader.decodeBasicAuth()
         usersService.withUserContext(auth.user) { user ->
             user.validatePassword(auth.pass)
-            val result = devicesRepository.setupNewInstance(auth.user, data.instanceName, data.clientType)
+            val result = devicesService.setupNewDevice(auth.user, data.instanceName, data.clientType)
             RegisterInstanceResponse(
                 RegisterInstanceStatus.SUCCESS,
                 instanceId = result.instanceId.toString(),

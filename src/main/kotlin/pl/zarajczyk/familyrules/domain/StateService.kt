@@ -12,7 +12,7 @@ class StateService(private val devicesRepository: DevicesRepository) {
         return getDeviceState(devicesRepository.fetchDetails(instance))
     }
 
-    fun getDeviceState(instance: InstanceDto): CurrentDeviceState {
+    fun getDeviceState(instance: DeviceDto): CurrentDeviceState {
         val automaticState = instance.schedule.getCurrentDeviceState()
         val finalState = instance.forcedDeviceState ?: automaticState
 

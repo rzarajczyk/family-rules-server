@@ -95,7 +95,7 @@ class BffOverviewController(
     private fun DeviceStateDescriptionResponse.isEqualTo(other: DeviceStateDto?) =
         this.deviceState == other?.deviceState && this.extra == other?.extra
 
-    private fun InstanceDto.getIcon() = if (iconType != null && iconData != null) {
+    private fun DeviceDto.getIcon() = if (iconType != null && iconData != null) {
         Icon(type = iconType, data = iconData)
     } else {
         Icon(type = null, data = null)

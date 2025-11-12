@@ -9,7 +9,6 @@ import java.util.*
 @RestController
 class BffAppGroupsController(
     private val usersService: UsersService,
-    private val deviceStateService: DeviceStateService,
     private val appGroupService: AppGroupService,
     private val devicesRepository: DevicesRepository
 ) {

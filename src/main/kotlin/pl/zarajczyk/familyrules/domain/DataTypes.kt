@@ -22,7 +22,7 @@ data class UserDto(
     val accessLevel: AccessLevel = AccessLevel.ADMIN
 )
 
-data class NewInstanceDto(
+data class NewDeviceDto(
     val instanceId: InstanceId,
     val token: String
 )
@@ -33,7 +33,7 @@ data class ScreenTimeDto(
     val updatedAt: Instant
 )
 
-data class InstanceDto(
+data class DeviceDto(
     val id: InstanceId,
     val name: String,
     val forcedDeviceState: DeviceStateDto?,
@@ -48,7 +48,7 @@ data class InstanceDto(
     val associatedAppGroupId: String? = null
 )
 
-data class BasicInstanceDto(
+data class BasicDeviceDto(
     val id: InstanceId,
     val name: String,
 )
@@ -105,7 +105,7 @@ data class AppGroupDto(
 
 data class AppGroupMembershipDto(
     val appPath: String,
-    val instance: BasicInstanceDto,
+    val instance: BasicDeviceDto,
     val groupId: String
 )
 

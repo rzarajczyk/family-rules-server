@@ -27,12 +27,7 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.*
 import org.testcontainers.gcloud.FirestoreEmulatorContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
-import pl.zarajczyk.familyrules.domain.AccessLevel
-import pl.zarajczyk.familyrules.domain.AppGroupRepository
-import pl.zarajczyk.familyrules.domain.DevicesRepository
-import pl.zarajczyk.familyrules.domain.DeviceId
-import pl.zarajczyk.familyrules.domain.UserRef
-import pl.zarajczyk.familyrules.domain.UsersRepository
+import pl.zarajczyk.familyrules.domain.*
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc
@@ -80,7 +75,7 @@ class BffAppGroupsControllerIntegrationSpec : FunSpec() {
 
         beforeSpec {
             userRef = usersRepository.createUser(testUsername, "pass", AccessLevel.PARENT)
-            deviceId = devicesRepository.setupNewInstance(testUsername, "Test instance", "TEST").instanceId
+            deviceId = devicesRepository.createNewDevice(userRef, "Test instance", "TEST").instanceId
         }
 
         afterSpec {
@@ -649,8 +644,8 @@ class BffAppGroupsControllerIntegrationSpec : FunSpec() {
 
                 user1AppGroupNames shouldHaveSize 1
                 user2AppGroupNames shouldHaveSize 1
-                user1AppGroupNames shouldContain  "User1 Group"
-                user2AppGroupNames shouldContain  "User2 Group"
+                user1AppGroupNames shouldContain "User1 Group"
+                user2AppGroupNames shouldContain "User2 Group"
             }
 
             test("cleanup - delete test users") {

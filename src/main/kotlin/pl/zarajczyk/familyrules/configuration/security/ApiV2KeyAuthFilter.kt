@@ -84,7 +84,7 @@ class ApiV2KeyAuthFilter(
         }
 
         cleanupExpiredEntries()
-        val validatedInstanceId = devicesRepository.validateInstanceToken(instanceId, auth.pass)
+        val validatedInstanceId = devicesRepository.validateDeviceToken(instanceId, auth.pass)
         return if (validatedInstanceId != null) {
             logger.info("Instance ≪${validatedInstanceId}≫ validated successfully using the database")
             cacheValidationResult(cacheKey, instanceId)
