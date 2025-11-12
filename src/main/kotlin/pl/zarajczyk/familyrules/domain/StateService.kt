@@ -11,7 +11,7 @@ import pl.zarajczyk.familyrules.domain.port.InstanceRef
 class StateService(private val devicesRepository: DevicesRepository) {
 
     fun getDeviceState(instance: InstanceRef): CurrentDeviceState {
-        return getDeviceState(devicesRepository.fetchDetails(instance))
+        return getDeviceState(devicesRepository.fetchDeviceDto(instance))
     }
 
     fun getDeviceState(instance: DeviceDto): CurrentDeviceState {

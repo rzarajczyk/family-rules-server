@@ -14,7 +14,7 @@ class V2ClientInfoController(private val devicesRepository: DevicesRepository) {
     fun clientInfo(@RequestBody request: ClientInfoRequest, authentication: Authentication): ClientInfoResponse {
         val instanceRef = devicesRepository.findAuthenticatedDevice(authentication)
         devicesRepository.updateClientInformation(
-            instance = instanceRef,
+            device = instanceRef,
             clientInfo = ClientInfoDto(
                 version = request.version,
                 timezoneOffsetSeconds = request.timezoneOffsetSeconds ?: 0,

@@ -10,11 +10,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.springframework.stereotype.Service
 import pl.zarajczyk.familyrules.domain.*
-import pl.zarajczyk.familyrules.domain.port.DeviceDetailsDto
-import pl.zarajczyk.familyrules.domain.port.DeviceRef
-import pl.zarajczyk.familyrules.domain.port.DevicesRepository
-import pl.zarajczyk.familyrules.domain.port.InstanceRef
-import pl.zarajczyk.familyrules.domain.port.UserRef
+import pl.zarajczyk.familyrules.domain.port.*
 import pl.zarajczyk.familyrules.gui.bff.SchedulePacker
 import java.util.*
 
@@ -26,7 +22,7 @@ class FirestoreDevicesRepository(
 
     private val json = Json { ignoreUnknownKeys = true }
 
-    override fun validateDeviceToken(deviceId: InstanceId, deviceToken: String): InstanceId? {
+    override fun validateDeviceToken(deviceId: InstanceId, deviceToken: String): DeviceId? {
         // Find the instance across all users
         val instances = firestore.collectionGroup("instances")
             .whereEqualTo("instanceId", deviceId.toString())
@@ -50,7 +46,7 @@ class FirestoreDevicesRepository(
             ?.let { FirestoreDeviceRef(it) }
     }
 
-    override fun createNewDevice(user: UserRef, details: DeviceDetailsDto) {
+    override fun createDevice(user: UserRef, details: DeviceDetailsDto): DeviceRef {
         val instanceData = mapOf(
             "instanceId" to details.deviceId,
             "instanceName" to details.deviceName,
@@ -62,11 +58,13 @@ class FirestoreDevicesRepository(
             "deleted" to details.deleted
         )
 
-        (user as FirestoreUserRef).doc
+        val doc = (user as FirestoreUserRef).doc
             .collection("instances")
             .document(details.deviceId.toString())
-            .set(instanceData)
-            .get()
+
+        doc.set(instanceData).get()
+
+        return get(details.deviceId) ?: throw DeviceNotFoundException(details.deviceId)
     }
 
     // TODO: UserRef
@@ -91,7 +89,21 @@ class FirestoreDevicesRepository(
             ?.firstOrNull()
             ?.let { FirestoreDeviceRef(it) }
 
-    override fun fetchDetails(instanceRef: InstanceRef): DeviceDto {
+    override fun fetchDetails(deviceRef: DeviceRef): DeviceDetailsDto {
+        val doc = (deviceRef as FirestoreDeviceRef).document
+
+        return DeviceDetailsDto(
+            deviceId = UUID.fromString(doc.getString("instanceId") ?: throw RuntimeException("Device id not found")),
+            deviceName = doc.getString("instanceName") ?: throw RuntimeException("Device name not found"),
+            clientVersion = doc.getString("clientVersion") ?: throw RuntimeException("Client version not found"),
+            clientType = doc.getString("clientType") ?: throw RuntimeException("Client type not found"),
+            clientTimezoneOffsetSeconds = doc.getLong("clientTimezoneOffsetSeconds") ?: throw RuntimeException("clientTimezoneOffsetSeconds not found"),
+            hashedToken = doc.getString("instanceTokenSha256") ?: throw RuntimeException("instanceTokenSha256 not found"),
+            deleted = doc.getBoolean("deleted") ?: throw RuntimeException("deleted not found")
+        )
+    }
+
+    override fun fetchDeviceDto(instanceRef: InstanceRef): DeviceDto {
         val doc = (instanceRef as FirestoreDeviceRef).document
 
         return DeviceDto(

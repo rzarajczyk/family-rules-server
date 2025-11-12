@@ -34,7 +34,7 @@ class DevicesService(
             deleted = false
         )
 
-        devicesRepository.createNewDevice(userRef, details)
+        devicesRepository.createDevice(userRef, details)
 
         return NewDeviceDetails(
             deviceId = details.deviceId,

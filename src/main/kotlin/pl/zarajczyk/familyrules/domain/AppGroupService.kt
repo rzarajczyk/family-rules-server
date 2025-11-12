@@ -45,7 +45,7 @@ class AppGroupService(private val devicesRepository: DevicesRepository, private 
             val appDetails = mutableListOf<AppGroupAppReport>()
 
             devices.forEach { deviceRef ->
-                val instance = devicesRepository.fetchDetails(deviceRef)
+                val instance = devicesRepository.fetchDeviceDto(deviceRef)
                 val screenTimeDto = devicesRepository.getScreenTimes(deviceRef, day)
                 val appTechnicalIds = appGroupRepository.getMembers(appGroupRef, deviceRef)
 

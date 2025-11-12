@@ -17,7 +17,7 @@ class V2AppGroupController(
     @PostMapping("/api/v2/group-membership-for-device")
     fun getMembership(@RequestBody request: MembershipRequest, authentication: Authentication): MembershipResponse {
         val instanceRef = devicesRepository.findAuthenticatedDevice(authentication)
-        val instance = devicesRepository.fetchDetails(instanceRef)
+        val instance = devicesRepository.fetchDeviceDto(instanceRef)
 
         return usersService.withUserContext(devicesRepository.getOwner(instanceRef)) { user ->
             appGroupService.withAppGroupContext(user, request.appGroupId) { appGroup ->

@@ -102,7 +102,7 @@ class V2InitialSetupControllerIntegrationSpec : FunSpec() {
                 val deviceRef = devicesRepository.get(java.util.UUID.fromString(instanceId))
                 deviceRef shouldNotBe null
                 val details = devicesRepository.fetchDetails(deviceRef!!)
-                details.name shouldBe "Test Device"
+                details.deviceName shouldBe "Test Device"
                 details.clientType shouldBe "TEST"
             }
 

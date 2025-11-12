@@ -4,20 +4,21 @@ import kotlinx.datetime.LocalDate
 import pl.zarajczyk.familyrules.domain.*
 
 interface DevicesRepository {
+    fun createDevice(user: UserRef, details: DeviceDetailsDto): DeviceRef
     fun get(id: DeviceId): DeviceRef?
     fun getAll(username: String): List<DeviceRef>
     fun getByName(user: UserRef, deviceName: String): DeviceRef?
+    fun fetchDetails(device: DeviceRef): DeviceDetailsDto
+    fun fetchDeviceDto(device: DeviceRef): DeviceDto
+    fun delete(device: DeviceRef)
 
     fun validateDeviceToken(deviceId: DeviceId, deviceToken: String): DeviceId?
-    fun createNewDevice(user: UserRef, details: DeviceDetailsDto)
-    fun fetchDetails(instance: DeviceRef): DeviceDto
-    fun updateInstance(instance: DeviceRef, update: UpdateInstanceDto)
-    fun delete(instance: DeviceRef)
+    fun updateInstance(device: DeviceRef, update: UpdateInstanceDto)
 
-    fun setInstanceSchedule(instance: DeviceRef, schedule: WeeklyScheduleDto)
-    fun setForcedInstanceState(instance: DeviceRef, state: DeviceStateDto?)
-    fun updateClientInformation(instance: DeviceRef, clientInfo: ClientInfoDto)
-    fun setAssociatedAppGroup(instance: DeviceRef, groupId: String?)
+    fun setInstanceSchedule(device: DeviceRef, schedule: WeeklyScheduleDto)
+    fun setForcedInstanceState(device: DeviceRef, state: DeviceStateDto?)
+    fun updateClientInformation(device: DeviceRef, clientInfo: ClientInfoDto)
+    fun setAssociatedAppGroup(device: DeviceRef, groupId: String?)
 
     // Device states operations
     fun getAvailableDeviceStateTypes(instance: DeviceRef): List<DeviceStateTypeDto>

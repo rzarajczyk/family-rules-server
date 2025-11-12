@@ -102,7 +102,7 @@ class FirestoreAppGroupRepository(
         appGroupRef: AppGroupRef,
         deviceRef: DeviceRef
     ): DocumentReference {
-        val deviceId = devicesRepository.fetchDetails(deviceRef).id.toString()
+        val deviceId = devicesRepository.fetchDetails(deviceRef).deviceId.toString()
         val ref = (appGroupRef as FirestoreAppGroupRef).ref
             .collection("members")
             .document(deviceId)

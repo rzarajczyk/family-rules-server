@@ -57,6 +57,9 @@ class BffAppGroupsControllerIntegrationSpec : FunSpec() {
     @Autowired
     private lateinit var devicesRepository: DevicesRepository
 
+    @Autowired
+    private lateinit var devicesService: DevicesService
+
     companion object {
         @Container
         @JvmStatic
@@ -79,7 +82,7 @@ class BffAppGroupsControllerIntegrationSpec : FunSpec() {
 
         beforeSpec {
             userRef = usersRepository.createUser(testUsername, "pass", AccessLevel.PARENT)
-            deviceId = devicesRepository.createNewDevice(userRef, "Test instance", "TEST").instanceId
+            deviceId = devicesService.setupNewDevice(testUsername, "Test instance", "TEST").deviceId
         }
 
         afterSpec {
