@@ -36,7 +36,7 @@ class FirestoreDevicesRepository(
 
     override fun createDevice(user: UserRef, details: DeviceDetailsDto): DeviceRef {
         val instanceData = mapOf(
-            "instanceId" to details.deviceId,
+            "instanceId" to details.deviceId.toString(),
             "instanceName" to details.deviceName,
             "instanceTokenSha256" to details.hashedToken,
             "clientType" to details.clientType,

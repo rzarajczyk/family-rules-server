@@ -30,9 +30,10 @@ class DevicesService(
         if (devicesRepository.getByName(userRef, deviceName) != null)
             throw InstanceAlreadyExists(deviceName)
 
+        val deviceId = UUID.randomUUID()
         val token = UUID.randomUUID().toString()
         val details = DeviceDetailsDto(
-            deviceId = UUID.randomUUID(),
+            deviceId = deviceId,
             deviceName = deviceName,
             hashedToken = token.sha256(),
             clientType = clientType,
@@ -44,7 +45,7 @@ class DevicesService(
         devicesRepository.createDevice(userRef, details)
 
         return NewDeviceDetails(
-            deviceId = details.deviceId,
+            deviceId = deviceId,
             token = token
         )
     }
