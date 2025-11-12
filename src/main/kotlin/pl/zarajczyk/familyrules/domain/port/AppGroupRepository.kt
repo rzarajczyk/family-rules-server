@@ -1,6 +1,5 @@
 package pl.zarajczyk.familyrules.domain.port
 
-import pl.zarajczyk.familyrules.domain.AppGroupDto
 import pl.zarajczyk.familyrules.domain.DeviceRef
 
 interface AppGroupRepository {
@@ -21,3 +20,9 @@ interface AppGroupRepository {
  */
 interface AppGroupRef
 typealias AppTechnicalId = String
+
+data class AppGroupDto(
+    val id: String,
+    val name: String,
+    val color: String,
+)

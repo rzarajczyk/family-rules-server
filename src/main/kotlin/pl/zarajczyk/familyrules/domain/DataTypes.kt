@@ -91,18 +91,6 @@ data class ClientInfoDto(
     val states: List<DeviceStateTypeDto>
 )
 
-data class AppGroupDto(
-    val id: String,
-    val name: String,
-    val color: String,
-)
-
-data class AppGroupMembershipDto(
-    val appPath: String,
-    val instance: BasicDeviceDto,
-    val groupId: String
-)
-
 @Serializable
 data class WeeklyScheduleDto(
     val schedule: Map<DayOfWeek, DailyScheduleDto>

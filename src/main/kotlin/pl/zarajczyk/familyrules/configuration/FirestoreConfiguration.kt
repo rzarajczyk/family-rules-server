@@ -1,4 +1,4 @@
-package pl.zarajczyk.familyrules.adapter.firestore
+package pl.zarajczyk.familyrules.configuration
 
 import com.google.auth.oauth2.GoogleCredentials
 import com.google.cloud.firestore.Firestore
@@ -21,7 +21,7 @@ class FirestoreConfiguration {
     @Bean
     fun firestore(): Firestore {
         val emulatorHost = System.getenv("FIRESTORE_EMULATOR_HOST")
-        
+
         return if (emulatorHost != null) {
             // Use Firestore emulator
             FirestoreOptions.getDefaultInstance()
@@ -34,7 +34,7 @@ class FirestoreConfiguration {
             // Use production Firestore
             val builder = FirestoreOptions.newBuilder()
                 .setProjectId(projectId)
-            
+
             if (serviceAccountPath.isNotEmpty()) {
                 try {
                     val credentials = GoogleCredentials.fromStream(FileInputStream(serviceAccountPath))
@@ -43,7 +43,7 @@ class FirestoreConfiguration {
                     throw RuntimeException("Failed to load service account credentials from $serviceAccountPath", e)
                 }
             }
-            
+
             builder.build().service
         }
     }

@@ -2,6 +2,7 @@ package pl.zarajczyk.familyrules.domain
 
 import kotlinx.datetime.LocalDate
 import org.springframework.stereotype.Service
+import pl.zarajczyk.familyrules.domain.port.AppGroupDto
 import pl.zarajczyk.familyrules.domain.port.AppGroupRef
 import pl.zarajczyk.familyrules.domain.port.AppGroupRepository
 import pl.zarajczyk.familyrules.domain.port.AppTechnicalId
@@ -115,7 +116,7 @@ class AppGroupNotFoundException(groupId: String) : RuntimeException("AppGroup wi
 interface AppGroup {
     fun asRef(): AppGroupRef
 
-    fun get(): AppGroupDto
+    fun get(): AppGroupDetails
 
     fun delete()
 
@@ -136,8 +137,10 @@ data class RefBasedAppGroup(
 ) : AppGroup {
     override fun asRef() = appGroupRef
 
-    override fun get(): AppGroupDto {
-        return appGroupRepository.fetchDetails(appGroupRef)
+    override fun get(): AppGroupDetails {
+        return appGroupRepository.fetchDetails(appGroupRef).let {
+            AppGroupDetails(it.id, it.name, it.color)
+        }
     }
 
     override fun delete() {
@@ -164,6 +167,12 @@ data class RefBasedAppGroup(
         appGroupRepository.removeMember(appGroupRef, deviceRef, appTechnicalId)
     }
 }
+
+data class AppGroupDetails(
+    val id: String,
+    val name: String,
+    val color: String,
+)
 
 data class AppGroupReport(
     val id: String,

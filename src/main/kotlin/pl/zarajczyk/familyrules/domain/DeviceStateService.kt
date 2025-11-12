@@ -2,6 +2,7 @@ package pl.zarajczyk.familyrules.domain
 
 import org.springframework.stereotype.Service
 import pl.zarajczyk.familyrules.domain.DeviceStateArgument.APP_GROUP
+import pl.zarajczyk.familyrules.domain.port.AppGroupDto
 
 @Service
 class DeviceStateService() {

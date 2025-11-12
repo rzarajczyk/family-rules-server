@@ -8,6 +8,7 @@ import org.springframework.security.core.Authentication
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.server.ResponseStatusException
 import pl.zarajczyk.familyrules.domain.*
+import pl.zarajczyk.familyrules.domain.port.AppGroupDto
 import pl.zarajczyk.familyrules.domain.port.DevicesRepository
 import java.time.DayOfWeek
 
