@@ -1,0 +1,15 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Test V2InitialSetupControllerIntegrationSpec",
+			"type": "shell",
+			"command": "./gradlew test --tests \"*V2InitialSetupControllerIntegrationSpec*\"",
+			"isBackground": false,
+			"problemMatcher": [
+				"$gradle"
+			],
+			"group": "build"
+		}
+	]
+}
