@@ -10,6 +10,13 @@
 				"$gradle"
 			],
 			"group": "build"
+		},
+		{
+			"label": "Run all tests",
+			"type": "shell",
+			"command": "./gradlew test",
+			"isBackground": false,
+			"group": "build"
 		}
 	]
 }

@@ -1,7 +1,6 @@
 package pl.zarajczyk.familyrules
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.google.cloud.firestore.Firestore
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.extensions.spring.SpringExtension
 import io.kotest.matchers.collections.shouldContain
@@ -25,6 +24,7 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.*
 import org.testcontainers.gcloud.FirestoreEmulatorContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
+import pl.zarajczyk.familyrules.domain.UsersRepository
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc
@@ -39,10 +39,10 @@ class BffUserControllerIntegrationSpec : FunSpec() {
     private lateinit var mockMvc: MockMvc
 
     @Autowired
-    private lateinit var firestore: Firestore
+    private lateinit var objectMapper: ObjectMapper
 
     @Autowired
-    private lateinit var objectMapper: ObjectMapper
+    private lateinit var usersRepository: UsersRepository
 
     companion object {
         @Container
@@ -133,12 +133,12 @@ class BffUserControllerIntegrationSpec : FunSpec() {
             }
 
             test("should verify new user exists in database") {
-                val userDoc = firestore.collection("users").document(testUsername).get().get()
-                userDoc shouldNotBe null
-                userDoc.exists() shouldBe true
-                userDoc.getString("username") shouldBe testUsername
-                userDoc.getString("passwordSha256") shouldNotBe null
-                userDoc.getString("accessLevel") shouldBe "PARENT"
+                val userRef = usersRepository.get(testUsername)
+                userRef shouldNotBe null
+                val user = usersRepository.fetchDetails(userRef!!)
+                user.username shouldBe testUsername
+                user.passwordSha256 shouldNotBe null
+                user.accessLevel.name shouldBe "PARENT"
             }
 
             test("should verify new user can authenticate") {
@@ -271,8 +271,8 @@ class BffUserControllerIntegrationSpec : FunSpec() {
             }
 
             test("should verify deleted user no longer exists in database") {
-                val userDoc = firestore.collection("users").document(testUsername).get().get()
-                userDoc.exists() shouldBe false
+                val userRef = usersRepository.get(testUsername)
+                userRef shouldBe null
             }
 
             test("should verify deleted user is not in users list") {

@@ -1,7 +1,7 @@
 package pl.zarajczyk.familyrules
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.google.cloud.firestore.Firestore
+import pl.zarajczyk.familyrules.domain.UsersRepository
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.extensions.spring.SpringExtension
 import io.kotest.matchers.shouldBe
@@ -37,7 +37,7 @@ class BffSettingsControllerIntegrationSpec : FunSpec() {
     private lateinit var mockMvc: MockMvc
 
     @Autowired
-    private lateinit var firestore: Firestore
+    private lateinit var usersRepository: UsersRepository
 
     @Autowired
     private lateinit var objectMapper: ObjectMapper
@@ -108,11 +108,11 @@ class BffSettingsControllerIntegrationSpec : FunSpec() {
             }
 
             test("should verify password was changed in database") {
-                val userDoc = firestore.collection("users").document(testUsername).get().get()
-                userDoc shouldNotBe null
-                userDoc.exists() shouldBe true
-                userDoc.getString("passwordSha256") shouldBe newPassword.sha256()
-                userDoc.getString("passwordSha256") shouldNotBe testPassword.sha256()
+                val userRef = usersRepository.get(testUsername)
+                userRef shouldNotBe null
+                val user = usersRepository.fetchDetails(userRef!!)
+                user.passwordSha256 shouldBe newPassword.sha256()
+                user.passwordSha256 shouldNotBe testPassword.sha256()
             }
 
             test("should return error when current password is incorrect") {
@@ -140,11 +140,10 @@ class BffSettingsControllerIntegrationSpec : FunSpec() {
             }
 
             test("should verify password was not changed after incorrect attempt") {
-                val userDoc = firestore.collection("users").document(testUsername).get().get()
-                userDoc shouldNotBe null
-                userDoc.exists() shouldBe true
+                val userRef = usersRepository.get(testUsername)
+                userRef shouldNotBe null
                 // Password should still be the new password from successful change
-                userDoc.getString("passwordSha256") shouldBe newPassword.sha256()
+                usersRepository.fetchDetails(userRef!!).passwordSha256 shouldBe newPassword.sha256()
             }
 
             test("should change password again successfully with new current password") {
@@ -166,8 +165,9 @@ class BffSettingsControllerIntegrationSpec : FunSpec() {
                     .andExpect(jsonPath("$.success").value(true))
                     .andExpect(jsonPath("$.message").value("Password changed successfully"))
 
-                val userDoc = firestore.collection("users").document(testUsername).get().get()
-                userDoc.getString("passwordSha256") shouldBe anotherNewPassword.sha256()
+                val userRef = usersRepository.get(testUsername)
+                userRef shouldNotBe null
+                usersRepository.fetchDetails(userRef!!).passwordSha256 shouldBe anotherNewPassword.sha256()
             }
 
             test("should redirect to login page for unauthenticated request") {
@@ -206,8 +206,9 @@ class BffSettingsControllerIntegrationSpec : FunSpec() {
                     .andExpect(jsonPath("$.success").value(true))
                     .andExpect(jsonPath("$.message").value("Password changed successfully"))
 
-                val userDoc = firestore.collection("users").document(adminUsername).get().get()
-                userDoc.getString("passwordSha256") shouldBe adminNewPassword.sha256()
+                val adminRef = usersRepository.get(adminUsername)
+                adminRef shouldNotBe null
+                usersRepository.fetchDetails(adminRef!!).passwordSha256 shouldBe adminNewPassword.sha256()
             }
 
             test("should restore admin password for cleanup") {
@@ -235,7 +236,7 @@ class BffSettingsControllerIntegrationSpec : FunSpec() {
                         .content("""{"username":"$testUsername","password":"anypass","accessLevel":"PARENT"}""")
                 )
 
-                firestore.collection("users").document(testUsername).delete().get()
+                usersRepository.get(testUsername)?.let { usersRepository.delete(it) }
             }
         }
 
@@ -299,8 +300,9 @@ class BffSettingsControllerIntegrationSpec : FunSpec() {
                     .andExpect(jsonPath("$.message").value("Password changed successfully"))
 
                 // Verify empty password was actually set (though not recommended in production)
-                val userDoc = firestore.collection("users").document(edgeTestUsername).get().get()
-                userDoc.getString("passwordSha256") shouldBe "".sha256()
+                val edgeRef = usersRepository.get(edgeTestUsername)
+                edgeRef shouldNotBe null
+                usersRepository.fetchDetails(edgeRef!!).passwordSha256 shouldBe "".sha256()
             }
 
             test("should reset password back to test password for further tests") {
@@ -339,8 +341,9 @@ class BffSettingsControllerIntegrationSpec : FunSpec() {
                     .andExpect(jsonPath("$.success").value(true))
                     .andExpect(jsonPath("$.message").value("Password changed successfully"))
 
-                val userDoc = firestore.collection("users").document(edgeTestUsername).get().get()
-                userDoc.getString("passwordSha256") shouldBe longPassword.sha256()
+                val edgeRef2 = usersRepository.get(edgeTestUsername)
+                edgeRef2 shouldNotBe null
+                usersRepository.fetchDetails(edgeRef2!!).passwordSha256 shouldBe longPassword.sha256()
             }
 
             test("should handle special characters in password") {
@@ -362,8 +365,9 @@ class BffSettingsControllerIntegrationSpec : FunSpec() {
                     .andExpect(jsonPath("$.success").value(true))
                     .andExpect(jsonPath("$.message").value("Password changed successfully"))
 
-                val userDoc = firestore.collection("users").document(edgeTestUsername).get().get()
-                userDoc.getString("passwordSha256") shouldBe specialPassword.sha256()
+                val edgeRef3 = usersRepository.get(edgeTestUsername)
+                edgeRef3 shouldNotBe null
+                usersRepository.fetchDetails(edgeRef3!!).passwordSha256 shouldBe specialPassword.sha256()
             }
 
             test("should handle unicode characters in password") {
@@ -385,8 +389,9 @@ class BffSettingsControllerIntegrationSpec : FunSpec() {
                     .andExpect(jsonPath("$.success").value(true))
                     .andExpect(jsonPath("$.message").value("Password changed successfully"))
 
-                val userDoc = firestore.collection("users").document(edgeTestUsername).get().get()
-                userDoc.getString("passwordSha256") shouldBe unicodePassword.sha256()
+                val edgeRef4 = usersRepository.get(edgeTestUsername)
+                edgeRef4 shouldNotBe null
+                usersRepository.fetchDetails(edgeRef4!!).passwordSha256 shouldBe unicodePassword.sha256()
             }
 
             test("should handle changing to same password") {
@@ -409,7 +414,7 @@ class BffSettingsControllerIntegrationSpec : FunSpec() {
             }
 
             test("cleanup - delete edge test user") {
-                firestore.collection("users").document(edgeTestUsername).delete().get()
+                usersRepository.get(edgeTestUsername)?.let { usersRepository.delete(it) }
             }
         }
 
@@ -472,8 +477,9 @@ class BffSettingsControllerIntegrationSpec : FunSpec() {
             }
 
             test("user1 password change should not affect user2") {
-                val user2Doc = firestore.collection("users").document(user2Username).get().get()
-                user2Doc.getString("passwordSha256") shouldBe user2Password.sha256()
+                val user2Ref = usersRepository.get(user2Username)
+                user2Ref shouldNotBe null
+                usersRepository.fetchDetails(user2Ref!!).passwordSha256 shouldBe user2Password.sha256()
             }
 
             test("user2 should still be able to use their original password") {
@@ -495,11 +501,13 @@ class BffSettingsControllerIntegrationSpec : FunSpec() {
             }
 
             test("verify both users have different passwords") {
-                val user1Doc = firestore.collection("users").document(user1Username).get().get()
-                val user2Doc = firestore.collection("users").document(user2Username).get().get()
+                val user1Ref = usersRepository.get(user1Username)
+                val user2Ref = usersRepository.get(user2Username)
+                user1Ref shouldNotBe null
+                user2Ref shouldNotBe null
 
-                val user1Hash = user1Doc.getString("passwordSha256")
-                val user2Hash = user2Doc.getString("passwordSha256")
+                val user1Hash = usersRepository.fetchDetails(user1Ref!!).passwordSha256
+                val user2Hash = usersRepository.fetchDetails(user2Ref!!).passwordSha256
 
                 user1Hash shouldNotBe user2Hash
                 user1Hash shouldBe "user1newpass".sha256()
@@ -507,8 +515,8 @@ class BffSettingsControllerIntegrationSpec : FunSpec() {
             }
 
             test("cleanup - delete test users") {
-                firestore.collection("users").document(user1Username).delete().get()
-                firestore.collection("users").document(user2Username).delete().get()
+                usersRepository.get(user1Username)?.let { usersRepository.delete(it) }
+                usersRepository.get(user2Username)?.let { usersRepository.delete(it) }
             }
         }
     }

@@ -1,7 +1,6 @@
 package pl.zarajczyk.familyrules
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.google.cloud.firestore.Firestore
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.extensions.spring.SpringExtension
 import io.kotest.matchers.comparables.shouldBeGreaterThan
@@ -23,6 +22,7 @@ import org.testcontainers.gcloud.FirestoreEmulatorContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import pl.zarajczyk.familyrules.domain.DevicesRepository
+import pl.zarajczyk.familyrules.domain.UsersRepository
 import pl.zarajczyk.familyrules.domain.InstanceRef
 import pl.zarajczyk.familyrules.domain.today
 import java.util.*
@@ -40,10 +40,10 @@ class DeviceHappyPathIntegrationSpec : FunSpec() {
     private lateinit var mockMvc: MockMvc
 
     @Autowired
-    private lateinit var firestore: Firestore
+    private lateinit var devicesRepository: DevicesRepository
 
     @Autowired
-    private lateinit var devicesRepository: DevicesRepository
+    private lateinit var usersRepository: UsersRepository
 
     @Autowired
     private lateinit var objectMapper: ObjectMapper
@@ -78,11 +78,11 @@ class DeviceHappyPathIntegrationSpec : FunSpec() {
         lateinit var firstReportTimestamp: Instant
 
         test("step 1 - should verify default user exists in database") {
-            val userDoc = firestore.collection("users").document(username).get().get()
-            userDoc shouldNotBe null
-            userDoc.exists() shouldBe true
-            userDoc.getString("username") shouldBe username
-            userDoc.getString("passwordSha256") shouldNotBe null
+            val userRef = usersRepository.get(username)
+            userRef shouldNotBe null
+            val user = usersRepository.fetchDetails(userRef!!)
+            user.username shouldBe username
+            user.passwordSha256 shouldNotBe null
         }
 
         test("step 2 - should register instance successfully") {
@@ -106,18 +106,12 @@ class DeviceHappyPathIntegrationSpec : FunSpec() {
         }
 
         test("step 3 - should verify instance exists in database") {
-            val instanceDoc = firestore.collection("users")
-                .document(username)
-                .collection("instances")
-                .document(instanceId)
-                .get().get()
-            
-            instanceDoc shouldNotBe null
-            instanceDoc.exists() shouldBe true
-            instanceDoc.getString("instanceId") shouldBe instanceId
-            instanceDoc.getString("instanceName") shouldBe instanceName
-            instanceDoc.getString("clientType") shouldBe clientType
-            instanceDoc.getBoolean("deleted") shouldBe false
+            val deviceRef = devicesRepository.get(UUID.fromString(instanceId))
+            deviceRef shouldNotBe null
+            val details = devicesRepository.fetchDetails(deviceRef!!)
+            details.id.toString() shouldBe instanceId
+            details.name shouldBe instanceName
+            details.clientType shouldBe clientType
         }
 
         test("step 4 - should send client-info successfully") {
@@ -158,17 +152,13 @@ class DeviceHappyPathIntegrationSpec : FunSpec() {
         }
 
         test("step 5 - should verify client-info data in database") {
-            val instanceDoc = firestore.collection("users")
-                .document(username)
-                .collection("instances")
-                .document(instanceId)
-                .get().get()
-            
-            instanceDoc.getString("clientVersion") shouldBe clientVersion
-            instanceDoc.getLong("clientTimezoneOffsetSeconds") shouldBe timezoneOffsetSeconds.toLong()
-            instanceDoc.getLong("reportIntervalSeconds") shouldBe reportIntervalSeconds.toLong()
-            instanceDoc.getString("knownApps") shouldNotBe null
-            instanceDoc.getString("deviceStates") shouldNotBe null
+            val deviceRef = devicesRepository.get(UUID.fromString(instanceId))!!
+            val details = devicesRepository.fetchDetails(deviceRef)
+            details.clientVersion shouldBe clientVersion
+            details.clientTimezoneOffsetSeconds shouldBe timezoneOffsetSeconds
+            details.reportIntervalSeconds?.toLong() shouldBe reportIntervalSeconds.toLong()
+            details.knownApps shouldNotBe null
+            devicesRepository.getAvailableDeviceStateTypes(deviceRef).size shouldBeGreaterThan 0
         }
 
         test("step 6 - should send first report successfully") {

@@ -1,7 +1,6 @@
 package pl.zarajczyk.familyrules
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.google.cloud.firestore.Firestore
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.extensions.spring.SpringExtension
 import org.springframework.beans.factory.annotation.Autowired
@@ -32,9 +31,6 @@ class DeviceErrorScenariosIntegrationSpec : FunSpec() {
 
     @Autowired
     private lateinit var mockMvc: MockMvc
-
-    @Autowired
-    private lateinit var firestore: Firestore
 
     @Autowired
     private lateinit var devicesRepository: DevicesRepository
