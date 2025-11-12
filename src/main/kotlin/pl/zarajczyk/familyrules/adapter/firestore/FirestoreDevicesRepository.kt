@@ -65,8 +65,7 @@ class FirestoreDevicesRepository(
             "clientVersion" to "v0",
             "clientTimezoneOffsetSeconds" to 0,
             "schedule" to json.encodeToString(schedulePacker.pack(WeeklyScheduleDto.Companion.empty())),
-            "deleted" to false,
-            "createdAt" to Clock.System.now().toString()
+            "deleted" to false
         )
 
         (user as FirestoreUserRef).doc

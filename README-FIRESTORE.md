@@ -43,38 +43,6 @@ The application will automatically detect the emulator via the `FIRESTORE_EMULAT
    ./gradlew bootRun
    ```
 
-## Data Structure
-
-The Firestore data is organized as follows:
-
-```
-users/{username}
-├── username: string
-├── passwordSha256: string
-└── instances/{instanceId}
-    ├── instanceId: string
-    ├── instanceName: string
-    ├── instanceTokenSha256: string
-    ├── clientType: string
-    ├── clientVersion: string
-    ├── clientTimezoneOffsetSeconds: number
-    ├── schedule: string (JSON)
-    ├── iconData: string?
-    ├── iconType: string?
-    ├── deleted: boolean
-    ├── createdAt: string
-    ├── forcedDeviceState: string?
-    ├── deviceStates/{deviceState}
-    │   ├── deviceState: string
-    │   ├── title: string
-    │   ├── icon: string?
-    │   ├── description: string?
-    │   └── order: number
-    └── screenTimes/{day}
-        ├── screenTimes: string (JSON containing Map<String, Long>)
-        └── updatedAt: string
-```
-
 ## Configuration
 
 The application uses the following configuration:
