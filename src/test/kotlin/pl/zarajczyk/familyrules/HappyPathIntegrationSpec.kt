@@ -32,7 +32,7 @@ import java.util.*
 @ActiveProfiles("test")
 @Import(TestConfiguration::class)
 @Testcontainers
-class DeviceHappyPathIntegrationSpec : FunSpec() {
+class HappyPathIntegrationSpec : FunSpec() {
 
     override fun extensions() = listOf(SpringExtension)
 
