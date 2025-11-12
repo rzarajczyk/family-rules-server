@@ -47,7 +47,7 @@ class BffOverviewController(
             val appGroups = usersService.withUserContext(username) { user ->
                 appGroupService.listAllAppGroups(user)
             }
-            val appGroupsDtos = appGroups.associateWith { it.get() }
+            val appGroupsDetails = appGroups.associateWith { it.get() }
 
             Instance(
                 instanceId = instance.id,
@@ -58,7 +58,7 @@ class BffOverviewController(
                         val knownApp = instance.knownApps[appTechnicalId]
                         val appGroupsForThisApp = appGroups
                             .filter { it.containsMember(deviceRef, appTechnicalId) }
-                            .map { group -> appGroupsDtos.getValue(group) }
+                            .map { group -> appGroupsDetails.getValue(group) }
                             .map { groupDto ->
                                 val colorInfo = AppGroupColorPalette.getColorInfo(groupDto.color)
                                 AppGroupWithColor(
@@ -78,15 +78,15 @@ class BffOverviewController(
                         )
                     }.sortedByDescending { it.usageSeconds },
                 forcedDeviceState = availableStates
-                    .flatMap { it.toDeviceStateDescriptions(appGroupsDtos.values) }
+                    .flatMap { it.toDeviceStateDescriptions(appGroupsDetails.values) }
                     .firstOrNull { it.isEqualTo(state.forcedState) },
                 automaticDeviceState = availableStates
-                    .flatMap { it.toDeviceStateDescriptions(appGroupsDtos.values) }
+                    .flatMap { it.toDeviceStateDescriptions(appGroupsDetails.values) }
                     .firstOrNull { it.isEqualTo(state.automaticState) }
                     ?: throw RuntimeException("Instance ≪${instance.id}≫ doesn't have automatic state ≪${state.automaticState}≫"),
                 online = screenTimeDto.updatedAt.isOnline(instance.reportIntervalSeconds),
                 icon = instance.getIcon(),
-                availableAppGroups = appGroupsDtos.values.toList(),
+                availableAppGroups = appGroupsDetails.values.toList(),
                 associatedAppGroupId = instance.associatedAppGroupId
             )
         })
@@ -294,7 +294,7 @@ class BffOverviewController(
     private fun Instant.isOnline(reportIntervalSeconds: Int? = null) =
         (Clock.System.now() - this).inWholeSeconds <= (reportIntervalSeconds ?: 60)
 
-    private fun DeviceStateTypeDto.toDeviceStateDescriptions(appGroups: Collection<AppGroupDto>) =
+    private fun DeviceStateTypeDto.toDeviceStateDescriptions(appGroups: Collection<AppGroupDetails>) =
         deviceStateService.createActualInstances(this, appGroups)
             .map {
                 DeviceStateDescriptionResponse(
@@ -348,7 +348,7 @@ data class Instance(
     val automaticDeviceState: DeviceStateDescriptionResponse,
     val forcedDeviceState: DeviceStateDescriptionResponse?,
     val online: Boolean,
-    val availableAppGroups: List<AppGroupDto>,
+    val availableAppGroups: List<AppGroupDetails>,
     val associatedAppGroupId: String? = null
 )
 

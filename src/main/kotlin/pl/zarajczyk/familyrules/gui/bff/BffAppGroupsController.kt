@@ -4,7 +4,6 @@ import kotlinx.datetime.LocalDate
 import org.springframework.security.core.Authentication
 import org.springframework.web.bind.annotation.*
 import pl.zarajczyk.familyrules.domain.*
-import pl.zarajczyk.familyrules.domain.port.AppGroupDto
 import pl.zarajczyk.familyrules.domain.port.DevicesRepository
 import java.util.*
 
@@ -134,11 +133,11 @@ data class CreateAppGroupRequest(
 )
 
 data class CreateAppGroupResponse(
-    val group: AppGroupDto
+    val group: AppGroupDetails
 )
 
 data class GetAppGroupsResponse(
-    val groups: List<AppGroupDto>
+    val groups: List<AppGroupDetails>
 )
 
 data class DeleteAppGroupResponse(
