@@ -72,7 +72,6 @@ class RefBasedUser(
     }
 }
 
-class UserNotFoundException(username: String) : RuntimeException("User $username not found")
 class InvalidPassword : RuntimeException("Invalid password")
 
 data class UserDetails(

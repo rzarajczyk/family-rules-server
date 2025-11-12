@@ -9,7 +9,7 @@ interface DevicesRepository {
     fun getByName(user: UserRef, deviceName: String): DeviceRef?
 
     fun validateDeviceToken(deviceId: DeviceId, deviceToken: String): DeviceId?
-    fun createNewDevice(user: UserRef, instanceName: String, clientType: String): NewDeviceDto
+    fun createNewDevice(user: UserRef, details: DeviceDetailsDto)
     fun fetchDetails(instance: DeviceRef): DeviceDto
     fun updateInstance(instance: DeviceRef, update: UpdateInstanceDto)
     fun delete(instance: DeviceRef)
@@ -31,3 +31,13 @@ interface DevicesRepository {
 
 interface InstanceRef
 typealias DeviceRef = InstanceRef
+
+data class DeviceDetailsDto(
+    val deviceId: DeviceId,
+    val deviceName: String,
+    val hashedToken: String,
+    val clientType: String,
+    val clientVersion: String,
+    val clientTimezoneOffsetSeconds: Long,
+    val deleted: Boolean
+)

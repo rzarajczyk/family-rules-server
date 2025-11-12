@@ -10,6 +10,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.springframework.stereotype.Service
 import pl.zarajczyk.familyrules.domain.*
+import pl.zarajczyk.familyrules.domain.port.DeviceDetailsDto
 import pl.zarajczyk.familyrules.domain.port.DeviceRef
 import pl.zarajczyk.familyrules.domain.port.DevicesRepository
 import pl.zarajczyk.familyrules.domain.port.InstanceRef
@@ -49,32 +50,23 @@ class FirestoreDevicesRepository(
             ?.let { FirestoreDeviceRef(it) }
     }
 
-    override fun createNewDevice(
-        user: UserRef,
-        instanceName: String,
-        clientType: String
-    ): NewDeviceDto {
-        val instanceId = UUID.randomUUID()
-        val instanceToken = UUID.randomUUID().toString()
-
+    override fun createNewDevice(user: UserRef, details: DeviceDetailsDto) {
         val instanceData = mapOf(
-            "instanceId" to instanceId.toString(),
-            "instanceName" to instanceName,
-            "instanceTokenSha256" to instanceToken.sha256(),
-            "clientType" to clientType,
-            "clientVersion" to "v0",
-            "clientTimezoneOffsetSeconds" to 0,
+            "instanceId" to details.deviceId,
+            "instanceName" to details.deviceName,
+            "instanceTokenSha256" to details.hashedToken,
+            "clientType" to details.clientType,
+            "clientVersion" to details.clientVersion,
+            "clientTimezoneOffsetSeconds" to details.clientTimezoneOffsetSeconds,
             "schedule" to json.encodeToString(schedulePacker.pack(WeeklyScheduleDto.Companion.empty())),
-            "deleted" to false
+            "deleted" to details.deleted
         )
 
         (user as FirestoreUserRef).doc
             .collection("instances")
-            .document(instanceId.toString())
+            .document(details.deviceId.toString())
             .set(instanceData)
             .get()
-
-        return NewDeviceDto(instanceId, instanceToken)
     }
 
     // TODO: UserRef

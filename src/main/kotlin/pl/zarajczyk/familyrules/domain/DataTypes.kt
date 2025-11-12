@@ -4,12 +4,6 @@ import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.Instant
 import kotlinx.serialization.Serializable
 
-
-data class NewDeviceDto(
-    val instanceId: InstanceId,
-    val token: String
-)
-
 data class ScreenTimeDto(
     val screenTimeSeconds: Long,
     val applicationsSeconds: Map<String, Long>,

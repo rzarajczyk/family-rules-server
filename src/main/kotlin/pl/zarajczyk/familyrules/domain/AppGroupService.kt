@@ -107,8 +107,6 @@ class AppGroupService(private val devicesRepository: DevicesRepository, private 
     }
 }
 
-class AppGroupNotFoundException(groupId: String) : RuntimeException("AppGroup with id $groupId not found")
-
 interface AppGroup {
     fun asRef(): AppGroupRef
 

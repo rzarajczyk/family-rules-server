@@ -23,7 +23,7 @@ class V2InitialSetupController(
             val result = devicesService.setupNewDevice(auth.user, data.instanceName, data.clientType)
             RegisterInstanceResponse(
                 RegisterInstanceStatus.SUCCESS,
-                instanceId = result.instanceId.toString(),
+                instanceId = result.deviceId.toString(),
                 token = result.token
             )
         }
