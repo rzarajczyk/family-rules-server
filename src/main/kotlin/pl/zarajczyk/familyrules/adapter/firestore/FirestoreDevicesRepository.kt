@@ -100,14 +100,6 @@ class FirestoreDevicesRepository(
             ?.firstOrNull()
             ?.let { FirestoreDeviceRef(it) }
 
-    override fun fetchBasicData(instanceRef: InstanceRef): BasicDeviceDto {
-        val doc = (instanceRef as FirestoreDeviceRef).document
-        return BasicDeviceDto(
-            id = UUID.fromString(doc.getString("instanceId") ?: ""),
-            name = doc.getString("instanceName") ?: "",
-        )
-    }
-
     override fun fetchDetails(instanceRef: InstanceRef): DeviceDto {
         val doc = (instanceRef as FirestoreDeviceRef).document
 

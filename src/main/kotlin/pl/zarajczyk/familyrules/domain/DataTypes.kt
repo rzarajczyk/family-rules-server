@@ -31,11 +31,6 @@ data class DeviceDto(
     val associatedAppGroupId: String? = null
 )
 
-data class BasicDeviceDto(
-    val id: InstanceId,
-    val name: String,
-)
-
 data class UpdateInstanceDto(
     val instanceId: InstanceId,
     val name: String,
