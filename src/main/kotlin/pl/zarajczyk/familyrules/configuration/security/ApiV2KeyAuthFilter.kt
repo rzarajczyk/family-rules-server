@@ -12,6 +12,7 @@ import org.springframework.security.authentication.BadCredentialsException
 import org.springframework.security.core.GrantedAuthority
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.web.filter.GenericFilterBean
+import pl.zarajczyk.familyrules.domain.DevicesService
 import pl.zarajczyk.familyrules.domain.port.DevicesRepository
 import pl.zarajczyk.familyrules.domain.InstanceId
 import pl.zarajczyk.familyrules.domain.decodeBasicAuth
@@ -19,7 +20,7 @@ import java.time.Instant
 import java.util.concurrent.ConcurrentHashMap
 
 class ApiV2KeyAuthFilter(
-    private val devicesRepository: DevicesRepository,
+    private val devicesService: DevicesService,
     private val excludedUris: Set<String>
 ) : GenericFilterBean() {
     
@@ -84,13 +85,15 @@ class ApiV2KeyAuthFilter(
         }
 
         cleanupExpiredEntries()
-        val validatedInstanceId = devicesRepository.validateDeviceToken(instanceId, auth.pass)
-        return if (validatedInstanceId != null) {
-            logger.info("Instance ≪${validatedInstanceId}≫ validated successfully using the database")
+        val isValid = devicesService.withDeviceContext(instanceId) { device ->
+            device.validateToken(auth.pass)
+        }
+        return if (isValid) {
+            logger.info("Instance ≪${instanceId}≫ validated successfully using the database")
             cacheValidationResult(cacheKey, instanceId)
             ApiKeyAuthenticationToken.authorized(instanceId, auth.pass)
         } else {
-            logger.info("Instance ≪${validatedInstanceId}≫ NOT validated successfully")
+            logger.info("Instance ≪${instanceId}≫ NOT validated successfully")
             throw UnauthorizedException()
         }
 

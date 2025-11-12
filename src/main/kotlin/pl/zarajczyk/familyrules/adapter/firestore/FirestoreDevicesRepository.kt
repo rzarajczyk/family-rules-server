@@ -22,18 +22,6 @@ class FirestoreDevicesRepository(
 
     private val json = Json { ignoreUnknownKeys = true }
 
-    override fun validateDeviceToken(deviceId: InstanceId, deviceToken: String): DeviceId? {
-        // Find the instance across all users
-        val instances = firestore.collectionGroup("instances")
-            .whereEqualTo("instanceId", deviceId.toString())
-            .whereEqualTo("instanceTokenSha256", deviceToken.sha256())
-            .whereEqualTo("deleted", false)
-            .get()
-            .get()
-
-        return if (instances.isEmpty) null else deviceId
-    }
-
     override fun getByName(user: UserRef, deviceName: String): DeviceRef? {
         return (user as FirestoreUserRef).doc
             .collection("instances")

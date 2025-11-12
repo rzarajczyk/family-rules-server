@@ -45,7 +45,7 @@ interface User {
     fun changePassword(newPassword: String)
 }
 
-class RefBasedUser(
+data class RefBasedUser(
     val userRef: UserRef,
     private val usersRepository: UsersRepository
 ) : User {

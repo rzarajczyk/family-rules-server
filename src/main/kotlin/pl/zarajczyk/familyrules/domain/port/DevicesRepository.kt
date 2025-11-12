@@ -12,7 +12,6 @@ interface DevicesRepository {
     fun fetchDeviceDto(device: DeviceRef): DeviceDto
     fun delete(device: DeviceRef)
 
-    fun validateDeviceToken(deviceId: DeviceId, deviceToken: String): DeviceId?
     fun updateInstance(device: DeviceRef, update: UpdateInstanceDto)
 
     fun setInstanceSchedule(device: DeviceRef, schedule: WeeklyScheduleDto)

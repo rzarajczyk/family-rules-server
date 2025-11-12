@@ -11,7 +11,7 @@ import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.security.provisioning.UserDetailsManager
 import org.springframework.security.web.SecurityFilterChain
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter
-import pl.zarajczyk.familyrules.domain.port.DevicesRepository
+import pl.zarajczyk.familyrules.domain.DevicesService
 
 @Configuration
 @EnableWebSecurity
@@ -44,12 +44,12 @@ class SecurityConfig {
 
     @Bean
     @Order(2)
-    fun apiV2FilterChain(http: HttpSecurity, devicesRepository: DevicesRepository): SecurityFilterChain {
+    fun apiV2FilterChain(http: HttpSecurity, devicesService: DevicesService): SecurityFilterChain {
         http
             .securityMatcher("/api/v2/**")
             .csrf { it.disable() }
             .addFilterBefore(
-                ApiV2KeyAuthFilter(devicesRepository, excludedUris = setOf("/api/v2/register-instance")),
+                ApiV2KeyAuthFilter(devicesService, excludedUris = setOf("/api/v2/register-instance")),
                 UsernamePasswordAuthenticationFilter::class.java
             )
             .sessionManagement { it.sessionCreationPolicy(SessionCreationPolicy.STATELESS) }

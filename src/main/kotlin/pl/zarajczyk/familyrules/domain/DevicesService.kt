@@ -2,6 +2,7 @@ package pl.zarajczyk.familyrules.domain
 
 import org.springframework.stereotype.Service
 import pl.zarajczyk.familyrules.domain.port.DeviceDetailsDto
+import pl.zarajczyk.familyrules.domain.port.DeviceRef
 import pl.zarajczyk.familyrules.domain.port.DevicesRepository
 import pl.zarajczyk.familyrules.domain.port.UsersRepository
 import java.util.UUID
@@ -11,6 +12,12 @@ class DevicesService(
     private val devicesRepository: DevicesRepository,
     private val usersRepository: UsersRepository
 ) {
+
+    fun <T> withDeviceContext(deviceId: DeviceId, action: (user: Device) -> T): T {
+        val ref = devicesRepository.get(deviceId) ?: throw DeviceNotFoundException(deviceId)
+        val device = RefBasedDevice(ref, devicesRepository)
+        return action(device)
+    }
 
     @Throws(IllegalInstanceName::class, InstanceAlreadyExists::class)
     fun setupNewDevice(username: String, deviceName: String, clientType: String): NewDeviceDetails {
@@ -50,3 +57,18 @@ data class NewDeviceDetails(
     val deviceId: DeviceId,
     val token: String
 )
+
+interface Device {
+    fun validateToken(token: String): Boolean
+
+}
+
+data class RefBasedDevice(
+    val deviceRef: DeviceRef,
+    private val devicesRepository: DevicesRepository
+) : Device {
+    override fun validateToken(token: String): Boolean {
+        return devicesRepository.fetchDetails(deviceRef, includePasswordHash = true).hashedToken == token.sha256()
+    }
+
+}
