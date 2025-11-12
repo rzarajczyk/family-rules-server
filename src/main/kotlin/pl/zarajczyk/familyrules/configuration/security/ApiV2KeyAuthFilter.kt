@@ -12,8 +12,8 @@ import org.springframework.security.authentication.BadCredentialsException
 import org.springframework.security.core.GrantedAuthority
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.web.filter.GenericFilterBean
+import pl.zarajczyk.familyrules.domain.DeviceNotFoundException
 import pl.zarajczyk.familyrules.domain.DevicesService
-import pl.zarajczyk.familyrules.domain.port.DevicesRepository
 import pl.zarajczyk.familyrules.domain.InstanceId
 import pl.zarajczyk.familyrules.domain.decodeBasicAuth
 import java.time.Instant
@@ -23,7 +23,7 @@ class ApiV2KeyAuthFilter(
     private val devicesService: DevicesService,
     private val excludedUris: Set<String>
 ) : GenericFilterBean() {
-    
+
     // Cache configuration
     companion object {
         const val cacheExpirationMinutes = 30L
@@ -34,7 +34,7 @@ class ApiV2KeyAuthFilter(
 
     // Cache storage: key is "instanceId:tokenHash", value is cache entry
     private val authCache = ConcurrentHashMap<String, AuthCacheEntry>()
-    
+
     private data class AuthCacheEntry(
         val instanceId: InstanceId,
         val timestamp: Instant
@@ -43,6 +43,7 @@ class ApiV2KeyAuthFilter(
             return timestamp.plusSeconds(cacheExpirationMinutes * 60).isBefore(Instant.now())
         }
     }
+
     override fun doFilter(
         request: ServletRequest,
         response: ServletResponse,
@@ -74,7 +75,7 @@ class ApiV2KeyAuthFilter(
         val auth = authHeader.decodeBasicAuth()
 
         val instanceId = InstanceId.fromString(auth.user)
-        
+
         // Check cache first
         val cacheKey = "${instanceId}:${auth.pass.hashCode()}"
         val cachedEntry = authCache[cacheKey]
@@ -85,8 +86,12 @@ class ApiV2KeyAuthFilter(
         }
 
         cleanupExpiredEntries()
-        val isValid = devicesService.withDeviceContext(instanceId) { device ->
-            device.validateToken(auth.pass)
+        val isValid = try {
+            devicesService.withDeviceContext(instanceId) { device ->
+                device.validateToken(auth.pass)
+            }
+        } catch (_: DeviceNotFoundException) {
+            false
         }
         return if (isValid) {
             logger.info("Instance ≪${instanceId}≫ validated successfully using the database")
@@ -98,7 +103,7 @@ class ApiV2KeyAuthFilter(
         }
 
     }
-    
+
     private fun cacheValidationResult(cacheKey: String, instanceId: InstanceId) {
         // Ensure cache doesn't exceed max size
         if (authCache.size >= maxCacheSize) {
@@ -107,18 +112,18 @@ class ApiV2KeyAuthFilter(
                 .sortedBy { it.value.timestamp }
                 .take(maxCacheSize / 4) // Remove 25% of entries
                 .map { it.key }
-            
+
             oldestKeys.forEach { authCache.remove(it) }
         }
-        
+
         authCache[cacheKey] = AuthCacheEntry(instanceId, Instant.now())
     }
-    
+
     private fun cleanupExpiredEntries() {
         val expiredKeys = authCache.entries
             .filter { it.value.isExpired() }
             .map { it.key }
-        
+
         expiredKeys.forEach { authCache.remove(it) }
     }
 }
