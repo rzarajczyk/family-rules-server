@@ -8,7 +8,7 @@ interface DevicesRepository {
     fun get(id: DeviceId): DeviceRef?
     fun getAll(username: String): List<DeviceRef>
     fun getByName(user: UserRef, deviceName: String): DeviceRef?
-    fun fetchDetails(device: DeviceRef): DeviceDetailsDto
+    fun fetchDetails(device: DeviceRef, includePasswordHash: Boolean = false): DeviceDetailsDto
     fun fetchDeviceDto(device: DeviceRef): DeviceDto
     fun delete(device: DeviceRef)
 

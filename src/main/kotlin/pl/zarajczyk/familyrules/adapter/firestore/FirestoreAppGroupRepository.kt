@@ -6,13 +6,7 @@ import com.google.cloud.firestore.Firestore
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.springframework.stereotype.Service
-import pl.zarajczyk.familyrules.domain.*
-import pl.zarajczyk.familyrules.domain.port.AppGroupDto
-import pl.zarajczyk.familyrules.domain.port.AppGroupRef
-import pl.zarajczyk.familyrules.domain.port.AppGroupRepository
-import pl.zarajczyk.familyrules.domain.port.DeviceRef
-import pl.zarajczyk.familyrules.domain.port.DevicesRepository
-import pl.zarajczyk.familyrules.domain.port.UserRef
+import pl.zarajczyk.familyrules.domain.port.*
 
 @Service
 class FirestoreAppGroupRepository(
@@ -66,36 +60,17 @@ class FirestoreAppGroupRepository(
 
     private fun DocumentSnapshot.readAppGroupDto(): AppGroupDto =
         AppGroupDto(
-            id = getString("id") ?: throw RuntimeException("AppGroup id not found"),
-            name = getString("name") ?: throw RuntimeException("AppGroup name not found"),
-            color = getString("color") ?: throw RuntimeException("AppGroup color not found"),
+            id = getStringOrThrow("id"),
+            name = getStringOrThrow("name"),
+            color = getStringOrThrow("color"),
         )
 
     override fun rename(appGroupRef: AppGroupRef, newName: String) {
-        val groupRef = (appGroupRef as FirestoreAppGroupRef).ref
-
-        // Update the group name
-        groupRef.update("name", newName).get()
+        (appGroupRef as FirestoreAppGroupRef).ref.update("name", newName).get()
     }
 
     override fun delete(appGroupRef: AppGroupRef) {
-        // First, remove all memberships for this group
-        val groupId = fetchDetails(appGroupRef).id
-        // TODO - to nie powinno być tutaj
-        val memberships = firestore.collectionGroup("appGroupMemberships")
-            .whereEqualTo("groupId", groupId)
-            .get()
-            .get()
-
-        val batch = firestore.batch()
-        memberships.documents.forEach { doc ->
-            batch.delete(doc.reference)
-        }
-
-        // Delete the group itself
         (appGroupRef as FirestoreAppGroupRef).ref.delete().get()
-
-        batch.commit().get()
     }
 
     fun getDeviceMembership(
@@ -148,9 +123,8 @@ class FirestoreAppGroupRepository(
         val ref = getDeviceMembership(appGroupRef, deviceRef)
         val currentMembersString = ref.get().get().getString("apps") ?: "[]"
         val currentMembers = json.decodeFromString<Set<String>>(currentMembersString)
-        return Pair( ref, currentMembers)
+        return Pair(ref, currentMembers)
     }
-
 
 
 }

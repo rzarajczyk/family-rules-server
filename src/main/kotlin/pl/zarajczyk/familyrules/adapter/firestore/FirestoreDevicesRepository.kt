@@ -79,9 +79,9 @@ class FirestoreDevicesRepository(
             .documents
             .map { FirestoreDeviceRef(it) }
 
-    override fun get(instanceId: InstanceId): InstanceRef? =
+    override fun get(id: InstanceId): InstanceRef? =
         firestore.collectionGroup("instances")
-            .whereEqualTo("instanceId", instanceId.toString())
+            .whereEqualTo("instanceId", id.toString())
             .whereEqualTo("deleted", false)
             .get()
             .get()
@@ -89,22 +89,25 @@ class FirestoreDevicesRepository(
             ?.firstOrNull()
             ?.let { FirestoreDeviceRef(it) }
 
-    override fun fetchDetails(deviceRef: DeviceRef): DeviceDetailsDto {
-        val doc = (deviceRef as FirestoreDeviceRef).document
+    override fun fetchDetails(device: DeviceRef, includePasswordHash: Boolean): DeviceDetailsDto {
+        val doc = (device as FirestoreDeviceRef).document
 
         return DeviceDetailsDto(
-            deviceId = UUID.fromString(doc.getString("instanceId") ?: throw RuntimeException("Device id not found")),
-            deviceName = doc.getString("instanceName") ?: throw RuntimeException("Device name not found"),
-            clientVersion = doc.getString("clientVersion") ?: throw RuntimeException("Client version not found"),
-            clientType = doc.getString("clientType") ?: throw RuntimeException("Client type not found"),
-            clientTimezoneOffsetSeconds = doc.getLong("clientTimezoneOffsetSeconds") ?: throw RuntimeException("clientTimezoneOffsetSeconds not found"),
-            hashedToken = doc.getString("instanceTokenSha256") ?: throw RuntimeException("instanceTokenSha256 not found"),
-            deleted = doc.getBoolean("deleted") ?: throw RuntimeException("deleted not found")
+            deviceId = UUID.fromString(doc.getStringOrThrow("instanceId")),
+            deviceName = doc.getStringOrThrow("instanceName"),
+            clientVersion = doc.getStringOrThrow("clientVersion"),
+            clientType = doc.getStringOrThrow("clientType"),
+            clientTimezoneOffsetSeconds = doc.getLongOrThrow("clientTimezoneOffsetSeconds"),
+            hashedToken = when (includePasswordHash) {
+                true -> doc.getStringOrThrow("instanceTokenSha256")
+                false -> ""
+            },
+            deleted = doc.getBooleanOrThrow("deleted")
         )
     }
 
-    override fun fetchDeviceDto(instanceRef: InstanceRef): DeviceDto {
-        val doc = (instanceRef as FirestoreDeviceRef).document
+    override fun fetchDeviceDto(device: InstanceRef): DeviceDto {
+        val doc = (device as FirestoreDeviceRef).document
 
         return DeviceDto(
             id = UUID.fromString(doc.getString("instanceId") ?: ""),

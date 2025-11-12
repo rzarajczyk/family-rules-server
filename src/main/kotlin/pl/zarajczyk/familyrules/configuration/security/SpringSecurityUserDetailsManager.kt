@@ -38,7 +38,7 @@ class SpringSecurityUserDetailsManager(private val usersRepository: UsersReposit
 
     override fun loadUserByUsername(username: String): UserDetails {
         return usersRepository.get(username)
-            ?.let { usersRepository.fetchDetails(it) }
+            ?.let { usersRepository.fetchDetails(it, includePasswordHash = true) }
             ?.let { dto -> DtoBasedUserDetails(dto) }
             ?: throw UsernameNotFoundException("User ≪$username≫ not found")
     }

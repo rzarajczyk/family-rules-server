@@ -62,7 +62,7 @@ class RefBasedUser(
     }
 
     override fun validatePassword(password: String) {
-        val user = usersRepository.fetchDetails(userRef)
+        val user = usersRepository.fetchDetails(userRef, includePasswordHash = true)
         if (user.passwordSha256 != password.sha256())
             throw InvalidPassword()
     }

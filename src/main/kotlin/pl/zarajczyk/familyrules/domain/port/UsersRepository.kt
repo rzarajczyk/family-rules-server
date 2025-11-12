@@ -6,7 +6,7 @@ interface UsersRepository {
     fun createUser(username: String, passwordHash: String, accessLevel: AccessLevel): UserRef
     fun get(username: String): UserRef?
     fun getAll(): List<UserRef>
-    fun fetchDetails(user: UserRef): UserDetailsDto
+    fun fetchDetails(user: UserRef, includePasswordHash: Boolean = false): UserDetailsDto
     fun update(user: UserRef, newPasswordHash: String)
     fun delete(user: UserRef)
 }

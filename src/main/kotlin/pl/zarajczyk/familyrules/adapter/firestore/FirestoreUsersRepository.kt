@@ -3,7 +3,7 @@ package pl.zarajczyk.familyrules.adapter.firestore
 import com.google.cloud.firestore.DocumentReference
 import com.google.cloud.firestore.Firestore
 import org.springframework.stereotype.Service
-import pl.zarajczyk.familyrules.domain.*
+import pl.zarajczyk.familyrules.domain.AccessLevel
 import pl.zarajczyk.familyrules.domain.port.UserDetailsDto
 import pl.zarajczyk.familyrules.domain.port.UserRef
 import pl.zarajczyk.familyrules.domain.port.UsersRepository
@@ -24,14 +24,15 @@ class FirestoreUsersRepository(
             }
     }
 
-    override fun fetchDetails(user: UserRef): UserDetailsDto {
+    override fun fetchDetails(user: UserRef, includePasswordHash: Boolean): UserDetailsDto {
         val doc = (user as FirestoreUserRef).doc.get().get()
         return UserDetailsDto(
-            username = doc.getString("username") ?: throw RuntimeException("Unable to find username for given user"),
-            passwordSha256 = doc.getString("passwordSha256")
-                ?: throw RuntimeException("Unable to find password for given user"),
-            accessLevel = doc.getString("accessLevel")?.let { AccessLevel.valueOf(it) }
-                ?: throw RuntimeException("Unable to find access level for given user")
+            username = doc.getStringOrThrow("username"),
+            passwordSha256 = when (includePasswordHash) {
+                true -> doc.getStringOrThrow("passwordSha256")
+                false -> ""
+            },
+            accessLevel = doc.getStringOrThrow("accessLevel").let { AccessLevel.valueOf(it) }
         )
     }
 
