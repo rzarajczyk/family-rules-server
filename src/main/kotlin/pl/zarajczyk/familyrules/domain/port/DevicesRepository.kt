@@ -38,6 +38,7 @@ data class DeviceDetailsDto(
     val hashedToken: String,
     val clientType: String,
     val clientVersion: String,
+    val schedule: WeeklyScheduleDto,
     // schedule
     val clientTimezoneOffsetSeconds: Long,
     val iconData: String?,

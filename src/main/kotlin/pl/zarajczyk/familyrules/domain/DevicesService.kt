@@ -43,7 +43,8 @@ class DevicesService(
             iconData = null,
             iconType = null,
             reportIntervalSeconds = 60,
-            knownApps = emptyMap()
+            knownApps = emptyMap(),
+            schedule = WeeklyScheduleDto.empty()
         )
 
         devicesRepository.createDevice(userRef, details)

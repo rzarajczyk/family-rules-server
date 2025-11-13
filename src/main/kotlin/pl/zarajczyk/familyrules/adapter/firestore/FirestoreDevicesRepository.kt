@@ -87,6 +87,7 @@ class FirestoreDevicesRepository(
             forcedDeviceState = doc.getDeviceStateDto("forcedDeviceState", "forcedDeviceStateExtra"),
             clientVersion = doc.getStringOrThrow("clientVersion"),
             clientType = doc.getStringOrThrow("clientType"),
+            schedule = doc.getSchedule("schedule"),
             clientTimezoneOffsetSeconds = doc.getLongOrThrow("clientTimezoneOffsetSeconds"),
             hashedToken = when (includePasswordHash) {
                 true -> doc.getStringOrThrow("instanceTokenSha256")
@@ -95,7 +96,7 @@ class FirestoreDevicesRepository(
             iconData = doc.getString("iconData"),
             iconType = doc.getString("iconType"),
             reportIntervalSeconds = doc.getLongOrThrow("reportIntervalSeconds"),
-            knownApps = doc.getKnownApps("knownApps")
+            knownApps = doc.getKnownAppsOrThrow("knownApps")
         )
     }
 
@@ -104,9 +105,13 @@ class FirestoreDevicesRepository(
             DeviceStateDto(it, getString(extraFieldName))
         }
 
-    private fun QueryDocumentSnapshot.getKnownApps(fieldName: String) =
+    private fun QueryDocumentSnapshot.getKnownAppsOrThrow(fieldName: String) =
         json.decodeFromString<Map<String, FirestoreKnownApp>>(getStringOrThrow(fieldName))
             .mapValues { AppDto(it.value.appName, it.value.iconBase64) }
+
+    private fun QueryDocumentSnapshot.getSchedule(fieldName: String) =
+        json.decodeFromString<WeeklyScheduleDto>(getString(fieldName) ?: "{}")
+            .let { schedulePacker.unpack(it) }
 
     override fun fetchDeviceDto(device: InstanceRef): DeviceDto {
         val doc = (device as FirestoreDeviceRef).document
@@ -118,17 +123,16 @@ class FirestoreDevicesRepository(
             clientVersion = doc.getString("clientVersion") ?: "",
             clientType = doc.getString("clientType") ?: "",
             schedule = try {
-                json.decodeFromString<WeeklyScheduleDto>(doc.getString("schedule") ?: "{}")
-                    .let { schedulePacker.unpack(it) }
+                doc.getSchedule("schedule")
             } catch (e: Exception) {
-                WeeklyScheduleDto.Companion.empty()
+                WeeklyScheduleDto.empty()
             },
             iconData = doc.getString("iconData"),
             iconType = doc.getString("iconType"),
             clientTimezoneOffsetSeconds = doc.getLong("clientTimezoneOffsetSeconds")?.toInt() ?: 0,
             reportIntervalSeconds = doc.getLong("reportIntervalSeconds")?.toInt(),
             knownApps = try {
-                doc.getKnownApps("knownApps")
+                doc.getKnownAppsOrThrow("knownApps")
             } catch (e: Exception) {
                 emptyMap()
             }
