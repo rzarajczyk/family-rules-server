@@ -26,7 +26,6 @@ class FirestoreDevicesRepository(
         return (user as FirestoreUserRef).doc
             .collection("instances")
             .whereEqualTo("instanceName", deviceName)
-            .whereEqualTo("deleted", false)
             .get()
             .get()
             ?.documents
@@ -45,7 +44,6 @@ class FirestoreDevicesRepository(
             "clientVersion" to details.clientVersion,
             "clientTimezoneOffsetSeconds" to details.clientTimezoneOffsetSeconds,
             "schedule" to json.encodeToString(schedulePacker.pack(WeeklyScheduleDto.Companion.empty())),
-            "deleted" to details.deleted,
             "iconData" to details.iconData,
             "iconType" to details.iconType,
             "reportIntervalSeconds" to details.reportIntervalSeconds
@@ -65,7 +63,6 @@ class FirestoreDevicesRepository(
         firestore.collection("users")
             .document(username)
             .collection("instances")
-            .whereEqualTo("deleted", false)
             .orderBy("instanceName")
             .get()
             .get()
@@ -75,7 +72,6 @@ class FirestoreDevicesRepository(
     override fun get(id: InstanceId): InstanceRef? =
         firestore.collectionGroup("instances")
             .whereEqualTo("instanceId", id.toString())
-            .whereEqualTo("deleted", false)
             .get()
             .get()
             ?.documents
@@ -98,7 +94,6 @@ class FirestoreDevicesRepository(
                 true -> doc.getStringOrThrow("instanceTokenSha256")
                 false -> ""
             },
-            deleted = doc.getBooleanOrThrow("deleted"),
             iconData = doc.getString("iconData"),
             iconType = doc.getString("iconType"),
             reportIntervalSeconds = doc.getLong("reportIntervalSeconds")
@@ -147,8 +142,8 @@ class FirestoreDevicesRepository(
 
     override fun delete(device: InstanceRef) {
         val doc = (device as FirestoreDeviceRef).document
-
-        doc.reference.update("deleted", true).get()
+        // Hard delete: remove the document instead of setting a deleted flag
+        doc.reference.delete().get()
     }
 
     override fun setInstanceSchedule(device: InstanceRef, schedule: WeeklyScheduleDto) {

@@ -40,7 +40,6 @@ class DevicesService(
             clientType = clientType,
             clientVersion = "v0",
             clientTimezoneOffsetSeconds = 0L,
-            deleted = false,
             iconData = null,
             iconType = null,
             reportIntervalSeconds = 60

@@ -40,7 +40,6 @@ data class DeviceDetailsDto(
     val clientVersion: String,
     // schedule
     val clientTimezoneOffsetSeconds: Long,
-    val deleted: Boolean,
     val iconData: String?,
     val iconType: String?,
     val reportIntervalSeconds: Long?,
