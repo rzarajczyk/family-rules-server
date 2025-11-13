@@ -90,7 +90,10 @@ class FirestoreDevicesRepository(
                 true -> doc.getStringOrThrow("instanceTokenSha256")
                 false -> ""
             },
-            deleted = doc.getBooleanOrThrow("deleted")
+            deleted = doc.getBooleanOrThrow("deleted"),
+            iconData = doc.getStringOrThrow("iconData"),
+            iconType = doc.getStringOrThrow("iconType"),
+            reportIntervalSeconds = doc.getLongOrThrow("reportIntervalSeconds")
         )
     }
 

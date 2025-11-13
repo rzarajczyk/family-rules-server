@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.*
 import org.springframework.web.server.ResponseStatusException
 import pl.zarajczyk.familyrules.domain.*
 import pl.zarajczyk.familyrules.domain.port.AppGroupDto
+import pl.zarajczyk.familyrules.domain.port.DeviceDetailsDto
 import pl.zarajczyk.familyrules.domain.port.DevicesRepository
 import java.time.DayOfWeek
 
@@ -97,6 +98,12 @@ class BffOverviewController(
     private fun DeviceStateDescriptionResponse.isEqualTo(other: DeviceStateDto?) =
         this.deviceState == other?.deviceState && this.extra == other?.extra
 
+    private fun DeviceDetailsDto.getIcon() = if (iconType != null && iconData != null) {
+        Icon(type = iconType, data = iconData)
+    } else {
+        Icon(type = null, data = null)
+    }
+
     private fun DeviceDto.getIcon() = if (iconType != null && iconData != null) {
         Icon(type = iconType, data = iconData)
     } else {
@@ -124,9 +131,9 @@ class BffOverviewController(
         @RequestParam("instanceId") instanceId: InstanceId
     ): InstanceEditInfo {
         val instanceRef = dbConnector.findDeviceOrThrow(instanceId)
-        val instance = dbConnector.fetchDeviceDto(instanceRef)
+        val instance = dbConnector.fetchDetails(instanceRef)
         return InstanceEditInfo(
-            instanceName = instance.name,
+            instanceName = instance.deviceName,
             icon = instance.getIcon()
         )
     }
