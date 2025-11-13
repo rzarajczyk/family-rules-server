@@ -43,4 +43,5 @@ data class DeviceDetailsDto(
     val iconData: String?,
     val iconType: String?,
     val reportIntervalSeconds: Long,
-    )
+    val knownApps: Map<String, AppDto>
+)

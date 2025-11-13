@@ -42,7 +42,8 @@ class DevicesService(
             clientTimezoneOffsetSeconds = 0L,
             iconData = null,
             iconType = null,
-            reportIntervalSeconds = 60
+            reportIntervalSeconds = 60,
+            knownApps = emptyMap()
         )
 
         devicesRepository.createDevice(userRef, details)

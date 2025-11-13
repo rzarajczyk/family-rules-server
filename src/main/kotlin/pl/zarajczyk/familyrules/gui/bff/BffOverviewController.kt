@@ -43,7 +43,7 @@ class BffOverviewController(
         StatusResponse(instances.map { deviceRef ->
             val screenTimeDto = dbConnector.getScreenTimes(deviceRef, day)
             val state = stateService.getDeviceState(deviceRef)
-            val instance = dbConnector.fetchDeviceDto(deviceRef)
+            val instance = dbConnector.fetchDetails(deviceRef)
             val availableStates = dbConnector.getAvailableDeviceStateTypes(deviceRef)
             val appGroups = usersService.withUserContext(username) { user ->
                 appGroupService.listAllAppGroups(user)
@@ -51,8 +51,8 @@ class BffOverviewController(
             val appGroupsDetails = appGroups.associateWith { it.get() }
 
             Instance(
-                instanceId = instance.id,
-                instanceName = instance.name,
+                instanceId = instance.deviceId,
+                instanceName = instance.deviceName,
                 screenTimeSeconds = screenTimeDto.screenTimeSeconds,
                 appUsageSeconds = screenTimeDto.applicationsSeconds
                     .map { (appTechnicalId, v) ->
@@ -84,7 +84,7 @@ class BffOverviewController(
                 automaticDeviceState = availableStates
                     .flatMap { it.toDeviceStateDescriptions(appGroupsDetails.values) }
                     .firstOrNull { it.isEqualTo(state.automaticState) }
-                    ?: throw RuntimeException("Instance ≪${instance.id}≫ doesn't have automatic state ≪${state.automaticState}≫"),
+                    ?: throw RuntimeException("Instance ≪${instance.deviceId}≫ doesn't have automatic state ≪${state.automaticState}≫"),
                 online = screenTimeDto.updatedAt.isOnline(instance.reportIntervalSeconds),
                 icon = instance.getIcon(),
                 availableAppGroups = appGroupsDetails.values.toList(),
@@ -287,8 +287,8 @@ class BffOverviewController(
         dbConnector.delete(instanceRef)
     }
 
-    private fun Instant.isOnline(reportIntervalSeconds: Int? = null) =
-        (Clock.System.now() - this).inWholeSeconds <= (reportIntervalSeconds ?: 60)
+    private fun Instant.isOnline(reportIntervalSeconds: Long) =
+        (Clock.System.now() - this).inWholeSeconds <= reportIntervalSeconds
 
     private fun DeviceStateTypeDto.toDeviceStateDescriptions(appGroups: Collection<AppGroupDetails>) =
         deviceStateService.createActualInstances(this, appGroups)

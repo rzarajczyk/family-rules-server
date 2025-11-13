@@ -17,7 +17,7 @@ class V2AppGroupController(
     @PostMapping("/api/v2/group-membership-for-device")
     fun getMembership(@RequestBody request: MembershipRequest, authentication: Authentication): MembershipResponse {
         val instanceRef = devicesRepository.findAuthenticatedDevice(authentication)
-        val instance = devicesRepository.fetchDeviceDto(instanceRef)
+        val instance = devicesRepository.fetchDetails(instanceRef)
 
         return usersService.withUserContext(devicesRepository.getOwner(instanceRef)) { user ->
             appGroupService.withAppGroupContext(user, request.appGroupId) { appGroup ->
@@ -30,8 +30,8 @@ class V2AppGroupController(
                             appPath = appTechnicalId,
                             appName = known?.appName ?: appTechnicalId,
                             iconBase64Png = known?.iconBase64Png,
-                            deviceName = instance.name,
-                            deviceId = instance.id.toString()
+                            deviceName = instance.deviceName,
+                            deviceId = instance.deviceId.toString()
                         )
                     }
                 )

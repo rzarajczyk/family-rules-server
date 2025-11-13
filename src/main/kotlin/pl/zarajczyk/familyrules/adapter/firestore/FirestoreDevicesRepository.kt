@@ -84,9 +84,7 @@ class FirestoreDevicesRepository(
         return DeviceDetailsDto(
             deviceId = UUID.fromString(doc.getStringOrThrow("instanceId")),
             deviceName = doc.getStringOrThrow("instanceName"),
-            forcedDeviceState = doc.getString("forcedDeviceState")?.let {
-                DeviceStateDto(it, doc.getString("forcedDeviceStateExtra"))
-            },
+            forcedDeviceState = doc.getDeviceStateDto("forcedDeviceState", "forcedDeviceStateExtra"),
             clientVersion = doc.getStringOrThrow("clientVersion"),
             clientType = doc.getStringOrThrow("clientType"),
             clientTimezoneOffsetSeconds = doc.getLongOrThrow("clientTimezoneOffsetSeconds"),
@@ -96,9 +94,19 @@ class FirestoreDevicesRepository(
             },
             iconData = doc.getString("iconData"),
             iconType = doc.getString("iconType"),
-            reportIntervalSeconds = doc.getLongOrThrow("reportIntervalSeconds")
+            reportIntervalSeconds = doc.getLongOrThrow("reportIntervalSeconds"),
+            knownApps = doc.getKnownApps("knownApps")
         )
     }
+
+    private fun QueryDocumentSnapshot.getDeviceStateDto(fieldName: String, extraFieldName: String): DeviceStateDto? =
+        getString(fieldName)?.let {
+            DeviceStateDto(it, getString(extraFieldName))
+        }
+
+    private fun QueryDocumentSnapshot.getKnownApps(fieldName: String) =
+        json.decodeFromString<Map<String, FirestoreKnownApp>>(getStringOrThrow(fieldName))
+            .mapValues { AppDto(it.value.appName, it.value.iconBase64) }
 
     override fun fetchDeviceDto(device: InstanceRef): DeviceDto {
         val doc = (device as FirestoreDeviceRef).document
@@ -106,9 +114,7 @@ class FirestoreDevicesRepository(
         return DeviceDto(
             id = UUID.fromString(doc.getString("instanceId") ?: ""),
             name = doc.getString("instanceName") ?: "",
-            forcedDeviceState = doc.getString("forcedDeviceState")?.let {
-                DeviceStateDto(it, doc.getString("forcedDeviceStateExtra"))
-            },
+            forcedDeviceState = doc.getDeviceStateDto("forcedDeviceState", "forcedDeviceStateExtra"),
             clientVersion = doc.getString("clientVersion") ?: "",
             clientType = doc.getString("clientType") ?: "",
             schedule = try {
@@ -122,8 +128,7 @@ class FirestoreDevicesRepository(
             clientTimezoneOffsetSeconds = doc.getLong("clientTimezoneOffsetSeconds")?.toInt() ?: 0,
             reportIntervalSeconds = doc.getLong("reportIntervalSeconds")?.toInt(),
             knownApps = try {
-                json.decodeFromString<Map<String, FirestoreKnownApp>>(doc.getString("knownApps") ?: "{}")
-                    .mapValues { AppDto(it.value.appName, it.value.iconBase64) }
+                doc.getKnownApps("knownApps")
             } catch (e: Exception) {
                 emptyMap()
             }

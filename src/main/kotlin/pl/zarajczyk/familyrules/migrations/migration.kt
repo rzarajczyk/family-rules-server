@@ -71,14 +71,14 @@ fun migrate(firestore: Firestore) {
         instances.forEach { instanceDoc ->
             totalInstances++
             val instanceName = instanceDoc.getString("instanceName") ?: instanceDoc.id
-            val currentValue = instanceDoc.getLong("reportIntervalSeconds")
+            val currentValue = instanceDoc.getString("knownApps")
 
             if (currentValue == null) {
-                println("    - Instance '$instanceName': Adding reportIntervalSeconds=60")
-                instanceDoc.reference.update("reportIntervalSeconds", 60L).get()
+                println("    - Instance '$instanceName': Adding knownApps={}")
+                instanceDoc.reference.update("knownApps", "{}").get()
                 updatedInstances++
             } else {
-                println("    - Instance '$instanceName': Already has reportIntervalSeconds=$currentValue, skipping")
+                println("    - Instance '$instanceName': Already has knownApps=$currentValue, skipping")
                 skippedInstances++
             }
         }

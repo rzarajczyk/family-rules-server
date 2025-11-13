@@ -45,12 +45,12 @@ class AppGroupService(private val devicesRepository: DevicesRepository, private 
             val appDetails = mutableListOf<AppGroupAppReport>()
 
             devices.forEach { deviceRef ->
-                val instance = devicesRepository.fetchDeviceDto(deviceRef)
+                val instance = devicesRepository.fetchDetails(deviceRef)
                 val screenTimeDto = devicesRepository.getScreenTimes(deviceRef, day)
                 val appTechnicalIds = appGroupRepository.getMembers(appGroupRef, deviceRef)
 
                 if (appTechnicalIds.isNotEmpty()) {
-                    deviceCount.add(instance.id.toString())
+                    deviceCount.add(instance.deviceId.toString())
                     totalApps += appTechnicalIds.size
 
                     // Collect detailed app information for this group
@@ -67,8 +67,8 @@ class AppGroupService(private val devicesRepository: DevicesRepository, private 
                             AppGroupAppReport(
                                 name = appName,
                                 packageName = appTechnicalId,
-                                deviceName = instance.name,
-                                deviceId = instance.id.toString(),
+                                deviceName = instance.deviceName,
+                                deviceId = instance.deviceId.toString(),
                                 screenTime = appScreenTimeSeconds,
                                 percentage = 0.0, // Will be calculated below
                                 iconBase64 = appIcon

@@ -123,7 +123,7 @@ class V2ClientInfoControllerIntegrationSpec : FunSpec() {
                     .andExpect(jsonPath("$.status").value("ok"))
 
                 val deviceRef = devicesRepository.get(UUID.fromString(deviceId.toString()))!!.also { it.shouldNotBeNull() }
-                val dto = devicesRepository.fetchDeviceDto(deviceRef)
+                val dto = devicesRepository.fetchDetails(deviceRef)
 
                 dto.clientVersion shouldBe "v9.9.9"
                 dto.clientTimezoneOffsetSeconds shouldBe 7200
@@ -191,7 +191,7 @@ class V2ClientInfoControllerIntegrationSpec : FunSpec() {
                     .andExpect(jsonPath("$.status").value("ok"))
 
                 val deviceRef = devicesRepository.get(deviceId)!!
-                val dto = devicesRepository.fetchDeviceDto(deviceRef)
+                val dto = devicesRepository.fetchDetails(deviceRef)
                 dto.clientVersion shouldBe "v1.2.3"
                 dto.clientTimezoneOffsetSeconds shouldBe 0
                 dto.reportIntervalSeconds shouldBe 60

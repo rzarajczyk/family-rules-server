@@ -153,10 +153,10 @@ class HappyPathIntegrationSpec : FunSpec() {
 
         test("step 5 - should verify client-info data in database") {
             val deviceRef = devicesRepository.get(UUID.fromString(instanceId))!!
-            val details = devicesRepository.fetchDeviceDto(deviceRef)
+            val details = devicesRepository.fetchDetails(deviceRef)
             details.clientVersion shouldBe clientVersion
             details.clientTimezoneOffsetSeconds shouldBe timezoneOffsetSeconds
-            details.reportIntervalSeconds?.toLong() shouldBe reportIntervalSeconds.toLong()
+            details.reportIntervalSeconds shouldBe reportIntervalSeconds.toLong()
             details.knownApps shouldNotBe null
             devicesRepository.getAvailableDeviceStateTypes(deviceRef).size shouldBeGreaterThan 0
         }
