@@ -100,6 +100,27 @@ class FirestoreDevicesRepository(
         )
     }
 
+    override fun update(device: DeviceRef, details: DeviceDetailsUpdateDto) {
+        val instanceData = listOfNotNull(
+            details.deviceId.ifPresent { "instanceId" to it.toString() },
+            details.deviceName.ifPresent { "instanceName" to it },
+            details.forcedDeviceState.ifPresent { "forcedDeviceState" to it?.deviceState },
+            details.forcedDeviceState.ifPresent { "forcedDeviceStateExtra" to it?.extra },
+            details.hashedToken.ifPresent {  "instanceTokenSha256" to it },
+            details.clientType.ifPresent { "clientType" to it },
+            details.clientVersion.ifPresent { "clientVersion" to it },
+            details.clientTimezoneOffsetSeconds.ifPresent { "clientTimezoneOffsetSeconds" to it },
+            details.schedule.ifPresent { "schedule" to json.encodeToString(schedulePacker.pack(it)) },
+            details.iconData.ifPresent { "iconData" to it },
+            details.iconType.ifPresent { "iconType" to it },
+            details.reportIntervalSeconds.ifPresent { "reportIntervalSeconds" to it }
+        ).toMap()
+
+        val doc = (device as FirestoreDeviceRef).document
+
+        doc.reference.update(instanceData).get()
+    }
+
     private fun QueryDocumentSnapshot.getDeviceStateDto(fieldName: String, extraFieldName: String): DeviceStateDto? =
         getString(fieldName)?.let {
             DeviceStateDto(it, getString(extraFieldName))
@@ -113,15 +134,15 @@ class FirestoreDevicesRepository(
         json.decodeFromString<WeeklyScheduleDto>(getString(fieldName) ?: "{}")
             .let { schedulePacker.unpack(it) }
 
-    override fun updateInstance(device: InstanceRef, update: UpdateInstanceDto) {
-        val doc = (device as FirestoreDeviceRef).document
-
-        doc.reference.update(
-            "instanceName", update.name,
-            "iconData", update.iconData,
-            "iconType", update.iconType
-        ).get()
-    }
+//    override fun updateInstance(device: InstanceRef, update: UpdateInstanceDto) {
+//        val doc = (device as FirestoreDeviceRef).document
+//
+//        doc.reference.update(
+//            "instanceName", update.name,
+//            "iconData", update.iconData,
+//            "iconType", update.iconType
+//        ).get()
+//    }
 
     override fun delete(device: InstanceRef) {
         val doc = (device as FirestoreDeviceRef).document

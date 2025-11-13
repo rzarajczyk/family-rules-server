@@ -25,13 +25,6 @@ data class DeviceDto(
     val knownApps: Map<String, AppDto>,
 )
 
-data class UpdateInstanceDto(
-    val instanceId: InstanceId,
-    val name: String,
-    val iconData: String?,
-    val iconType: String?
-)
-
 @Serializable
 data class DeviceStateTypeDto(
     val deviceState: String,

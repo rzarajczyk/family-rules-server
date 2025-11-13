@@ -2,6 +2,7 @@ package pl.zarajczyk.familyrules.domain
 
 import org.springframework.stereotype.Service
 import pl.zarajczyk.familyrules.domain.port.DeviceDetailsDto
+import pl.zarajczyk.familyrules.domain.port.DeviceDetailsUpdateDto
 import pl.zarajczyk.familyrules.domain.port.DeviceRef
 import pl.zarajczyk.familyrules.domain.port.DevicesRepository
 import pl.zarajczyk.familyrules.domain.port.UsersRepository
@@ -66,6 +67,10 @@ data class NewDeviceDetails(
 
 interface Device {
     fun validateToken(token: String): Boolean
+
+    fun update(update: DeviceDetailsUpdateDto)
+
+    fun delete()
 }
 
 data class RefBasedDevice(
@@ -75,5 +80,14 @@ data class RefBasedDevice(
     override fun validateToken(token: String): Boolean {
         return devicesRepository.fetchDetails(deviceRef, includePasswordHash = true).hashedToken == token.sha256()
     }
+
+    override fun update(update: DeviceDetailsUpdateDto) {
+        devicesRepository.update(deviceRef, update)
+    }
+
+    override fun delete() {
+        devicesRepository.delete(deviceRef)
+    }
+
 
 }

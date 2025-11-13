@@ -8,15 +8,13 @@ import org.springframework.security.core.Authentication
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.server.ResponseStatusException
 import pl.zarajczyk.familyrules.domain.*
-import pl.zarajczyk.familyrules.domain.port.AppGroupDto
-import pl.zarajczyk.familyrules.domain.port.DeviceDetailsDto
-import pl.zarajczyk.familyrules.domain.port.DeviceStateDto
-import pl.zarajczyk.familyrules.domain.port.DevicesRepository
+import pl.zarajczyk.familyrules.domain.port.*
 import java.time.DayOfWeek
 
 @RestController
 class BffOverviewController(
     private val dbConnector: DevicesRepository,
+    private val devicesService: DevicesService,
     private val scheduleUpdater: ScheduleUpdater,
     private val stateService: StateService,
     private val deviceStateService: DeviceStateService,
@@ -142,16 +140,13 @@ class BffOverviewController(
     fun setInstanceEditInfo(
         @RequestParam("instanceId") instanceId: InstanceId,
         @RequestBody data: InstanceEditInfo
-    ) {
-        val instanceRef = dbConnector.findDeviceOrThrow(instanceId)
-        dbConnector.updateInstance(
-            instanceRef, UpdateInstanceDto(
-                instanceId = instanceId,
-                name = data.instanceName,
-                iconType = data.icon?.type,
-                iconData = data.icon?.data
-            )
-        )
+    ) = devicesService.withDeviceContext(instanceId) { device ->
+        device.update(
+            DeviceDetailsUpdateDto(
+                deviceName = ValueUpdate.set(data.instanceName),
+            iconData = data.icon?.let { ValueUpdate.set(data.icon.data) } ?: ValueUpdate.leaveUnchanged(),
+            iconType = data.icon?.let { ValueUpdate.set(data.icon.type) } ?: ValueUpdate.leaveUnchanged()
+        ))
     }
 
     data class InstanceEditInfo(
@@ -283,9 +278,8 @@ class BffOverviewController(
     @PostMapping("/bff/delete-instance")
     fun deleteInstance(
         @RequestParam("instanceId") instanceId: InstanceId
-    ) {
-        val instanceRef = dbConnector.findDeviceOrThrow(instanceId)
-        dbConnector.delete(instanceRef)
+    ) = devicesService.withDeviceContext(instanceId) { device ->
+        device.delete()
     }
 
     private fun Instant.isOnline(reportIntervalSeconds: Long) =
