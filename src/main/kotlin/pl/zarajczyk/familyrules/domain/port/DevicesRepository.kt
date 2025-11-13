@@ -42,5 +42,5 @@ data class DeviceDetailsDto(
     val clientTimezoneOffsetSeconds: Long,
     val iconData: String?,
     val iconType: String?,
-    val reportIntervalSeconds: Long?,
+    val reportIntervalSeconds: Long,
     )

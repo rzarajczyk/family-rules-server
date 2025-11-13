@@ -96,7 +96,7 @@ class FirestoreDevicesRepository(
             },
             iconData = doc.getString("iconData"),
             iconType = doc.getString("iconType"),
-            reportIntervalSeconds = doc.getLong("reportIntervalSeconds")
+            reportIntervalSeconds = doc.getLongOrThrow("reportIntervalSeconds")
         )
     }
 
