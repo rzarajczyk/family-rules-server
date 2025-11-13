@@ -17,7 +17,6 @@ interface DevicesRepository {
     fun setInstanceSchedule(device: DeviceRef, schedule: WeeklyScheduleDto)
     fun setForcedInstanceState(device: DeviceRef, state: DeviceStateDto?)
     fun updateClientInformation(device: DeviceRef, clientInfo: ClientInfoDto)
-    fun setAssociatedAppGroup(device: DeviceRef, groupId: String?)
 
     // Device states operations
     fun getAvailableDeviceStateTypes(instance: DeviceRef): List<DeviceStateTypeDto>

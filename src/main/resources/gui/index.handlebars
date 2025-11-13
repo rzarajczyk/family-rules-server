@@ -5,11 +5,6 @@
         <div class="instance-name">
             <span>{{instanceName}}</span>
             <span class="new badge screen-time" data-badge-caption="">{{#formatScreenTime}}{{screenTimeSeconds}}{{/formatScreenTime}}</span>
-            {{#if associatedAppGroupId}}
-                <span class="new badge blue mr-2" data-badge-caption="">
-                    <i class="material-icons tiny">group_work</i>{{groupNameFrom availableAppGroups associatedAppGroupId}}
-                </span>
-            {{/if}}
             {{#if forcedDeviceState}}
                 <span class="new badge orange mr-2" data-badge-caption="">
                     <svg xmlns="http://www.w3.org/2000/svg" height="12px" viewBox="0 -960 960 960" width="12px" fill="var(--md-sys-color-on-primary)">{{{forcedDeviceState.icon}}}</svg>
@@ -65,8 +60,6 @@
         <div class="input-wrapper instance-buttons">
             <a class="btn outlined right mb-2 mr-1 client-info hide-on-med-and-up">Client information</a>
             <a class="btn text mb-2 client-info hide-on-small-only"><i class="material-icons">info</i></a>
-            <a class="btn outlined right mb-2 mr-1 associate-group hide-on-med-and-up">Associate App Group</a>
-            <a class="btn text mb-2 associate-group hide-on-small-only"><i class="material-icons">group_work</i></a>
             <a class="btn outlined right mb-2 mr-1 client-edit hide-on-med-and-up">Edit</a>
             <a class="btn text mb-2 client-edit hide-on-small-only"><i class="material-icons">edit</i></a>
             <a class="btn outlined right mb-2 mr-1 client-delete hide-on-med-and-up">Delete</a>

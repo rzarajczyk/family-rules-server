@@ -88,7 +88,6 @@ class BffOverviewController(
                 online = screenTimeDto.updatedAt.isOnline(instance.reportIntervalSeconds),
                 icon = instance.getIcon(),
                 availableAppGroups = appGroupsDetails.values.toList(),
-                associatedAppGroupId = instance.associatedAppGroupId
             )
         })
     } catch (_: InvalidPassword) {
@@ -288,16 +287,6 @@ class BffOverviewController(
         dbConnector.delete(instanceRef)
     }
 
-    @PostMapping("/bff/instance-associated-group")
-    fun setInstanceAssociatedGroup(
-        @RequestParam("instanceId") instanceId: InstanceId,
-        @RequestBody request: SetAssociatedGroupRequest
-    ): SetAssociatedGroupResponse {
-        val instanceRef = dbConnector.findDeviceOrThrow(instanceId)
-        dbConnector.setAssociatedAppGroup(instanceRef, request.groupId)
-        return SetAssociatedGroupResponse(success = true)
-    }
-
     private fun Instant.isOnline(reportIntervalSeconds: Int? = null) =
         (Clock.System.now() - this).inWholeSeconds <= (reportIntervalSeconds ?: 60)
 
@@ -356,7 +345,6 @@ data class Instance(
     val forcedDeviceState: DeviceStateDescriptionResponse?,
     val online: Boolean,
     val availableAppGroups: List<AppGroupDetails>,
-    val associatedAppGroupId: String? = null
 )
 
 data class Icon(
