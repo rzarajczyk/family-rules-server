@@ -113,34 +113,8 @@ class FirestoreDevicesRepository(
         json.decodeFromString<WeeklyScheduleDto>(getString(fieldName) ?: "{}")
             .let { schedulePacker.unpack(it) }
 
-    override fun fetchDeviceDto(device: InstanceRef): DeviceDto {
+    override fun updateInstance(device: InstanceRef, update: UpdateInstanceDto) {
         val doc = (device as FirestoreDeviceRef).document
-
-        return DeviceDto(
-            id = UUID.fromString(doc.getString("instanceId") ?: ""),
-            name = doc.getString("instanceName") ?: "",
-            forcedDeviceState = doc.getDeviceStateDto("forcedDeviceState", "forcedDeviceStateExtra"),
-            clientVersion = doc.getString("clientVersion") ?: "",
-            clientType = doc.getString("clientType") ?: "",
-            schedule = try {
-                doc.getSchedule("schedule")
-            } catch (e: Exception) {
-                WeeklyScheduleDto.empty()
-            },
-            iconData = doc.getString("iconData"),
-            iconType = doc.getString("iconType"),
-            clientTimezoneOffsetSeconds = doc.getLong("clientTimezoneOffsetSeconds")?.toInt() ?: 0,
-            reportIntervalSeconds = doc.getLong("reportIntervalSeconds")?.toInt(),
-            knownApps = try {
-                doc.getKnownAppsOrThrow("knownApps")
-            } catch (e: Exception) {
-                emptyMap()
-            }
-        )
-    }
-
-    override fun updateInstance(instance: InstanceRef, update: UpdateInstanceDto) {
-        val doc = (instance as FirestoreDeviceRef).document
 
         doc.reference.update(
             "instanceName", update.name,

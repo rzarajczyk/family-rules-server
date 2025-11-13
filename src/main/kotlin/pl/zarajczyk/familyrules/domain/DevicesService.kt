@@ -66,7 +66,6 @@ data class NewDeviceDetails(
 
 interface Device {
     fun validateToken(token: String): Boolean
-
 }
 
 data class RefBasedDevice(

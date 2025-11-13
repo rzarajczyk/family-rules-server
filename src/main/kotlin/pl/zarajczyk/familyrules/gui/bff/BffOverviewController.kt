@@ -10,6 +10,7 @@ import org.springframework.web.server.ResponseStatusException
 import pl.zarajczyk.familyrules.domain.*
 import pl.zarajczyk.familyrules.domain.port.AppGroupDto
 import pl.zarajczyk.familyrules.domain.port.DeviceDetailsDto
+import pl.zarajczyk.familyrules.domain.port.DeviceStateDto
 import pl.zarajczyk.familyrules.domain.port.DevicesRepository
 import java.time.DayOfWeek
 
@@ -164,7 +165,7 @@ class BffOverviewController(
         authentication: Authentication,
     ): ScheduleResponse {
         val instanceRef = dbConnector.findDeviceOrThrow(instanceId)
-        val instance = dbConnector.fetchDeviceDto(instanceRef)
+        val instance = dbConnector.fetchDetails(instanceRef)
         val availableStates = dbConnector.getAvailableDeviceStateTypes(instanceRef)
         val appGroups = usersService.withUserContext(authentication.name) { user ->
             appGroupService.listAllAppGroups(user).map { it.get() }
@@ -215,7 +216,7 @@ class BffOverviewController(
         @RequestBody data: AddPeriodRequest
     ) {
         val instanceRef = dbConnector.findDeviceOrThrow(instanceId)
-        val instance = dbConnector.fetchDeviceDto(instanceRef)
+        val instance = dbConnector.fetchDetails(instanceRef)
         val schedule = instance.schedule
         val period = PeriodDto(
             fromSeconds = (data.from.hour * 3600 + data.from.minute * 60).toLong(),

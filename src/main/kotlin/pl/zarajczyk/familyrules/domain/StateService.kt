@@ -4,6 +4,8 @@ import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.springframework.stereotype.Service
+import pl.zarajczyk.familyrules.domain.port.DeviceDetailsDto
+import pl.zarajczyk.familyrules.domain.port.DeviceStateDto
 import pl.zarajczyk.familyrules.domain.port.DevicesRepository
 import pl.zarajczyk.familyrules.domain.port.InstanceRef
 
@@ -11,10 +13,10 @@ import pl.zarajczyk.familyrules.domain.port.InstanceRef
 class StateService(private val devicesRepository: DevicesRepository) {
 
     fun getDeviceState(instance: InstanceRef): CurrentDeviceState {
-        return getDeviceState(devicesRepository.fetchDeviceDto(instance))
+        return getDeviceState(devicesRepository.fetchDetails(instance))
     }
 
-    fun getDeviceState(instance: DeviceDto): CurrentDeviceState {
+    fun getDeviceState(instance: DeviceDetailsDto): CurrentDeviceState {
         val automaticState = instance.schedule.getCurrentDeviceState()
         val finalState = instance.forcedDeviceState ?: automaticState
 

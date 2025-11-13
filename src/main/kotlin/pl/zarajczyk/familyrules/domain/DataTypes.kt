@@ -3,6 +3,7 @@ package pl.zarajczyk.familyrules.domain
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.Instant
 import kotlinx.serialization.Serializable
+import pl.zarajczyk.familyrules.domain.port.DeviceStateDto
 
 data class ScreenTimeDto(
     val screenTimeSeconds: Long,
@@ -30,18 +31,6 @@ data class UpdateInstanceDto(
     val iconData: String?,
     val iconType: String?
 )
-
-const val DEFAULT_DEVICE_STATE = "ACTIVE"
-
-@Serializable
-data class DeviceStateDto(
-    val deviceState: String,
-    val extra: String? = null
-) {
-    companion object {
-        fun default() = DeviceStateDto(DEFAULT_DEVICE_STATE, null)
-    }
-}
 
 @Serializable
 data class DeviceStateTypeDto(

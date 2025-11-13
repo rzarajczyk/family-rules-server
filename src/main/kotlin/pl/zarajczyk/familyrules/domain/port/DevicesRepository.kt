@@ -1,6 +1,7 @@
 package pl.zarajczyk.familyrules.domain.port
 
 import kotlinx.datetime.LocalDate
+import kotlinx.serialization.Serializable
 import pl.zarajczyk.familyrules.domain.*
 
 interface DevicesRepository {
@@ -9,7 +10,6 @@ interface DevicesRepository {
     fun getAll(username: String): List<DeviceRef>
     fun getByName(user: UserRef, deviceName: String): DeviceRef?
     fun fetchDetails(device: DeviceRef, includePasswordHash: Boolean = false): DeviceDetailsDto
-    fun fetchDeviceDto(device: DeviceRef): DeviceDto
     fun delete(device: DeviceRef)
 
     fun updateInstance(device: DeviceRef, update: UpdateInstanceDto)
@@ -46,3 +46,15 @@ data class DeviceDetailsDto(
     val reportIntervalSeconds: Long,
     val knownApps: Map<String, AppDto>
 )
+
+const val DEFAULT_DEVICE_STATE = "ACTIVE"
+
+@Serializable
+data class DeviceStateDto(
+    val deviceState: String,
+    val extra: String? = null
+) {
+    companion object {
+        fun default() = DeviceStateDto(DEFAULT_DEVICE_STATE, null)
+    }
+}
