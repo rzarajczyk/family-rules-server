@@ -43,9 +43,10 @@ class FirestoreDevicesRepository(
             "clientType" to details.clientType,
             "clientVersion" to details.clientVersion,
             "clientTimezoneOffsetSeconds" to details.clientTimezoneOffsetSeconds,
-            "schedule" to json.encodeToString(schedulePacker.pack(WeeklyScheduleDto.Companion.empty())),
+            "schedule" to encode(WeeklyScheduleDto.Companion.empty()),
             "iconData" to details.iconData,
             "iconType" to details.iconType,
+            "knownApps" to encode(details.knownApps),
             "reportIntervalSeconds" to details.reportIntervalSeconds
         )
 
@@ -57,6 +58,19 @@ class FirestoreDevicesRepository(
 
         return get(details.deviceId) ?: throw DeviceNotFoundException(details.deviceId)
     }
+
+    private fun encode(schedule: WeeklyScheduleDto): String =
+        json.encodeToString(schedulePacker.pack(schedule))
+
+    private fun encode(knownApps: Map<String, AppDto>): String =
+        json.encodeToString(
+            knownApps.mapValues {
+                FirestoreKnownApp(
+                    appName = it.value.appName,
+                    iconBase64 = it.value.iconBase64Png
+                )
+            }
+        )
 
     // TODO: UserRef
     override fun getAll(username: String): List<InstanceRef> =
@@ -106,13 +120,14 @@ class FirestoreDevicesRepository(
             details.deviceName.ifPresent { "instanceName" to it },
             details.forcedDeviceState.ifPresent { "forcedDeviceState" to it?.deviceState },
             details.forcedDeviceState.ifPresent { "forcedDeviceStateExtra" to it?.extra },
-            details.hashedToken.ifPresent {  "instanceTokenSha256" to it },
+            details.hashedToken.ifPresent { "instanceTokenSha256" to it },
             details.clientType.ifPresent { "clientType" to it },
             details.clientVersion.ifPresent { "clientVersion" to it },
             details.clientTimezoneOffsetSeconds.ifPresent { "clientTimezoneOffsetSeconds" to it },
-            details.schedule.ifPresent { "schedule" to json.encodeToString(schedulePacker.pack(it)) },
+            details.schedule.ifPresent { "schedule" to encode(it) },
             details.iconData.ifPresent { "iconData" to it },
             details.iconType.ifPresent { "iconType" to it },
+            details.knownApps.ifPresent { "knownApps" to encode(it) },
             details.reportIntervalSeconds.ifPresent { "reportIntervalSeconds" to it }
         ).toMap()
 
