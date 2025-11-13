@@ -35,6 +35,7 @@ class DevicesService(
         val details = DeviceDetailsDto(
             deviceId = deviceId,
             deviceName = deviceName,
+            forcedDeviceState = null,
             hashedToken = token.sha256(),
             clientType = clientType,
             clientVersion = "v0",

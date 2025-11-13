@@ -35,6 +35,7 @@ typealias DeviceRef = InstanceRef
 data class DeviceDetailsDto(
     val deviceId: DeviceId,
     val deviceName: String,
+    val forcedDeviceState: DeviceStateDto?,
     val hashedToken: String,
     val clientType: String,
     val clientVersion: String,

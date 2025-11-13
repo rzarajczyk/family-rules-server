@@ -38,12 +38,17 @@ class FirestoreDevicesRepository(
         val instanceData = mapOf(
             "instanceId" to details.deviceId.toString(),
             "instanceName" to details.deviceName,
+            "forcedDeviceState" to details.forcedDeviceState?.deviceState,
+            "forcedDeviceStateExtra" to details.forcedDeviceState?.extra,
             "instanceTokenSha256" to details.hashedToken,
             "clientType" to details.clientType,
             "clientVersion" to details.clientVersion,
             "clientTimezoneOffsetSeconds" to details.clientTimezoneOffsetSeconds,
             "schedule" to json.encodeToString(schedulePacker.pack(WeeklyScheduleDto.Companion.empty())),
-            "deleted" to details.deleted
+            "deleted" to details.deleted,
+            "iconData" to details.iconData,
+            "iconType" to details.iconType,
+            "reportIntervalSeconds" to details.reportIntervalSeconds
         )
 
         val doc = (user as FirestoreUserRef).doc
@@ -83,6 +88,9 @@ class FirestoreDevicesRepository(
         return DeviceDetailsDto(
             deviceId = UUID.fromString(doc.getStringOrThrow("instanceId")),
             deviceName = doc.getStringOrThrow("instanceName"),
+            forcedDeviceState = doc.getString("forcedDeviceState")?.let {
+                DeviceStateDto(it, doc.getString("forcedDeviceStateExtra"))
+            },
             clientVersion = doc.getStringOrThrow("clientVersion"),
             clientType = doc.getStringOrThrow("clientType"),
             clientTimezoneOffsetSeconds = doc.getLongOrThrow("clientTimezoneOffsetSeconds"),
@@ -91,9 +99,9 @@ class FirestoreDevicesRepository(
                 false -> ""
             },
             deleted = doc.getBooleanOrThrow("deleted"),
-            iconData = doc.getStringOrThrow("iconData"),
-            iconType = doc.getStringOrThrow("iconType"),
-            reportIntervalSeconds = doc.getLongOrThrow("reportIntervalSeconds")
+            iconData = doc.getString("iconData"),
+            iconType = doc.getString("iconType"),
+            reportIntervalSeconds = doc.getLong("reportIntervalSeconds")
         )
     }
 
@@ -138,27 +146,27 @@ class FirestoreDevicesRepository(
         ).get()
     }
 
-    override fun delete(instance: InstanceRef) {
-        val doc = (instance as FirestoreDeviceRef).document
+    override fun delete(device: InstanceRef) {
+        val doc = (device as FirestoreDeviceRef).document
 
         doc.reference.update("deleted", true).get()
     }
 
-    override fun setInstanceSchedule(instance: InstanceRef, schedule: WeeklyScheduleDto) {
-        val doc = (instance as FirestoreDeviceRef).document
+    override fun setInstanceSchedule(device: InstanceRef, schedule: WeeklyScheduleDto) {
+        val doc = (device as FirestoreDeviceRef).document
         doc.reference.update("schedule", json.encodeToString(schedulePacker.pack(schedule))).get()
     }
 
-    override fun setForcedInstanceState(instance: InstanceRef, state: DeviceStateDto?) {
-        val doc = (instance as FirestoreDeviceRef).document
+    override fun setForcedInstanceState(device: InstanceRef, state: DeviceStateDto?) {
+        val doc = (device as FirestoreDeviceRef).document
         doc.reference.update(
             "forcedDeviceState", state?.deviceState,
             "forcedDeviceStateExtra", state?.extra
         ).get()
     }
 
-    override fun updateClientInformation(instance: InstanceRef, clientInfo: ClientInfoDto) {
-        val doc = (instance as FirestoreDeviceRef).document
+    override fun updateClientInformation(device: InstanceRef, clientInfo: ClientInfoDto) {
+        val doc = (device as FirestoreDeviceRef).document
 
         val knownAppsJson = json.encodeToString(
             clientInfo.knownApps.mapValues {
@@ -181,8 +189,8 @@ class FirestoreDevicesRepository(
         ).get()
     }
 
-    override fun setAssociatedAppGroup(instance: InstanceRef, groupId: String?) {
-        val doc = (instance as FirestoreDeviceRef).document
+    override fun setAssociatedAppGroup(device: InstanceRef, groupId: String?) {
+        val doc = (device as FirestoreDeviceRef).document
         doc.reference.update("associatedAppGroupId", groupId).get()
     }
 

@@ -115,10 +115,10 @@ class BffOverviewController(
         @RequestParam("instanceId") instanceId: InstanceId
     ): InstanceInfoResponse {
         val instanceRef = dbConnector.findDeviceOrThrow(instanceId)
-        val instance = dbConnector.fetchDeviceDto(instanceRef)
+        val instance = dbConnector.fetchDetails(instanceRef)
         return InstanceInfoResponse(
             instanceId = instanceId,
-            instanceName = instance.name,
+            instanceName = instance.deviceName,
             forcedDeviceState = instance.forcedDeviceState,
             clientType = instance.clientType,
             clientVersion = instance.clientVersion,
@@ -252,13 +252,13 @@ class BffOverviewController(
         authentication: Authentication,
     ): InstanceStateResponse {
         val instanceRef = dbConnector.findDeviceOrThrow(instanceId)
-        val instance = dbConnector.fetchDeviceDto(instanceRef)
+        val instance = dbConnector.fetchDetails(instanceRef)
         val appGroups = usersService.withUserContext(authentication.name) { user ->
             appGroupService.listAllAppGroups(user).map { it.get() }
         }
         return InstanceStateResponse(
             instanceId = instanceId,
-            instanceName = instance.name,
+            instanceName = instance.deviceName,
             forcedDeviceState = instance.forcedDeviceState,
             availableStates = dbConnector.getAvailableDeviceStateTypes(instanceRef)
                 .flatMap { it.toDeviceStateDescriptions(appGroups) }
@@ -330,7 +330,7 @@ data class InstanceInfoResponse(
     val forcedDeviceState: DeviceStateDto?,
     val clientType: String,
     val clientVersion: String,
-    val clientTimezoneOffsetSeconds: Int,
+    val clientTimezoneOffsetSeconds: Long,
 )
 
 data class DeviceStateDescriptionResponse(
