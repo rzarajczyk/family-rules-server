@@ -247,20 +247,20 @@ class BffOverviewController(
     fun getInstanceState(
         @RequestParam("instanceId") instanceId: InstanceId,
         authentication: Authentication,
-    ): InstanceStateResponse {
-        val instanceRef = dbConnector.findDeviceOrThrow(instanceId)
-        val instance = dbConnector.fetchDetails(instanceRef)
-        val appGroups = usersService.withUserContext(authentication.name) { user ->
-            appGroupService.listAllAppGroups(user).map { it.get() }
+    ): InstanceStateResponse =
+        devicesService.withDeviceContext(instanceId) { device ->
+            val appGroups = usersService.withUserContext(authentication.name) { user ->
+                appGroupService.listAllAppGroups(user).map { it.get() }
+            }
+            val deviceDetails = device.get()
+            InstanceStateResponse(
+                instanceId = instanceId,
+                instanceName = deviceDetails.deviceName,
+                forcedDeviceState = deviceDetails.forcedDeviceState,
+                availableStates = dbConnector.getAvailableDeviceStateTypes(device.asRef())
+                    .flatMap { it.toDeviceStateDescriptions(appGroups) }
+            )
         }
-        return InstanceStateResponse(
-            instanceId = instanceId,
-            instanceName = instance.deviceName,
-            forcedDeviceState = instance.forcedDeviceState,
-            availableStates = dbConnector.getAvailableDeviceStateTypes(instanceRef)
-                .flatMap { it.toDeviceStateDescriptions(appGroups) }
-        )
-    }
 
     @PostMapping("/bff/instance-state")
     fun setInstanceState(
