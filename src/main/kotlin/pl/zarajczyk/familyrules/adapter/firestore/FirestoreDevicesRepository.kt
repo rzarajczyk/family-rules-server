@@ -72,10 +72,8 @@ class FirestoreDevicesRepository(
             }
         )
 
-    // TODO: UserRef
-    override fun getAll(username: String): List<InstanceRef> =
-        firestore.collection("users")
-            .document(username)
+    override fun getAll(userRef: UserRef): List<InstanceRef> =
+        (userRef as FirestoreUserRef).doc
             .collection("instances")
             .orderBy("instanceName")
             .get()

@@ -70,9 +70,9 @@ class V2InitialSetupControllerIntegrationSpec : FunSpec() {
         }
 
         afterSpec {
-            usersRepository.get(username)?.also { ref ->
+            usersRepository.get(username)!!.also { ref ->
                 // delete all devices for cleanup
-                devicesRepository.getAll(username).forEach { devicesRepository.delete(it) }
+                devicesRepository.getAll(ref).forEach { devicesRepository.delete(it) }
                 usersRepository.delete(ref)
             }
         }

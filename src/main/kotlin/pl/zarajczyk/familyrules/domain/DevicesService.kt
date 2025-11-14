@@ -21,6 +21,12 @@ class DevicesService(
         return action(device)
     }
 
+    fun getAllDevices(user: User): List<Device> {
+        return devicesRepository
+            .getAll(user.asRef())
+            .map { RefBasedDevice(it, devicesRepository) }
+    }
+
     @Throws(IllegalInstanceName::class, InstanceAlreadyExists::class)
     fun setupNewDevice(username: String, deviceName: String, clientType: String): NewDeviceDetails {
         if (deviceName.length < 3) {

@@ -36,28 +36,29 @@ class BffOverviewController(
         @RequestParam("date") date: String,
         authentication: Authentication,
     ): StatusResponse = try {
+        val user = usersService.withUserContext(authentication.name) { it }
         val day = LocalDate.parse(date)
-        val instances = dbConnector.getAll(authentication.name)
+        val devices = devicesService.getAllDevices(user)
         val username = authentication.name
-        StatusResponse(instances.map { deviceRef ->
-            val screenTimeDto = dbConnector.getScreenTimes(deviceRef, day)
-            val state = stateService.getDeviceState(deviceRef)
-            val instance = dbConnector.fetchDetails(deviceRef)
-            val availableStates = dbConnector.getAvailableDeviceStateTypes(deviceRef)
+        StatusResponse(devices.map { device ->
+            val screenTimeDto = dbConnector.getScreenTimes(device.asRef(), day)
+            val state = stateService.getDeviceState(device.asRef())
+            val deviceDetails = device.get()
+            val availableStates = dbConnector.getAvailableDeviceStateTypes(device.asRef())
             val appGroups = usersService.withUserContext(username) { user ->
                 appGroupService.listAllAppGroups(user)
             }
             val appGroupsDetails = appGroups.associateWith { it.get() }
 
             Instance(
-                instanceId = instance.deviceId,
-                instanceName = instance.deviceName,
+                instanceId = deviceDetails.deviceId,
+                instanceName = deviceDetails.deviceName,
                 screenTimeSeconds = screenTimeDto.screenTimeSeconds,
                 appUsageSeconds = screenTimeDto.applicationsSeconds
                     .map { (appTechnicalId, v) ->
-                        val knownApp = instance.knownApps[appTechnicalId]
+                        val knownApp = deviceDetails.knownApps[appTechnicalId]
                         val appGroupsForThisApp = appGroups
-                            .filter { it.containsMember(deviceRef, appTechnicalId) }
+                            .filter { it.containsMember(device, appTechnicalId) }
                             .map { group -> appGroupsDetails.getValue(group) }
                             .map { groupDto ->
                                 val colorInfo = AppGroupColorPalette.getColorInfo(groupDto.color)
@@ -83,9 +84,9 @@ class BffOverviewController(
                 automaticDeviceState = availableStates
                     .flatMap { it.toDeviceStateDescriptions(appGroupsDetails.values) }
                     .firstOrNull { it.isEqualTo(state.automaticState) }
-                    ?: throw RuntimeException("Instance ≪${instance.deviceId}≫ doesn't have automatic state ≪${state.automaticState}≫"),
-                online = screenTimeDto.updatedAt.isOnline(instance.reportIntervalSeconds),
-                icon = instance.getIcon(),
+                    ?: throw RuntimeException("Instance ≪${deviceDetails.deviceId}≫ doesn't have automatic state ≪${state.automaticState}≫"),
+                online = screenTimeDto.updatedAt.isOnline(deviceDetails.reportIntervalSeconds),
+                icon = deviceDetails.getIcon(),
                 availableAppGroups = appGroupsDetails.values.toList(),
             )
         })

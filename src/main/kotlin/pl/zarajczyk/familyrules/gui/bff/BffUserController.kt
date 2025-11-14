@@ -19,7 +19,7 @@ class BffUserController(
             user.mustBeAdmin()
 
             GetUsersResponse(
-                users = usersService.listAllUsers().map {
+                users = usersService.getAllUsers().map {
                     GetUsersUserResponse(it.get().username)
                 }
             )

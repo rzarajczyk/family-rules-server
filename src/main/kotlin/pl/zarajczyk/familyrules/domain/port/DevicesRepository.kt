@@ -9,7 +9,7 @@ import java.util.concurrent.atomic.AtomicReference
 interface DevicesRepository {
     fun createDevice(user: UserRef, details: DeviceDetailsDto): DeviceRef
     fun get(id: DeviceId): DeviceRef?
-    fun getAll(username: String): List<DeviceRef>
+    fun getAll(userRef: UserRef): List<DeviceRef>
     fun getByName(user: UserRef, deviceName: String): DeviceRef?
     fun fetchDetails(device: DeviceRef, includePasswordHash: Boolean = false): DeviceDetailsDto
     fun delete(device: DeviceRef)

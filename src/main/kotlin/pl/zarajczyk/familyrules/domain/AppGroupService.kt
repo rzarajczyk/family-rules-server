@@ -34,7 +34,7 @@ class AppGroupService(private val devicesRepository: DevicesRepository, private 
         user: User,
         day: LocalDate
     ): List<AppGroupReport> {
-        val devices = devicesRepository.getAll(user.get().username)
+        val devices = devicesRepository.getAll(user.asRef())
         val appGroups = appGroupRepository.getAll(user.asRef())
 
         val groupStats = appGroups.map { appGroupRef ->
@@ -108,17 +108,15 @@ class AppGroupService(private val devicesRepository: DevicesRepository, private 
 }
 
 interface AppGroup {
-    fun asRef(): AppGroupRef
-
     fun get(): AppGroupDetails
 
     fun delete()
 
     fun rename(newName: String)
 
-    fun containsMember(deviceRef: DeviceRef, appTechnicalId: AppTechnicalId): Boolean
+    fun containsMember(device: Device, appTechnicalId: AppTechnicalId): Boolean
 
-    fun getMembers(deviceRef: DeviceRef): Set<AppTechnicalId>
+    fun getMembers(device: Device): Set<AppTechnicalId>
 
     fun addMember(deviceRef: DeviceRef, appTechnicalId: AppTechnicalId)
 
@@ -129,8 +127,6 @@ data class RefBasedAppGroup(
     val appGroupRef: AppGroupRef,
     private val appGroupRepository: AppGroupRepository
 ) : AppGroup {
-    override fun asRef() = appGroupRef
-
     override fun get(): AppGroupDetails {
         return appGroupRepository.fetchDetails(appGroupRef).let {
             AppGroupDetails(it.id, it.name, it.color)
@@ -145,12 +141,12 @@ data class RefBasedAppGroup(
         appGroupRepository.rename(appGroupRef, newName)
     }
 
-    override fun containsMember(deviceRef: DeviceRef, appTechnicalId: AppTechnicalId): Boolean {
-        return getMembers(deviceRef).contains(appTechnicalId)
+    override fun containsMember(device: Device, appTechnicalId: AppTechnicalId): Boolean {
+        return getMembers(device).contains(appTechnicalId)
     }
 
-    override fun getMembers(deviceRef: DeviceRef): Set<AppTechnicalId> {
-        return appGroupRepository.getMembers(appGroupRef, deviceRef)
+    override fun getMembers(device: Device): Set<AppTechnicalId> {
+        return appGroupRepository.getMembers(appGroupRef, device.asRef())
     }
 
     override fun addMember(deviceRef: DeviceRef, appTechnicalId: AppTechnicalId) {

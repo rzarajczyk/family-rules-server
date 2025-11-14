@@ -19,7 +19,7 @@ class UsersService(private val usersRepository: UsersRepository) {
         return action(user)
     }
 
-    fun listAllUsers() = usersRepository.getAll()
+    fun getAllUsers() = usersRepository.getAll()
         .map { RefBasedUser(it, usersRepository) }
 
     fun userExists(username: String) = usersRepository.get(username) != null

@@ -19,7 +19,7 @@ class V2AppGroupController(
             usersService.withUserContext(device.getOwner()) { user ->
                 val deviceDetails = device.get()
                 appGroupService.withAppGroupContext(user, request.appGroupId) { appGroup ->
-                    val appTechnicalIds = appGroup.getMembers(device.asRef())
+                    val appTechnicalIds = appGroup.getMembers(device)
                     MembershipResponse(
                         appGroupId = request.appGroupId,
                         apps = appTechnicalIds.map { appTechnicalId ->

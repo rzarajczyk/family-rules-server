@@ -81,7 +81,7 @@ class BffOverviewControllerIntegrationSpec : FunSpec() {
 
         afterSpec {
             usersRepository.get(testUsername)?.also { ref ->
-                devicesRepository.getAll(testUsername).forEach { devicesRepository.delete(it) }
+                devicesRepository.getAll(ref).forEach { devicesRepository.delete(it) }
                 usersRepository.delete(ref)
             }
         }
@@ -561,7 +561,7 @@ class BffOverviewControllerIntegrationSpec : FunSpec() {
                     .andExpect(status().isOk)
 
                 // Verify deletion
-                val allInstances = devicesRepository.getAll(testUsername)
+                val allInstances = devicesRepository.getAll(usersRepository.get(testUsername)!!)
                 allInstances.none { devicesRepository.fetchDetails(it).deviceId.toString() == instanceId } shouldBe true
             }
         }
