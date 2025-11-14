@@ -13,6 +13,10 @@ fun DevicesRepository.findDeviceOrThrow(id: DeviceId) = this.get(id) ?: throw Ru
 
 fun DevicesRepository.findAuthenticatedDevice(authentication: Authentication) = findDeviceOrThrow(authentication.principal as DeviceId)
 
+fun <T> DevicesService.withDeviceContext(authentication: Authentication, action: (user: Device) -> T): T {
+    return withDeviceContext(authentication.principal as DeviceId, action)
+}
+
 fun String?.decodeBasicAuth(): BasicAuth {
     if (this == null || this.lowercase().startsWith("Basic"))
         throw RuntimeException("Missing Basic Auth header")

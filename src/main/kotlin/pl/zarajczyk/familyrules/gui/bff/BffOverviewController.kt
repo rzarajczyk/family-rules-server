@@ -111,30 +111,31 @@ class BffOverviewController(
     @GetMapping("/bff/instance-info")
     fun getInstanceInfo(
         @RequestParam("instanceId") instanceId: InstanceId
-    ): InstanceInfoResponse {
-        val instanceRef = dbConnector.findDeviceOrThrow(instanceId)
-        val instance = dbConnector.fetchDetails(instanceRef)
-        return InstanceInfoResponse(
-            instanceId = instanceId,
-            instanceName = instance.deviceName,
-            forcedDeviceState = instance.forcedDeviceState,
-            clientType = instance.clientType,
-            clientVersion = instance.clientVersion,
-            clientTimezoneOffsetSeconds = instance.clientTimezoneOffsetSeconds
-        )
-    }
+    ): InstanceInfoResponse =
+        devicesService.withDeviceContext(instanceId) { device ->
+            val details = device.get()
+            InstanceInfoResponse(
+                instanceId = instanceId,
+                instanceName = details.deviceName,
+                forcedDeviceState = details.forcedDeviceState,
+                clientType = details.clientType,
+                clientVersion = details.clientVersion,
+                clientTimezoneOffsetSeconds = details.clientTimezoneOffsetSeconds
+            )
+        }
+
 
     @GetMapping("/bff/instance-edit-info")
     fun getInstanceEditInfo(
         @RequestParam("instanceId") instanceId: InstanceId
-    ): InstanceEditInfo {
-        val instanceRef = dbConnector.findDeviceOrThrow(instanceId)
-        val instance = dbConnector.fetchDetails(instanceRef)
-        return InstanceEditInfo(
-            instanceName = instance.deviceName,
-            icon = instance.getIcon()
-        )
-    }
+    ): InstanceEditInfo =
+        devicesService.withDeviceContext(instanceId) { device ->
+            val details = device.get()
+            InstanceEditInfo(
+                instanceName = details.deviceName,
+                icon = details.getIcon()
+            )
+        }
 
     @PostMapping("/bff/instance-edit-info")
     fun setInstanceEditInfo(
@@ -144,9 +145,9 @@ class BffOverviewController(
         device.update(
             DeviceDetailsUpdateDto(
                 deviceName = ValueUpdate.set(data.instanceName),
-            iconData = data.icon?.let { ValueUpdate.set(data.icon.data) } ?: ValueUpdate.leaveUnchanged(),
-            iconType = data.icon?.let { ValueUpdate.set(data.icon.type) } ?: ValueUpdate.leaveUnchanged()
-        ))
+                iconData = data.icon?.let { ValueUpdate.set(data.icon.data) } ?: ValueUpdate.leaveUnchanged(),
+                iconType = data.icon?.let { ValueUpdate.set(data.icon.type) } ?: ValueUpdate.leaveUnchanged()
+            ))
     }
 
     data class InstanceEditInfo(

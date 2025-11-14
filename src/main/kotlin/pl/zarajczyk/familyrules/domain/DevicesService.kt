@@ -5,6 +5,7 @@ import pl.zarajczyk.familyrules.domain.port.DeviceDetailsDto
 import pl.zarajczyk.familyrules.domain.port.DeviceDetailsUpdateDto
 import pl.zarajczyk.familyrules.domain.port.DeviceRef
 import pl.zarajczyk.familyrules.domain.port.DevicesRepository
+import pl.zarajczyk.familyrules.domain.port.UserRef
 import pl.zarajczyk.familyrules.domain.port.UsersRepository
 import java.util.UUID
 
@@ -66,17 +67,29 @@ data class NewDeviceDetails(
 )
 
 interface Device {
+
+    fun asRef(): DeviceRef
+
     fun validateToken(token: String): Boolean
 
     fun update(update: DeviceDetailsUpdateDto)
 
     fun delete()
+
+    fun getOwner(): UserRef
+
+    fun get(): DeviceDetailsDto
 }
 
 data class RefBasedDevice(
     val deviceRef: DeviceRef,
     private val devicesRepository: DevicesRepository
 ) : Device {
+
+    override fun asRef(): DeviceRef {
+        return deviceRef
+    }
+
     override fun validateToken(token: String): Boolean {
         return devicesRepository.fetchDetails(deviceRef, includePasswordHash = true).hashedToken == token.sha256()
     }
@@ -89,5 +102,12 @@ data class RefBasedDevice(
         devicesRepository.delete(deviceRef)
     }
 
+    override fun getOwner(): UserRef {
+        return devicesRepository.getOwner(deviceRef)
+    }
 
+
+    override fun get(): DeviceDetailsDto {
+        return devicesRepository.fetchDetails(deviceRef)
+    }
 }

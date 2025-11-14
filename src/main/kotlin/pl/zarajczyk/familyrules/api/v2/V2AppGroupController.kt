@@ -4,58 +4,51 @@ import org.springframework.security.core.Authentication
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RestController
-import pl.zarajczyk.familyrules.adapter.firestore.FirestoreDeviceRef
 import pl.zarajczyk.familyrules.domain.*
 import pl.zarajczyk.familyrules.domain.port.DevicesRepository
 
 @RestController
 class V2AppGroupController(
-    private val devicesRepository: DevicesRepository,
+    private val devicesService: DevicesService,
     private val appGroupService: AppGroupService,
     private val usersService: UsersService
 ) {
     @PostMapping("/api/v2/group-membership-for-device")
     fun getMembership(@RequestBody request: MembershipRequest, authentication: Authentication): MembershipResponse {
-        val instanceRef = devicesRepository.findAuthenticatedDevice(authentication)
-        val instance = devicesRepository.fetchDetails(instanceRef)
-
-        return usersService.withUserContext(devicesRepository.getOwner(instanceRef)) { user ->
-            appGroupService.withAppGroupContext(user, request.appGroupId) { appGroup ->
-                val appTechnicalIds = appGroup.getMembers(instanceRef)
-                MembershipResponse(
-                    appGroupId = request.appGroupId,
-                    apps = appTechnicalIds.map { appTechnicalId ->
-                        val known = instance.knownApps[appTechnicalId]
-                        MembershipAppResponse(
-                            appPath = appTechnicalId,
-                            appName = known?.appName ?: appTechnicalId,
-                            iconBase64Png = known?.iconBase64Png,
-                            deviceName = instance.deviceName,
-                            deviceId = instance.deviceId.toString()
-                        )
-                    }
-                )
+        return devicesService.withDeviceContext(authentication) { device ->
+            usersService.withUserContext(device.getOwner()) { user ->
+                val deviceDetails = device.get()
+                appGroupService.withAppGroupContext(user, request.appGroupId) { appGroup ->
+                    val appTechnicalIds = appGroup.getMembers(device.asRef())
+                    MembershipResponse(
+                        appGroupId = request.appGroupId,
+                        apps = appTechnicalIds.map { appTechnicalId ->
+                            val known = deviceDetails.knownApps[appTechnicalId]
+                            MembershipAppResponse(
+                                appPath = appTechnicalId,
+                                appName = known?.appName ?: appTechnicalId,
+                                iconBase64Png = known?.iconBase64Png,
+                                deviceName = deviceDetails.deviceName,
+                                deviceId = deviceDetails.deviceId.toString()
+                            )
+                        }
+                    )
+                }
             }
         }
     }
 
     @PostMapping("/api/v2/groups-usage-report")
     fun getAppGroupsUsageReport(authentication: Authentication): AppGroupsUsageReportResponse {
-        val instanceRef = devicesRepository.findAuthenticatedDevice(authentication)
+        return devicesService.withDeviceContext(authentication) { device ->
+            usersService.withUserContext(device.getOwner()) { user ->
+                val report = appGroupService.getReport(user, today())
 
-        // Get username from the instance document path
-        // The path is /users/{username}/instances/{instanceId}
-        val username = (instanceRef as FirestoreDeviceRef)
-            .document.reference.parent.parent?.id
-            ?: throw RuntimeException("Cannot determine username from instance")
-
-        val report = usersService.withUserContext(username) { user ->
-            appGroupService.getReport(user, today())
+                AppGroupsUsageReportResponse(
+                    appGroups = report.map { it.toUsageReport() }
+                )
+            }
         }
-
-        return AppGroupsUsageReportResponse(
-            appGroups = report.map { it.toUsageReport() }
-        )
     }
 
     private fun AppGroupReport.toUsageReport() = AppGroupUsageReportResponse(
