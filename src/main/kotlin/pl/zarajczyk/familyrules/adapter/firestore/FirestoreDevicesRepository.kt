@@ -47,7 +47,8 @@ class FirestoreDevicesRepository(
             "iconData" to details.iconData,
             "iconType" to details.iconType,
             "knownApps" to encode(details.knownApps),
-            "reportIntervalSeconds" to details.reportIntervalSeconds
+            "reportIntervalSeconds" to details.reportIntervalSeconds,
+            "deviceStates" to encode(details.availableDeviceStates)
         )
 
         val doc = (user as FirestoreUserRef).doc
@@ -61,6 +62,9 @@ class FirestoreDevicesRepository(
 
     private fun encode(schedule: WeeklyScheduleDto): String =
         json.encodeToString(schedulePacker.pack(schedule))
+
+    private fun encode(states: List<DeviceStateTypeDto>): String =
+        json.encodeToString(states)
 
     private fun encode(knownApps: Map<String, AppDto>): String =
         json.encodeToString(
@@ -108,7 +112,8 @@ class FirestoreDevicesRepository(
             iconData = doc.getString("iconData"),
             iconType = doc.getString("iconType"),
             reportIntervalSeconds = doc.getLongOrThrow("reportIntervalSeconds"),
-            knownApps = doc.getKnownAppsOrThrow("knownApps")
+            knownApps = doc.getKnownAppsOrThrow("knownApps"),
+            availableDeviceStates = doc.getAvailableDeviceStates("deviceStates")
         )
     }
 
@@ -126,7 +131,8 @@ class FirestoreDevicesRepository(
             details.iconData.ifPresent { "iconData" to it },
             details.iconType.ifPresent { "iconType" to it },
             details.knownApps.ifPresent { "knownApps" to encode(it) },
-            details.reportIntervalSeconds.ifPresent { "reportIntervalSeconds" to it }
+            details.reportIntervalSeconds.ifPresent { "reportIntervalSeconds" to it },
+            details.availableDeviceStates.ifPresent { "deviceStates" to encode(it) }
         ).toMap()
 
         val doc = (device as FirestoreDeviceRef).document
@@ -147,25 +153,24 @@ class FirestoreDevicesRepository(
         json.decodeFromString<WeeklyScheduleDto>(getString(fieldName) ?: "{}")
             .let { schedulePacker.unpack(it) }
 
-//    override fun updateInstance(device: InstanceRef, update: UpdateInstanceDto) {
-//        val doc = (device as FirestoreDeviceRef).document
-//
-//        doc.reference.update(
-//            "instanceName", update.name,
-//            "iconData", update.iconData,
-//            "iconType", update.iconType
-//        ).get()
-//    }
+    private fun QueryDocumentSnapshot.getAvailableDeviceStates(fieldName: String) =
+        json.decodeFromString<List<DeviceStateTypeDto>>(getString(fieldName) ?: "[]").ensureActiveIsPresent()
+
 
     override fun delete(device: InstanceRef) {
-        val doc = (device as FirestoreDeviceRef).document
-        // Hard delete: remove the document instead of setting a deleted flag
-        doc.reference.delete().get()
+        (device as FirestoreDeviceRef)
+            .document
+            .reference
+            .delete()
+            .get()
     }
 
     override fun setInstanceSchedule(device: InstanceRef, schedule: WeeklyScheduleDto) {
-        val doc = (device as FirestoreDeviceRef).document
-        doc.reference.update("schedule", json.encodeToString(schedulePacker.pack(schedule))).get()
+        (device as FirestoreDeviceRef)
+            .document
+            .reference
+            .update("schedule", json.encodeToString(schedulePacker.pack(schedule)))
+            .get()
     }
 
     override fun setForcedInstanceState(device: InstanceRef, state: DeviceStateDto?) {
@@ -198,16 +203,6 @@ class FirestoreDevicesRepository(
             "knownApps", knownAppsJson,
             "deviceStates", deviceStatesJson
         ).get()
-    }
-
-    override fun getAvailableDeviceStateTypes(instance: InstanceRef): List<DeviceStateTypeDto> {
-        val instanceDoc = (instance as FirestoreDeviceRef).document
-
-        val deviceStatesJson = instanceDoc.getString("deviceStates")
-        return when {
-            deviceStatesJson.isNullOrBlank() -> emptyList()
-            else -> json.decodeFromString<List<DeviceStateTypeDto>>(deviceStatesJson)
-        }.ensureActiveIsPresent()
     }
 
     override fun saveReport(

@@ -19,9 +19,6 @@ interface DevicesRepository {
     fun setForcedInstanceState(device: DeviceRef, state: DeviceStateDto?)
     fun updateClientInformation(device: DeviceRef, clientInfo: ClientInfoDto)
 
-    // Device states operations
-    fun getAvailableDeviceStateTypes(instance: DeviceRef): List<DeviceStateTypeDto>
-
     // Screen time operations
     fun saveReport(instance: DeviceRef, day: LocalDate, screenTimeSeconds: Long, applicationsSeconds: Map<String, Long>)
     fun getScreenTimes(instance: DeviceRef, day: LocalDate): ScreenTimeDto
@@ -44,7 +41,8 @@ data class DeviceDetailsDto(
     val iconData: String?,
     val iconType: String?,
     val reportIntervalSeconds: Long,
-    val knownApps: Map<String, AppDto>
+    val knownApps: Map<String, AppDto>,
+    val availableDeviceStates: List<DeviceStateTypeDto>
 )
 
 data class DeviceDetailsUpdateDto(
@@ -59,7 +57,8 @@ data class DeviceDetailsUpdateDto(
     val iconData: ValueUpdate<String?> = leaveUnchanged(),
     val iconType: ValueUpdate<String?> = leaveUnchanged(),
     val reportIntervalSeconds: ValueUpdate<Long> = leaveUnchanged(),
-    val knownApps: ValueUpdate<Map<String, AppDto>> = leaveUnchanged()
+    val knownApps: ValueUpdate<Map<String, AppDto>> = leaveUnchanged(),
+    val availableDeviceStates: ValueUpdate<List<DeviceStateTypeDto>> = leaveUnchanged()
 )
 
 data class ValueUpdate<T>(

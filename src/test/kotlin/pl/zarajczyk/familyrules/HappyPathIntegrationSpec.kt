@@ -158,7 +158,7 @@ class HappyPathIntegrationSpec : FunSpec() {
             details.clientTimezoneOffsetSeconds shouldBe timezoneOffsetSeconds
             details.reportIntervalSeconds shouldBe reportIntervalSeconds.toLong()
             details.knownApps shouldNotBe null
-            devicesRepository.getAvailableDeviceStateTypes(deviceRef).size shouldBeGreaterThan 0
+            details.availableDeviceStates.size shouldBeGreaterThan 0
         }
 
         test("step 6 - should send first report successfully") {

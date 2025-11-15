@@ -131,7 +131,7 @@ class V2ClientInfoControllerIntegrationSpec : FunSpec() {
                 dto.knownApps.keys.shouldContainAll(listOf("com.example.app1", "com.example.app2"))
                 dto.knownApps["com.example.app1"]!!.appName shouldBe "App One"
 
-                val states = devicesRepository.getAvailableDeviceStateTypes(deviceRef)
+                val states = dto.availableDeviceStates
                 states shouldNotBe null
                 states shouldHaveSize 1
                 states[0].deviceState shouldBe "ACTIVE"
