@@ -1,4 +1,4 @@
-package pl.zarajczyk.familyrules.gui.bff
+package pl.zarajczyk.familyrules.adapter.firestore
 
 import kotlinx.datetime.DayOfWeek
 import org.springframework.stereotype.Service
@@ -24,31 +24,43 @@ class SchedulePacker {
         return result
     }
 
-    fun WeeklyScheduleDto.addActivePeriods(): WeeklyScheduleDto {
+    private fun WeeklyScheduleDto.addActivePeriods(): WeeklyScheduleDto {
         val MAX: Long = 60 * 60 * 24
         return WeeklyScheduleDto(
             schedule = schedule.mapValues { (_, daily) ->
                 val updatedPeriods = mutableListOf<PeriodDto>()
                 if (daily.periods.isEmpty()) {
-                    updatedPeriods.add(PeriodDto(0, MAX, DeviceStateDto.default()))
+                    updatedPeriods.add(PeriodDto(0, MAX, DeviceStateDto.Companion.default()))
                 } else {
                     var previousToSeconds: Long = 0
                     daily.periods.forEach { period ->
                         if (period.fromSeconds > previousToSeconds) {
-                            updatedPeriods.add(PeriodDto(previousToSeconds, period.fromSeconds, DeviceStateDto.default()))
+                            updatedPeriods.add(
+                                PeriodDto(
+                                    previousToSeconds,
+                                    period.fromSeconds,
+                                    DeviceStateDto.Companion.default()
+                                )
+                            )
                         }
                         updatedPeriods.add(period)
                         previousToSeconds = period.toSeconds
                     }
                     if (daily.periods.last().toSeconds < MAX)
-                        updatedPeriods.add(PeriodDto(daily.periods.last().toSeconds, MAX, DeviceStateDto.default()))
+                        updatedPeriods.add(
+                            PeriodDto(
+                                daily.periods.last().toSeconds,
+                                MAX,
+                                DeviceStateDto.Companion.default()
+                            )
+                        )
                 }
                 DailyScheduleDto(updatedPeriods)
             }
         )
     }
 
-    fun WeeklyScheduleDto.addEmptyWeekDays(): WeeklyScheduleDto {
+    private fun WeeklyScheduleDto.addEmptyWeekDays(): WeeklyScheduleDto {
         val updatedSchedule = schedule.toMutableMap()
         DayOfWeek.entries.forEach { day ->
             if (!updatedSchedule.containsKey(day)) {
@@ -58,7 +70,7 @@ class SchedulePacker {
         return WeeklyScheduleDto(updatedSchedule)
     }
 
-    fun WeeklyScheduleDto.verify(): WeeklyScheduleDto {
+    private fun WeeklyScheduleDto.verify(): WeeklyScheduleDto {
         schedule.forEach { (day, daily) ->
             if (daily.periods.any { it.fromSeconds > it.toSeconds })
                 throw RuntimeException("Invalid schedule on $day - from > to in $daily")
@@ -68,13 +80,13 @@ class SchedulePacker {
         return this
     }
 
-    fun WeeklyScheduleDto.removeEmptyWeekDays(): WeeklyScheduleDto {
+    private fun WeeklyScheduleDto.removeEmptyWeekDays(): WeeklyScheduleDto {
         return WeeklyScheduleDto(schedule.filterValues { it.periods.isNotEmpty() })
     }
 
-    fun WeeklyScheduleDto.removeActivePeriods(): WeeklyScheduleDto {
+    private fun WeeklyScheduleDto.removeActivePeriods(): WeeklyScheduleDto {
         return WeeklyScheduleDto(schedule.mapValues { (_, daily) ->
-            val filteredPeriods = daily.periods.filter { it.deviceState != DeviceStateDto.default() }
+            val filteredPeriods = daily.periods.filter { it.deviceState != DeviceStateDto.Companion.default() }
             DailyScheduleDto(filteredPeriods)
         })
     }

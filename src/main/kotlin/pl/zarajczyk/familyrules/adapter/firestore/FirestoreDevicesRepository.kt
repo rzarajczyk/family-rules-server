@@ -11,7 +11,7 @@ import kotlinx.serialization.json.Json
 import org.springframework.stereotype.Service
 import pl.zarajczyk.familyrules.domain.*
 import pl.zarajczyk.familyrules.domain.port.*
-import pl.zarajczyk.familyrules.gui.bff.SchedulePacker
+import pl.zarajczyk.familyrules.adapter.firestore.SchedulePacker
 import java.util.*
 
 @Service

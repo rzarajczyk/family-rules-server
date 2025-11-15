@@ -13,6 +13,7 @@ import pl.zarajczyk.familyrules.domain.port.ValueUpdate.Companion.set
 
 @RestController
 class V2ClientInfoController(private val devicesService: DevicesService) {
+
     @PostMapping(value = ["/api/v2/launch", "/api/v2/client-info"])
     fun clientInfo(@RequestBody request: ClientInfoRequest, authentication: Authentication): ClientInfoResponse {
         val device = devicesService.get(authentication)
