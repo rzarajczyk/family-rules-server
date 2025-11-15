@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.extensions.spring.SpringExtension
 import io.kotest.matchers.collections.shouldContainAll
-import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldNotBeBlank
@@ -124,7 +123,7 @@ class V2AppGroupControllerIntegrationSpec : FunSpec() {
             // Create an app group and add members (membership is per-device)
             usersService.withUserContext(username) { user ->
                 val group = appGroupService.createAppGroup(user, "Test Group")
-                groupId = group.get().id
+                groupId = group.fetchDetails().id
 
                 val deviceRef = devicesRepository.get(deviceId)!!
                 group.addMember(deviceRef, appKnown1)
@@ -250,7 +249,7 @@ class V2AppGroupControllerIntegrationSpec : FunSpec() {
                 var emptyGroupId = ""
                 usersService.withUserContext(username) { user ->
                     val group = appGroupService.createAppGroup(user, "Empty Group")
-                    emptyGroupId = group.get().id
+                    emptyGroupId = group.fetchDetails().id
                 }
 
                 val apiV2Basic = Base64.getEncoder().encodeToString("$deviceId:$token".toByteArray())

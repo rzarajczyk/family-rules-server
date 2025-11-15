@@ -3,7 +3,10 @@ package pl.zarajczyk.familyrules.gui.bff
 import kotlinx.datetime.LocalDate
 import org.springframework.security.core.Authentication
 import org.springframework.web.bind.annotation.*
-import pl.zarajczyk.familyrules.domain.*
+import pl.zarajczyk.familyrules.domain.AppGroupDetails
+import pl.zarajczyk.familyrules.domain.AppGroupService
+import pl.zarajczyk.familyrules.domain.UsersService
+import pl.zarajczyk.familyrules.domain.findDeviceOrThrow
 import pl.zarajczyk.familyrules.domain.port.DevicesRepository
 import java.util.*
 
@@ -21,14 +24,14 @@ class BffAppGroupsController(
     ): CreateAppGroupResponse =
         usersService.withUserContext(authentication.name) { user ->
             val group = appGroupService.createAppGroup(user, request.name)
-            CreateAppGroupResponse(group.get())
+            CreateAppGroupResponse(group.fetchDetails())
         }
 
 
     @GetMapping("/bff/app-groups")
     fun getAppGroups(authentication: Authentication): GetAppGroupsResponse =
         usersService.withUserContext(authentication.name) { user ->
-            val groups = appGroupService.listAllAppGroups(user).map { it.get() }
+            val groups = appGroupService.listAllAppGroups(user).map { it.fetchDetails() }
             GetAppGroupsResponse(groups)
         }
 
@@ -39,10 +42,9 @@ class BffAppGroupsController(
         authentication: Authentication
     ): DeleteAppGroupResponse =
         usersService.withUserContext(authentication.name) { user ->
-            appGroupService.withAppGroupContext(user, groupId) { appGroup ->
-                appGroup.delete()
-                DeleteAppGroupResponse(true)
-            }
+            val appGroup = appGroupService.get(user, groupId)
+            appGroup.delete()
+            DeleteAppGroupResponse(true)
         }
 
 
@@ -53,10 +55,10 @@ class BffAppGroupsController(
         authentication: Authentication
     ): RenameAppGroupResponse =
         usersService.withUserContext(authentication.name) { user ->
-            appGroupService.withAppGroupContext(user, groupId) { appGroup ->
-                appGroup.rename(request.newName)
-                RenameAppGroupResponse(true)
-            }
+            val appGroup = appGroupService.get(user, groupId)
+            appGroup.rename(request.newName)
+            RenameAppGroupResponse(true)
+
         }
 
     @PostMapping("/bff/app-groups/{groupId}/apps")
@@ -66,11 +68,10 @@ class BffAppGroupsController(
         authentication: Authentication
     ): AddAppToGroupResponse =
         usersService.withUserContext(authentication.name) { user ->
-            appGroupService.withAppGroupContext(user, groupId) { appGroup ->
-                val deviceRef = devicesRepository.findDeviceOrThrow(request.instanceId)
-                appGroup.addMember(deviceRef, request.appPath)
-                AddAppToGroupResponse(true)
-            }
+            val appGroup = appGroupService.get(user, groupId)
+            val deviceRef = devicesRepository.findDeviceOrThrow(request.instanceId)
+            appGroup.addMember(deviceRef, request.appPath)
+            AddAppToGroupResponse(true)
         }
 
     @DeleteMapping("/bff/app-groups/{groupId}/apps/{appPath}")
@@ -81,11 +82,10 @@ class BffAppGroupsController(
         authentication: Authentication
     ): RemoveAppFromGroupResponse =
         usersService.withUserContext(authentication.name) { user ->
-            appGroupService.withAppGroupContext(user, groupId) { appGroup ->
-                val deviceRef = devicesRepository.findDeviceOrThrow(instanceId)
-                appGroup.removeMember(deviceRef, appPath)
-                RemoveAppFromGroupResponse(true)
-            }
+            val appGroup = appGroupService.get(user, groupId)
+            val deviceRef = devicesRepository.findDeviceOrThrow(instanceId)
+            appGroup.removeMember(deviceRef, appPath)
+            RemoveAppFromGroupResponse(true)
         }
 
 

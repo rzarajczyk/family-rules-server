@@ -12,7 +12,7 @@ import java.util.UUID
 @Service
 class DevicesService(
     private val devicesRepository: DevicesRepository,
-    private val usersRepository: UsersRepository
+    private val usersService: UsersService
 ) {
 
     fun <T> withDeviceContext(deviceId: DeviceId, action: (user: Device) -> T): T {
@@ -33,34 +33,35 @@ class DevicesService(
             throw IllegalInstanceName(deviceName)
         }
 
-        val userRef = usersRepository.get(username) ?: throw UserNotFoundException(username)
+        return usersService.withUserContext(username) { user ->
+            val userRef = user.asRef()
+            if (devicesRepository.getByName(userRef, deviceName) != null)
+                throw InstanceAlreadyExists(deviceName)
 
-        if (devicesRepository.getByName(userRef, deviceName) != null)
-            throw InstanceAlreadyExists(deviceName)
+            val deviceId = UUID.randomUUID()
+            val token = UUID.randomUUID().toString()
+            val details = DeviceDetailsDto(
+                deviceId = deviceId,
+                deviceName = deviceName,
+                forcedDeviceState = null,
+                hashedToken = token.sha256(),
+                clientType = clientType,
+                clientVersion = "v0",
+                clientTimezoneOffsetSeconds = 0L,
+                iconData = null,
+                iconType = null,
+                reportIntervalSeconds = 60,
+                knownApps = emptyMap(),
+                schedule = WeeklyScheduleDto.empty()
+            )
 
-        val deviceId = UUID.randomUUID()
-        val token = UUID.randomUUID().toString()
-        val details = DeviceDetailsDto(
-            deviceId = deviceId,
-            deviceName = deviceName,
-            forcedDeviceState = null,
-            hashedToken = token.sha256(),
-            clientType = clientType,
-            clientVersion = "v0",
-            clientTimezoneOffsetSeconds = 0L,
-            iconData = null,
-            iconType = null,
-            reportIntervalSeconds = 60,
-            knownApps = emptyMap(),
-            schedule = WeeklyScheduleDto.empty()
-        )
+            devicesRepository.createDevice(userRef, details)
 
-        devicesRepository.createDevice(userRef, details)
-
-        return NewDeviceDetails(
-            deviceId = deviceId,
-            token = token
-        )
+            NewDeviceDetails(
+                deviceId = deviceId,
+                token = token
+            )
+        }
     }
 }
 

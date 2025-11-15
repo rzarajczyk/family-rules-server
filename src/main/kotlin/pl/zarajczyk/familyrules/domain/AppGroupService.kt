@@ -7,16 +7,15 @@ import java.util.*
 
 @Service
 class AppGroupService(private val devicesRepository: DevicesRepository, private val appGroupRepository: AppGroupRepository) {
-    fun <T> withAppGroupContext(user: User, groupId: String, action: (user: AppGroup) -> T): T {
+    fun get(user: User, groupId: String): AppGroup {
         val ref = appGroupRepository.get(user.asRef(), groupId) ?: throw AppGroupNotFoundException(groupId)
-        val user = RefBasedAppGroup(ref, appGroupRepository)
-        return action(user)
+        return RefBasedAppGroup(ref, appGroupRepository)
     }
 
     fun createAppGroup(user: User, name: String): AppGroup {
         val groupId = UUID.randomUUID().toString()
         val usedColors = listAllAppGroups(user)
-            .map { it.get().color }
+            .map { it.fetchDetails().color }
             .toSet()
         val nextColor = AppGroupColorPalette.getNextColor(usedColors)
 
@@ -108,7 +107,7 @@ class AppGroupService(private val devicesRepository: DevicesRepository, private 
 }
 
 interface AppGroup {
-    fun get(): AppGroupDetails
+    fun fetchDetails(): AppGroupDetails
 
     fun delete()
 
@@ -127,7 +126,7 @@ data class RefBasedAppGroup(
     val appGroupRef: AppGroupRef,
     private val appGroupRepository: AppGroupRepository
 ) : AppGroup {
-    override fun get(): AppGroupDetails {
+    override fun fetchDetails(): AppGroupDetails {
         return appGroupRepository.fetchDetails(appGroupRef).let {
             AppGroupDetails(it.id, it.name, it.color)
         }

@@ -18,22 +18,21 @@ class V2AppGroupController(
         return devicesService.withDeviceContext(authentication) { device ->
             usersService.withUserContext(device.getOwner()) { user ->
                 val deviceDetails = device.get()
-                appGroupService.withAppGroupContext(user, request.appGroupId) { appGroup ->
-                    val appTechnicalIds = appGroup.getMembers(device)
-                    MembershipResponse(
-                        appGroupId = request.appGroupId,
-                        apps = appTechnicalIds.map { appTechnicalId ->
-                            val known = deviceDetails.knownApps[appTechnicalId]
-                            MembershipAppResponse(
-                                appPath = appTechnicalId,
-                                appName = known?.appName ?: appTechnicalId,
-                                iconBase64Png = known?.iconBase64Png,
-                                deviceName = deviceDetails.deviceName,
-                                deviceId = deviceDetails.deviceId.toString()
-                            )
-                        }
-                    )
-                }
+                val appGroup = appGroupService.get(user, request.appGroupId)
+                val appTechnicalIds = appGroup.getMembers(device)
+                MembershipResponse(
+                    appGroupId = request.appGroupId,
+                    apps = appTechnicalIds.map { appTechnicalId ->
+                        val known = deviceDetails.knownApps[appTechnicalId]
+                        MembershipAppResponse(
+                            appPath = appTechnicalId,
+                            appName = known?.appName ?: appTechnicalId,
+                            iconBase64Png = known?.iconBase64Png,
+                            deviceName = deviceDetails.deviceName,
+                            deviceId = deviceDetails.deviceId.toString()
+                        )
+                    }
+                )
             }
         }
     }

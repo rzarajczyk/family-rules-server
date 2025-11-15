@@ -48,7 +48,7 @@ class BffOverviewController(
             val appGroups = usersService.withUserContext(username) { user ->
                 appGroupService.listAllAppGroups(user)
             }
-            val appGroupsDetails = appGroups.associateWith { it.get() }
+            val appGroupsDetails = appGroups.associateWith { it.fetchDetails() }
 
             Instance(
                 instanceId = deviceDetails.deviceId,
@@ -165,7 +165,7 @@ class BffOverviewController(
         val instance = dbConnector.fetchDetails(instanceRef)
         val availableStates = dbConnector.getAvailableDeviceStateTypes(instanceRef)
         val appGroups = usersService.withUserContext(authentication.name) { user ->
-            appGroupService.listAllAppGroups(user).map { it.get() }
+            appGroupService.listAllAppGroups(user).map { it.fetchDetails() }
         }
         return ScheduleResponse(
             schedules = instance.schedule.schedule
@@ -250,7 +250,7 @@ class BffOverviewController(
     ): InstanceStateResponse =
         devicesService.withDeviceContext(instanceId) { device ->
             val appGroups = usersService.withUserContext(authentication.name) { user ->
-                appGroupService.listAllAppGroups(user).map { it.get() }
+                appGroupService.listAllAppGroups(user).map { it.fetchDetails() }
             }
             val deviceDetails = device.get()
             InstanceStateResponse(
