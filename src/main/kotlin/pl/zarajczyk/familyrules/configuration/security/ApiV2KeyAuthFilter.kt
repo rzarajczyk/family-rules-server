@@ -87,9 +87,7 @@ class ApiV2KeyAuthFilter(
 
         cleanupExpiredEntries()
         val isValid = try {
-            devicesService.withDeviceContext(instanceId) { device ->
-                device.validateToken(auth.pass)
-            }
+            devicesService.get(instanceId).validateToken(auth.pass)
         } catch (_: DeviceNotFoundException) {
             false
         }

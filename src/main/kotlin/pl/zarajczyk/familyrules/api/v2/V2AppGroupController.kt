@@ -9,41 +9,39 @@ import pl.zarajczyk.familyrules.domain.*
 @RestController
 class V2AppGroupController(
     private val devicesService: DevicesService,
-    private val appGroupService: AppGroupService,
-    private val usersService: UsersService
+    private val appGroupService: AppGroupService
 ) {
     @PostMapping("/api/v2/group-membership-for-device")
     fun getMembership(@RequestBody request: MembershipRequest, authentication: Authentication): MembershipResponse {
-        return devicesService.withDeviceContext(authentication) { device ->
-            val deviceDetails = device.get()
-            val appGroup = appGroupService.get(device.getOwner(), request.appGroupId)
-            val appTechnicalIds = appGroup.getMembers(device)
-            MembershipResponse(
-                appGroupId = request.appGroupId,
-                apps = appTechnicalIds.map { appTechnicalId ->
-                    val known = deviceDetails.knownApps[appTechnicalId]
-                    MembershipAppResponse(
-                        appPath = appTechnicalId,
-                        appName = known?.appName ?: appTechnicalId,
-                        iconBase64Png = known?.iconBase64Png,
-                        deviceName = deviceDetails.deviceName,
-                        deviceId = deviceDetails.deviceId.toString()
-                    )
-                }
-            )
+        val device = devicesService.get(authentication)
+        val deviceDetails = device.fetchDetails()
+        val appGroup = appGroupService.get(device.getOwner(), request.appGroupId)
+        val appTechnicalIds = appGroup.getMembers(device)
+        return MembershipResponse(
+            appGroupId = request.appGroupId,
+            apps = appTechnicalIds.map { appTechnicalId ->
+                val known = deviceDetails.knownApps[appTechnicalId]
+                MembershipAppResponse(
+                    appPath = appTechnicalId,
+                    appName = known?.appName ?: appTechnicalId,
+                    iconBase64Png = known?.iconBase64Png,
+                    deviceName = deviceDetails.deviceName,
+                    deviceId = deviceDetails.deviceId.toString()
+                )
+            }
+        )
 
-        }
+
     }
 
     @PostMapping("/api/v2/groups-usage-report")
     fun getAppGroupsUsageReport(authentication: Authentication): AppGroupsUsageReportResponse {
-        return devicesService.withDeviceContext(authentication) { device ->
-            val report = appGroupService.getReport(device.getOwner(), today())
+        val device = devicesService.get(authentication)
+        val report = appGroupService.getReport(device.getOwner(), today())
 
-            AppGroupsUsageReportResponse(
-                appGroups = report.map { it.toUsageReport() }
-            )
-        }
+        return AppGroupsUsageReportResponse(
+            appGroups = report.map { it.toUsageReport() }
+        )
     }
 
     private fun AppGroupReport.toUsageReport() = AppGroupUsageReportResponse(

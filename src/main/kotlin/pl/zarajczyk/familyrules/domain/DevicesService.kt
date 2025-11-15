@@ -5,20 +5,16 @@ import pl.zarajczyk.familyrules.domain.port.DeviceDetailsDto
 import pl.zarajczyk.familyrules.domain.port.DeviceDetailsUpdateDto
 import pl.zarajczyk.familyrules.domain.port.DeviceRef
 import pl.zarajczyk.familyrules.domain.port.DevicesRepository
-import pl.zarajczyk.familyrules.domain.port.UserRef
-import pl.zarajczyk.familyrules.domain.port.UsersRepository
-import java.util.UUID
+import java.util.*
 
 @Service
 class DevicesService(
     private val devicesRepository: DevicesRepository,
     private val usersService: UsersService
 ) {
-
-    fun <T> withDeviceContext(deviceId: DeviceId, action: (user: Device) -> T): T {
+    fun get(deviceId: DeviceId): Device {
         val ref = devicesRepository.get(deviceId) ?: throw DeviceNotFoundException(deviceId)
-        val device = RefBasedDevice(ref, devicesRepository, usersService)
-        return action(device)
+        return RefBasedDevice(ref, devicesRepository, usersService)
     }
 
     fun getAllDevices(user: User): List<Device> {
@@ -84,7 +80,7 @@ interface Device {
 
     fun getOwner(): User
 
-    fun get(): DeviceDetailsDto
+    fun fetchDetails(): DeviceDetailsDto
 }
 
 data class RefBasedDevice(
@@ -114,7 +110,7 @@ data class RefBasedDevice(
     }
 
 
-    override fun get(): DeviceDetailsDto {
+    override fun fetchDetails(): DeviceDetailsDto {
         return devicesRepository.fetchDetails(deviceRef)
     }
 }
