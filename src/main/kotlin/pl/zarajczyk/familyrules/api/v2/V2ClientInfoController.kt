@@ -6,23 +6,24 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RestController
 import pl.zarajczyk.familyrules.domain.*
+import pl.zarajczyk.familyrules.domain.port.DeviceDetailsUpdateDto
 import pl.zarajczyk.familyrules.domain.port.DevicesRepository
+import pl.zarajczyk.familyrules.domain.port.ValueUpdate
+import pl.zarajczyk.familyrules.domain.port.ValueUpdate.Companion.set
 
 @RestController
-class V2ClientInfoController(private val devicesRepository: DevicesRepository) {
+class V2ClientInfoController(private val devicesService: DevicesService) {
     @PostMapping(value = ["/api/v2/launch", "/api/v2/client-info"])
     fun clientInfo(@RequestBody request: ClientInfoRequest, authentication: Authentication): ClientInfoResponse {
-        val instanceRef = devicesRepository.findAuthenticatedDevice(authentication)
-        devicesRepository.updateClientInformation(
-            device = instanceRef,
-            clientInfo = ClientInfoDto(
-                version = request.version,
-                timezoneOffsetSeconds = request.timezoneOffsetSeconds ?: 0,
-                reportIntervalSeconds = request.reportIntervalSeconds ?: 60,
-                knownApps = request.knownApps?.mapValues { it.value.toDto() } ?: emptyMap(),
-                states = request.availableStates.map { it.toDto() }
-            )
-        )
+        val device = devicesService.get(authentication)
+        device.update(DeviceDetailsUpdateDto(
+            clientVersion = set(request.version),
+            clientTimezoneOffsetSeconds = set(request.timezoneOffsetSeconds ?: 0L),
+            reportIntervalSeconds = set(request.reportIntervalSeconds ?: 60L),
+            knownApps = set(request.knownApps?.mapValues { it.value.toDto() } ?: emptyMap()),
+            availableDeviceStates = set(request.availableStates.map { it.toDto() })
+
+        ))
         return ClientInfoResponse()
     }
 
@@ -52,8 +53,8 @@ private fun String.toDeviceStateArgument() =
 data class ClientInfoRequest(
     val version: String,
     val availableStates: List<DeviceStateTypeRequest>,
-    val timezoneOffsetSeconds: Int?,
-    val reportIntervalSeconds: Int?,
+    val timezoneOffsetSeconds: Long?,
+    val reportIntervalSeconds: Long?,
     val knownApps: Map<String, App>?
 )
 

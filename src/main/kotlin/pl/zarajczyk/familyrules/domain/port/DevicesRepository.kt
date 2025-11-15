@@ -15,10 +15,6 @@ interface DevicesRepository {
     fun delete(device: DeviceRef)
     fun update(device: DeviceRef, details: DeviceDetailsUpdateDto)
 
-    fun setInstanceSchedule(device: DeviceRef, schedule: WeeklyScheduleDto)
-    fun setForcedInstanceState(device: DeviceRef, state: DeviceStateDto?)
-    fun updateClientInformation(device: DeviceRef, clientInfo: ClientInfoDto)
-
     // Screen time operations
     fun saveReport(instance: DeviceRef, day: LocalDate, screenTimeSeconds: Long, applicationsSeconds: Map<String, Long>)
     fun getScreenTimes(instance: DeviceRef, day: LocalDate): ScreenTimeDto

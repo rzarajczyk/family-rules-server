@@ -27,9 +27,11 @@ import org.testcontainers.gcloud.FirestoreEmulatorContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import pl.zarajczyk.familyrules.domain.*
+import pl.zarajczyk.familyrules.domain.port.DeviceDetailsUpdateDto
 import pl.zarajczyk.familyrules.domain.port.DeviceStateDto
 import pl.zarajczyk.familyrules.domain.port.DevicesRepository
 import pl.zarajczyk.familyrules.domain.port.UsersRepository
+import pl.zarajczyk.familyrules.domain.port.ValueUpdate.Companion.set
 import java.util.*
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -379,10 +381,9 @@ class BffOverviewControllerIntegrationSpec : FunSpec() {
                 val instanceId = deviceDetails.deviceId.toString()
 
                 // First set a state
-                devicesRepository.setForcedInstanceState(
-                    deviceRef,
-                    DeviceStateDto(deviceState = "LOCKED", extra = null)
-                )
+                devicesService
+                    .get(deviceDetails.deviceId)
+                    .update(DeviceDetailsUpdateDto(forcedDeviceState = set(DeviceStateDto(deviceState = "LOCKED"))))
 
                 // Then clear it
                 val clearStateRequest = """

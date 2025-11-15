@@ -165,53 +165,13 @@ class FirestoreDevicesRepository(
             .get()
     }
 
-    override fun setInstanceSchedule(device: InstanceRef, schedule: WeeklyScheduleDto) {
-        (device as FirestoreDeviceRef)
-            .document
-            .reference
-            .update("schedule", json.encodeToString(schedulePacker.pack(schedule)))
-            .get()
-    }
-
-    override fun setForcedInstanceState(device: InstanceRef, state: DeviceStateDto?) {
-        val doc = (device as FirestoreDeviceRef).document
-        doc.reference.update(
-            "forcedDeviceState", state?.deviceState,
-            "forcedDeviceStateExtra", state?.extra
-        ).get()
-    }
-
-    override fun updateClientInformation(device: InstanceRef, clientInfo: ClientInfoDto) {
-        val doc = (device as FirestoreDeviceRef).document
-
-        val knownAppsJson = json.encodeToString(
-            clientInfo.knownApps.mapValues {
-                FirestoreKnownApp(
-                    appName = it.value.appName,
-                    iconBase64 = it.value.iconBase64Png
-                )
-            }
-        )
-
-        val deviceStatesJson = json.encodeToString(clientInfo.states)
-
-        // Update client information
-        doc.reference.update(
-            "clientVersion", clientInfo.version,
-            "clientTimezoneOffsetSeconds", clientInfo.timezoneOffsetSeconds,
-            "reportIntervalSeconds", clientInfo.reportIntervalSeconds,
-            "knownApps", knownAppsJson,
-            "deviceStates", deviceStatesJson
-        ).get()
-    }
-
     override fun saveReport(
-        instanceRef: InstanceRef,
+        instance: InstanceRef,
         day: LocalDate,
         screenTimeSeconds: Long,
         applicationsSeconds: Map<String, Long>
     ) {
-        val instanceDoc = (instanceRef as FirestoreDeviceRef).document
+        val instanceDoc = (instance as FirestoreDeviceRef).document
 
         val applicationTimesJson = json.encodeToString(applicationsSeconds)
 

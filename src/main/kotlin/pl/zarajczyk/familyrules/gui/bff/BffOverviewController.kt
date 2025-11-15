@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.*
 import org.springframework.web.server.ResponseStatusException
 import pl.zarajczyk.familyrules.domain.*
 import pl.zarajczyk.familyrules.domain.port.*
+import pl.zarajczyk.familyrules.domain.port.ValueUpdate.Companion.set
 import java.time.DayOfWeek
 
 @RestController
@@ -211,9 +212,9 @@ class BffOverviewController(
         @RequestParam("instanceId") instanceId: InstanceId,
         @RequestBody data: AddPeriodRequest
     ) {
-        val instanceRef = dbConnector.findDeviceOrThrow(instanceId)
-        val instance = dbConnector.fetchDetails(instanceRef)
-        val schedule = instance.schedule
+        val device = devicesService.get(instanceId)
+        val deviceDetails = device.fetchDetails()
+        val schedule = deviceDetails.schedule
         val period = PeriodDto(
             fromSeconds = (data.from.hour * 3600 + data.from.minute * 60).toLong(),
             toSeconds = (data.to.hour * 3600 + data.to.minute * 60).toLong(),
@@ -222,7 +223,10 @@ class BffOverviewController(
         val updatedSchedule = data.days.fold(schedule) { currentSchedule, day ->
             scheduleUpdater.addPeriod(currentSchedule, day.toDayOfWeek(), period)
         }
-        dbConnector.setInstanceSchedule(instanceRef, updatedSchedule)
+
+        device.update(DeviceDetailsUpdateDto(
+            schedule = set(updatedSchedule)
+        ))
     }
 
     data class AddPeriodRequest(
@@ -266,14 +270,17 @@ class BffOverviewController(
         @RequestParam("instanceId") instanceId: InstanceId,
         @RequestBody data: ForcedInstanceState
     ) {
-        val instanceRef = dbConnector.findDeviceOrThrow(instanceId)
         val forcedDeviceState = data.forcedDeviceState.emptyToNull()?.let {
             DeviceStateDto(
                 deviceState = it,
                 extra = data.extra?.emptyToNull()
             )
         }
-        dbConnector.setForcedInstanceState(instanceRef, forcedDeviceState)
+
+        val device = devicesService.get(instanceId)
+        device.update(DeviceDetailsUpdateDto(
+            forcedDeviceState = set(forcedDeviceState)
+        ))
     }
 
     @PostMapping("/bff/delete-instance")
