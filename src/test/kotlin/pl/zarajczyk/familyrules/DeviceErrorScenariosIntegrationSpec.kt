@@ -58,10 +58,10 @@ class DeviceErrorScenariosIntegrationSpec : FunSpec() {
         val validPassword = "admin"
         val invalidUsername = "invalid-user"
         val invalidPassword = "wrong-password"
-        val validInstanceName = "test-device-error-${System.currentTimeMillis()}"
+        val validDeviceName = "test-device-error-${System.currentTimeMillis()}"
         val clientType = "TEST"
         
-        var validInstanceId: String = ""
+        var validDeviceId: String = ""
         var validToken: String = ""
 
         context("/api/v2/register-instance error scenarios") {
@@ -73,7 +73,7 @@ class DeviceErrorScenariosIntegrationSpec : FunSpec() {
                     post("/api/v2/register-instance")
                         .header("Authorization", "Basic $basic")
                         .contentType("application/json")
-                        .content("""{"instanceName":"$validInstanceName","clientType":"$clientType"}""")
+                        .content("""{"instanceName":"$validDeviceName","clientType":"$clientType"}""")
                 )
                     .andExpect(status().isOk)
                     .andExpect(jsonPath("$.status").value("INVALID_PASSWORD"))
@@ -88,7 +88,7 @@ class DeviceErrorScenariosIntegrationSpec : FunSpec() {
                     post("/api/v2/register-instance")
                         .header("Authorization", "Basic $basic")
                         .contentType("application/json")
-                        .content("""{"instanceName":"$validInstanceName","clientType":"$clientType"}""")
+                        .content("""{"instanceName":"$validDeviceName","clientType":"$clientType"}""")
                 )
                     .andExpect(status().isOk)
                     .andExpect(jsonPath("$.status").value("INVALID_PASSWORD"))
@@ -96,7 +96,7 @@ class DeviceErrorScenariosIntegrationSpec : FunSpec() {
                     .andExpect(jsonPath("$.token").doesNotExist())
             }
 
-            test("should return ILLEGAL_INSTANCE_NAME when instance name is empty") {
+            test("should return ILLEGAL_INSTANCE_NAME when device name is empty") {
                 val basic = Base64.getEncoder().encodeToString("$validUsername:$validPassword".toByteArray())
                 
                 mockMvc.perform(
@@ -118,7 +118,7 @@ class DeviceErrorScenariosIntegrationSpec : FunSpec() {
                     post("/api/v2/register-instance")
                         .header("Authorization", "Basic $basic")
                         .contentType("application/json")
-                        .content("""{"instanceName":"$validInstanceName","clientType":"$clientType"}""")
+                        .content("""{"instanceName":"$validDeviceName","clientType":"$clientType"}""")
                 )
                     .andExpect(status().isOk)
                     .andExpect(jsonPath("$.status").value("SUCCESS"))
@@ -127,7 +127,7 @@ class DeviceErrorScenariosIntegrationSpec : FunSpec() {
                     .andReturn()
                 
                 val registerResponseBody = objectMapper.readTree(registerResponse.response.contentAsString)
-                validInstanceId = registerResponseBody.get("instanceId").asText()
+                validDeviceId = registerResponseBody.get("instanceId").asText()
                 validToken = registerResponseBody.get("token").asText()
             }
 
@@ -138,7 +138,7 @@ class DeviceErrorScenariosIntegrationSpec : FunSpec() {
                     post("/api/v2/register-instance")
                         .header("Authorization", "Basic $basic")
                         .contentType("application/json")
-                        .content("""{"instanceName":"$validInstanceName","clientType":"$clientType"}""")
+                        .content("""{"instanceName":"$validDeviceName","clientType":"$clientType"}""")
                 )
                     .andExpect(status().isOk)
                     .andExpect(jsonPath("$.status").value("INSTANCE_ALREADY_EXISTS"))
@@ -174,8 +174,8 @@ class DeviceErrorScenariosIntegrationSpec : FunSpec() {
         context("/api/v2/client-info error scenarios") {
             
             test("should return 401 when instanceId is incorrect") {
-                val invalidInstanceId = "00000000-0000-0000-0000-000000000000"
-                val instanceBasic = Base64.getEncoder().encodeToString("$invalidInstanceId:$validToken".toByteArray())
+                val invalidDeviceId = "00000000-0000-0000-0000-000000000000"
+                val basic = Base64.getEncoder().encodeToString("$invalidDeviceId:$validToken".toByteArray())
                 
                 val clientInfoBody = """
                     {
@@ -194,7 +194,7 @@ class DeviceErrorScenariosIntegrationSpec : FunSpec() {
                 
                 mockMvc.perform(
                     post("/api/v2/client-info")
-                        .header("Authorization", "Basic $instanceBasic")
+                        .header("Authorization", "Basic $basic")
                         .contentType("application/json")
                         .content(clientInfoBody)
                 )
@@ -203,7 +203,7 @@ class DeviceErrorScenariosIntegrationSpec : FunSpec() {
 
             test("should return 401 when token is incorrect") {
                 val invalidToken = "invalid-token-123"
-                val instanceBasic = Base64.getEncoder().encodeToString("$validInstanceId:$invalidToken".toByteArray())
+                val basic = Base64.getEncoder().encodeToString("$validDeviceId:$invalidToken".toByteArray())
                 
                 val clientInfoBody = """
                     {
@@ -222,7 +222,7 @@ class DeviceErrorScenariosIntegrationSpec : FunSpec() {
                 
                 mockMvc.perform(
                     post("/api/v2/client-info")
-                        .header("Authorization", "Basic $instanceBasic")
+                        .header("Authorization", "Basic $basic")
                         .contentType("application/json")
                         .content(clientInfoBody)
                 )
@@ -230,11 +230,11 @@ class DeviceErrorScenariosIntegrationSpec : FunSpec() {
             }
 
             test("should return 4xx when request JSON is malformed") {
-                val instanceBasic = Base64.getEncoder().encodeToString("$validInstanceId:$validToken".toByteArray())
+                val basic = Base64.getEncoder().encodeToString("$validDeviceId:$validToken".toByteArray())
                 
                 mockMvc.perform(
                     post("/api/v2/client-info")
-                        .header("Authorization", "Basic $instanceBasic")
+                        .header("Authorization", "Basic $basic")
                         .contentType("application/json")
                         .content("""{"invalidField":"value"}""")
                 )
@@ -242,11 +242,11 @@ class DeviceErrorScenariosIntegrationSpec : FunSpec() {
             }
 
             test("should return 4xx when request body is not valid JSON") {
-                val instanceBasic = Base64.getEncoder().encodeToString("$validInstanceId:$validToken".toByteArray())
+                val basic = Base64.getEncoder().encodeToString("$validDeviceId:$validToken".toByteArray())
                 
                 mockMvc.perform(
                     post("/api/v2/client-info")
-                        .header("Authorization", "Basic $instanceBasic")
+                        .header("Authorization", "Basic $basic")
                         .contentType("application/json")
                         .content("""not a valid json""")
                 )
@@ -257,8 +257,8 @@ class DeviceErrorScenariosIntegrationSpec : FunSpec() {
         context("/api/v2/report error scenarios") {
             
             test("should return 401 when instanceId is incorrect") {
-                val invalidInstanceId = "00000000-0000-0000-0000-000000000000"
-                val instanceBasic = Base64.getEncoder().encodeToString("$invalidInstanceId:$validToken".toByteArray())
+                val invalidDeviceId = "00000000-0000-0000-0000-000000000000"
+                val basic = Base64.getEncoder().encodeToString("$invalidDeviceId:$validToken".toByteArray())
                 
                 val reportBody = """
                     {
@@ -271,7 +271,7 @@ class DeviceErrorScenariosIntegrationSpec : FunSpec() {
                 
                 mockMvc.perform(
                     post("/api/v2/report")
-                        .header("Authorization", "Basic $instanceBasic")
+                        .header("Authorization", "Basic $basic")
                         .contentType("application/json")
                         .content(reportBody)
                 )
@@ -280,7 +280,7 @@ class DeviceErrorScenariosIntegrationSpec : FunSpec() {
 
             test("should return 401 when token is incorrect") {
                 val invalidToken = "invalid-token-456"
-                val instanceBasic = Base64.getEncoder().encodeToString("$validInstanceId:$invalidToken".toByteArray())
+                val basic = Base64.getEncoder().encodeToString("$validDeviceId:$invalidToken".toByteArray())
                 
                 val reportBody = """
                     {
@@ -293,7 +293,7 @@ class DeviceErrorScenariosIntegrationSpec : FunSpec() {
                 
                 mockMvc.perform(
                     post("/api/v2/report")
-                        .header("Authorization", "Basic $instanceBasic")
+                        .header("Authorization", "Basic $basic")
                         .contentType("application/json")
                         .content(reportBody)
                 )
@@ -301,11 +301,11 @@ class DeviceErrorScenariosIntegrationSpec : FunSpec() {
             }
 
             test("should return 4xx when request JSON is malformed") {
-                val instanceBasic = Base64.getEncoder().encodeToString("$validInstanceId:$validToken".toByteArray())
+                val basic = Base64.getEncoder().encodeToString("$validDeviceId:$validToken".toByteArray())
                 
                 mockMvc.perform(
                     post("/api/v2/report")
-                        .header("Authorization", "Basic $instanceBasic")
+                        .header("Authorization", "Basic $basic")
                         .contentType("application/json")
                         .content("""{"invalidField":"value"}""")
                 )
@@ -313,11 +313,11 @@ class DeviceErrorScenariosIntegrationSpec : FunSpec() {
             }
 
             test("should return 4xx when request body is not valid JSON") {
-                val instanceBasic = Base64.getEncoder().encodeToString("$validInstanceId:$validToken".toByteArray())
+                val basic = Base64.getEncoder().encodeToString("$validDeviceId:$validToken".toByteArray())
                 
                 mockMvc.perform(
                     post("/api/v2/report")
-                        .header("Authorization", "Basic $instanceBasic")
+                        .header("Authorization", "Basic $basic")
                         .contentType("application/json")
                         .content("""not a valid json""")
                 )

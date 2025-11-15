@@ -40,9 +40,6 @@ class V2ReportControllerIntegrationSpec : FunSpec() {
     private lateinit var mockMvc: MockMvc
 
     @Autowired
-    private lateinit var objectMapper: ObjectMapper
-
-    @Autowired
     private lateinit var usersRepository: UsersRepository
 
     @Autowired
@@ -68,7 +65,7 @@ class V2ReportControllerIntegrationSpec : FunSpec() {
     init {
         val username = "report-user-${System.currentTimeMillis()}"
         val password = "report-pass"
-        val instanceName = "Report Test Device"
+        val deviceName = "Report Test Device"
         val clientType = "TEST"
 
         lateinit var deviceId: UUID
@@ -76,7 +73,7 @@ class V2ReportControllerIntegrationSpec : FunSpec() {
 
         beforeSpec {
             usersRepository.createUser(username, password.sha256(), AccessLevel.PARENT)
-            val device = devicesService.setupNewDevice(username, instanceName, clientType)
+            val device = devicesService.setupNewDevice(username, deviceName, clientType)
             deviceId = device.deviceId
             token = device.token
         }
@@ -109,9 +106,9 @@ class V2ReportControllerIntegrationSpec : FunSpec() {
                 .andReturn()
 
             // Verify database side-effects
-            val instanceRef = devicesRepository.get(deviceId)!!
+            val deviceRef = devicesRepository.get(deviceId)!!
             val today = today()
-            val screenTimes = devicesRepository.getScreenReport(instanceRef, today)
+            val screenTimes = devicesRepository.getScreenReport(deviceRef, today)
             screenTimes.shouldNotBeNull()
             screenTimes.screenTimeSeconds shouldBe 900L
             screenTimes.applicationsSeconds["com.example.app1"] shouldBe 600L

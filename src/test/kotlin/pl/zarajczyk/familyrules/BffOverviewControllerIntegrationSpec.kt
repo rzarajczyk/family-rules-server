@@ -85,7 +85,7 @@ class BffOverviewControllerIntegrationSpec : FunSpec() {
         }
 
         context("GET /bff/status") {
-            test("should return empty list when user has no instances") {
+            test("should return empty list when user has no devices") {
                 val result = mockMvc.perform(
                     get("/bff/status")
                         .param("date", "2024-01-15")
@@ -96,12 +96,12 @@ class BffOverviewControllerIntegrationSpec : FunSpec() {
                     .andReturn()
 
                 val response = objectMapper.readTree(result.response.contentAsString)
-                val instances = response.get("instances")
-                instances.isArray shouldBe true
-                instances.size() shouldBe 0
+                val devices = response.get("instances")
+                devices.isArray shouldBe true
+                devices.size() shouldBe 0
             }
 
-            test("should return instances with screen time data for authenticated user") {
+            test("should return devices with screen time data for authenticated user") {
                 // Create a test device
                 val deviceName = "Test Device Status"
                 val deviceDetails = devicesService.setupNewDevice(testUsername, deviceName, "TEST")

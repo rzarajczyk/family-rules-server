@@ -67,7 +67,7 @@ class HappyPathIntegrationSpec : FunSpec() {
         // Shared state across test steps
         val username = "admin"
         val password = "admin"
-        val instanceName = "test-device-${System.currentTimeMillis()}"
+        val deviceName = "test-device-${System.currentTimeMillis()}"
         val clientType = "TEST"
         val clientVersion = "v1.0.0"
         val timezoneOffsetSeconds = 3600
@@ -93,7 +93,7 @@ class HappyPathIntegrationSpec : FunSpec() {
                 post("/api/v2/register-instance")
                     .header("Authorization", "Basic $basic")
                     .contentType("application/json")
-                    .content("""{"instanceName":"$instanceName","clientType":"$clientType"}""")
+                    .content("""{"instanceName":"$deviceName","clientType":"$clientType"}""")
             )
                 .andExpect(status().isOk)
                 .andExpect(jsonPath("$.status").value("SUCCESS"))
@@ -106,17 +106,17 @@ class HappyPathIntegrationSpec : FunSpec() {
             token = registerResponseBody.get("token").asText()
         }
 
-        test("step 3 - should verify instance exists in database") {
+        test("step 3 - should verify device exists in database") {
             val deviceRef = devicesRepository.get(UUID.fromString(deviceId))
             deviceRef shouldNotBe null
             val details = devicesRepository.fetchDetails(deviceRef!!)
             details.deviceId.toString() shouldBe deviceId
-            details.deviceName shouldBe instanceName
+            details.deviceName shouldBe deviceName
             details.clientType shouldBe clientType
         }
 
         test("step 4 - should send client-info successfully") {
-            val instanceBasic = Base64.getEncoder().encodeToString("$deviceId:$token".toByteArray())
+            val deviceBasicAuthString = Base64.getEncoder().encodeToString("$deviceId:$token".toByteArray())
             
             val clientInfoBody = """
                 {
@@ -144,7 +144,7 @@ class HappyPathIntegrationSpec : FunSpec() {
             
             mockMvc.perform(
                 post("/api/v2/client-info")
-                    .header("Authorization", "Basic $instanceBasic")
+                    .header("Authorization", "Basic $deviceBasicAuthString")
                     .contentType("application/json")
                     .content(clientInfoBody)
             )
@@ -163,7 +163,7 @@ class HappyPathIntegrationSpec : FunSpec() {
         }
 
         test("step 6 - should send first report successfully") {
-            val instanceBasic = Base64.getEncoder().encodeToString("$deviceId:$token".toByteArray())
+            val basic = Base64.getEncoder().encodeToString("$deviceId:$token".toByteArray())
             
             val firstReportBody = """
                 {
@@ -177,7 +177,7 @@ class HappyPathIntegrationSpec : FunSpec() {
             
             mockMvc.perform(
                 post("/api/v2/report")
-                    .header("Authorization", "Basic $instanceBasic")
+                    .header("Authorization", "Basic $basic")
                     .contentType("application/json")
                     .content(firstReportBody)
             )

@@ -82,7 +82,7 @@ class BffAppGroupsControllerIntegrationSpec : FunSpec() {
 
         beforeSpec {
             userRef = usersRepository.createUser(testUsername, "pass", AccessLevel.PARENT)
-            deviceId = devicesService.setupNewDevice(testUsername, "Test instance", "TEST").deviceId
+            deviceId = devicesService.setupNewDevice(testUsername, "Test device", "TEST").deviceId
         }
 
         afterSpec {
