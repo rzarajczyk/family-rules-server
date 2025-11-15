@@ -13,6 +13,11 @@ class UsersService(private val usersRepository: UsersRepository) {
         return action(user)
     }
 
+    fun get(username: String): User {
+        val ref = usersRepository.get(username) ?: throw UserNotFoundException(username)
+        return RefBasedUser(ref, usersRepository)
+    }
+
     @Deprecated("avoid refs on a Service level")
     fun <T> withUserContext(ref: UserRef, action: (user: User) -> T): T {
         val user = RefBasedUser(ref, usersRepository)
@@ -35,7 +40,7 @@ class UsersService(private val usersRepository: UsersRepository) {
 interface User {
     fun asRef(): UserRef
 
-    fun get(): UserDetails
+    fun fetchDetails(): UserDetails
 
     fun delete()
 
@@ -51,7 +56,7 @@ data class RefBasedUser(
 ) : User {
     override fun asRef(): UserRef = userRef
 
-    override fun get(): UserDetails {
+    override fun fetchDetails(): UserDetails {
         return usersRepository.fetchDetails(userRef).let {
             UserDetails(it.username, it.passwordSha256, it.accessLevel)
         }

@@ -16,20 +16,20 @@ class BffSettingsController(
     fun changePassword(
         @RequestBody request: ChangePasswordRequest,
         authentication: Authentication
-    ): ChangePasswordResponse =
-        usersService.withUserContext(authentication.name) { user ->
-            try {
+    ): ChangePasswordResponse {
+        return try {
+            val user = usersService.get(authentication.name)
 
-                user.validatePassword(request.currentPassword)
-                user.changePassword(request.newPassword)
+            user.validatePassword(request.currentPassword)
+            user.changePassword(request.newPassword)
 
-                ChangePasswordResponse(success = true, message = "Password changed successfully")
-            } catch (_: InvalidPassword) {
-                ChangePasswordResponse(success = false, message = "Current password is incorrect")
-            } catch (_: Exception) {
-                ChangePasswordResponse(success = false, message = "Failed to change password")
-            }
+            ChangePasswordResponse(success = true, message = "Password changed successfully")
+        } catch (_: InvalidPassword) {
+            ChangePasswordResponse(success = false, message = "Current password is incorrect")
+        } catch (_: Exception) {
+            ChangePasswordResponse(success = false, message = "Failed to change password")
         }
+    }
 }
 
 data class ChangePasswordRequest(

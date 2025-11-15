@@ -121,15 +121,14 @@ class V2AppGroupControllerIntegrationSpec : FunSpec() {
                 .andExpect(jsonPath("$.status").value("ok"))
 
             // Create an app group and add members (membership is per-device)
-            usersService.withUserContext(username) { user ->
-                val group = appGroupService.createAppGroup(user, "Test Group")
-                groupId = group.fetchDetails().id
+            val user = usersService.get(username)
+            val group = appGroupService.createAppGroup(user, "Test Group")
+            groupId = group.fetchDetails().id
 
-                val deviceRef = devicesRepository.get(deviceId)!!
-                group.addMember(deviceRef, appKnown1)
-                group.addMember(deviceRef, appKnown2)
-                group.addMember(deviceRef, appUnknown) // app not present in knownApps, to test fallback
-            }
+            val deviceRef = devicesRepository.get(deviceId)!!
+            group.addMember(deviceRef, appKnown1)
+            group.addMember(deviceRef, appKnown2)
+            group.addMember(deviceRef, appUnknown) // app not present in knownApps, to test fallback
         }
 
         afterSpec {
@@ -247,10 +246,9 @@ class V2AppGroupControllerIntegrationSpec : FunSpec() {
             test("should return empty apps when group has no members for device") {
                 // Create a new empty group
                 var emptyGroupId = ""
-                usersService.withUserContext(username) { user ->
-                    val group = appGroupService.createAppGroup(user, "Empty Group")
-                    emptyGroupId = group.fetchDetails().id
-                }
+                val user = usersService.get(username)
+                val group = appGroupService.createAppGroup(user, "Empty Group")
+                emptyGroupId = group.fetchDetails().id
 
                 val apiV2Basic = Base64.getEncoder().encodeToString("$deviceId:$token".toByteArray())
                 val result = mockMvc.perform(

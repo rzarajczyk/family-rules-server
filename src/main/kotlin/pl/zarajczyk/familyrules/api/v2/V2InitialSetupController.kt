@@ -18,15 +18,15 @@ class V2InitialSetupController(
         @RequestHeader("Authorization") authHeader: String
     ): RegisterInstanceResponse = try {
         val auth = authHeader.decodeBasicAuth()
-        usersService.withUserContext(auth.user) { user ->
-            user.validatePassword(auth.pass)
-            val result = devicesService.setupNewDevice(auth.user, data.instanceName, data.clientType)
-            RegisterInstanceResponse(
-                RegisterInstanceStatus.SUCCESS,
-                instanceId = result.deviceId.toString(),
-                token = result.token
-            )
-        }
+        val user = usersService.get(auth.user)
+        user.validatePassword(auth.pass)
+        val result = devicesService.setupNewDevice(auth.user, data.instanceName, data.clientType)
+        RegisterInstanceResponse(
+            RegisterInstanceStatus.SUCCESS,
+            instanceId = result.deviceId.toString(),
+            token = result.token
+        )
+
     } catch (_: UserNotFoundException) {
         RegisterInstanceResponse(RegisterInstanceStatus.INVALID_PASSWORD)
     } catch (_: InvalidPassword) {

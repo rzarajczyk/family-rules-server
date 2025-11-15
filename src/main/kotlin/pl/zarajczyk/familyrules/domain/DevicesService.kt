@@ -33,35 +33,34 @@ class DevicesService(
             throw IllegalInstanceName(deviceName)
         }
 
-        return usersService.withUserContext(username) { user ->
-            val userRef = user.asRef()
-            if (devicesRepository.getByName(userRef, deviceName) != null)
-                throw InstanceAlreadyExists(deviceName)
+        val user = usersService.get(username)
+        val userRef = user.asRef()
+        if (devicesRepository.getByName(userRef, deviceName) != null)
+            throw InstanceAlreadyExists(deviceName)
 
-            val deviceId = UUID.randomUUID()
-            val token = UUID.randomUUID().toString()
-            val details = DeviceDetailsDto(
-                deviceId = deviceId,
-                deviceName = deviceName,
-                forcedDeviceState = null,
-                hashedToken = token.sha256(),
-                clientType = clientType,
-                clientVersion = "v0",
-                clientTimezoneOffsetSeconds = 0L,
-                iconData = null,
-                iconType = null,
-                reportIntervalSeconds = 60,
-                knownApps = emptyMap(),
-                schedule = WeeklyScheduleDto.empty()
-            )
+        val deviceId = UUID.randomUUID()
+        val token = UUID.randomUUID().toString()
+        val details = DeviceDetailsDto(
+            deviceId = deviceId,
+            deviceName = deviceName,
+            forcedDeviceState = null,
+            hashedToken = token.sha256(),
+            clientType = clientType,
+            clientVersion = "v0",
+            clientTimezoneOffsetSeconds = 0L,
+            iconData = null,
+            iconType = null,
+            reportIntervalSeconds = 60,
+            knownApps = emptyMap(),
+            schedule = WeeklyScheduleDto.empty()
+        )
 
-            devicesRepository.createDevice(userRef, details)
+        devicesRepository.createDevice(userRef, details)
 
-            NewDeviceDetails(
-                deviceId = deviceId,
-                token = token
-            )
-        }
+        return NewDeviceDetails(
+            deviceId = deviceId,
+            token = token
+        )
     }
 }
 
