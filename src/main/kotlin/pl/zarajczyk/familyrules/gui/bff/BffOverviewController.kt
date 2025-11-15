@@ -36,18 +36,16 @@ class BffOverviewController(
         @RequestParam("date") date: String,
         authentication: Authentication,
     ): StatusResponse = try {
-        val user = usersService.withUserContext(authentication.name) { it }
+        val user = usersService.get(authentication.name)
         val day = LocalDate.parse(date)
         val devices = devicesService.getAllDevices(user)
-        val username = authentication.name
         StatusResponse(devices.map { device ->
             val screenTimeDto = dbConnector.getScreenTimes(device.asRef(), day)
             val state = stateService.getDeviceState(device.asRef())
             val deviceDetails = device.get()
             val availableStates = dbConnector.getAvailableDeviceStateTypes(device.asRef())
-            val appGroups = usersService.withUserContext(username) { user ->
-                appGroupService.listAllAppGroups(user)
-            }
+            val appGroups = appGroupService.listAllAppGroups(user)
+
             val appGroupsDetails = appGroups.associateWith { it.fetchDetails() }
 
             Instance(
@@ -164,7 +162,7 @@ class BffOverviewController(
         val instanceRef = dbConnector.findDeviceOrThrow(instanceId)
         val instance = dbConnector.fetchDetails(instanceRef)
         val availableStates = dbConnector.getAvailableDeviceStateTypes(instanceRef)
-        val appGroups = usersService.withUserContext(authentication.name) { user ->
+        val appGroups = usersService.get(authentication.name).let { user ->
             appGroupService.listAllAppGroups(user).map { it.fetchDetails() }
         }
         return ScheduleResponse(
@@ -249,7 +247,7 @@ class BffOverviewController(
         authentication: Authentication,
     ): InstanceStateResponse =
         devicesService.withDeviceContext(instanceId) { device ->
-            val appGroups = usersService.withUserContext(authentication.name) { user ->
+            val appGroups = usersService.get(authentication.name).let { user ->
                 appGroupService.listAllAppGroups(user).map { it.fetchDetails() }
             }
             val deviceDetails = device.get()

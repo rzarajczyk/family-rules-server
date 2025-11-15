@@ -17,14 +17,14 @@ class DevicesService(
 
     fun <T> withDeviceContext(deviceId: DeviceId, action: (user: Device) -> T): T {
         val ref = devicesRepository.get(deviceId) ?: throw DeviceNotFoundException(deviceId)
-        val device = RefBasedDevice(ref, devicesRepository)
+        val device = RefBasedDevice(ref, devicesRepository, usersService)
         return action(device)
     }
 
     fun getAllDevices(user: User): List<Device> {
         return devicesRepository
             .getAll(user.asRef())
-            .map { RefBasedDevice(it, devicesRepository) }
+            .map { RefBasedDevice(it, devicesRepository, usersService) }
     }
 
     @Throws(IllegalInstanceName::class, InstanceAlreadyExists::class)
@@ -82,14 +82,15 @@ interface Device {
 
     fun delete()
 
-    fun getOwner(): UserRef
+    fun getOwner(): User
 
     fun get(): DeviceDetailsDto
 }
 
 data class RefBasedDevice(
     val deviceRef: DeviceRef,
-    private val devicesRepository: DevicesRepository
+    private val devicesRepository: DevicesRepository,
+    private val usersService: UsersService
 ) : Device {
 
     override fun asRef(): DeviceRef {
@@ -108,8 +109,8 @@ data class RefBasedDevice(
         devicesRepository.delete(deviceRef)
     }
 
-    override fun getOwner(): UserRef {
-        return devicesRepository.getOwner(deviceRef)
+    override fun getOwner(): User {
+        return usersService.get(devicesRepository.getOwner(deviceRef))
     }
 
 

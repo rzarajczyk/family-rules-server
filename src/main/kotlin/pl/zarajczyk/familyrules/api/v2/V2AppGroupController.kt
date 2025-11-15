@@ -5,7 +5,6 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RestController
 import pl.zarajczyk.familyrules.domain.*
-import pl.zarajczyk.familyrules.domain.port.DevicesRepository
 
 @RestController
 class V2AppGroupController(
@@ -16,37 +15,34 @@ class V2AppGroupController(
     @PostMapping("/api/v2/group-membership-for-device")
     fun getMembership(@RequestBody request: MembershipRequest, authentication: Authentication): MembershipResponse {
         return devicesService.withDeviceContext(authentication) { device ->
-            usersService.withUserContext(device.getOwner()) { user ->
-                val deviceDetails = device.get()
-                val appGroup = appGroupService.get(user, request.appGroupId)
-                val appTechnicalIds = appGroup.getMembers(device)
-                MembershipResponse(
-                    appGroupId = request.appGroupId,
-                    apps = appTechnicalIds.map { appTechnicalId ->
-                        val known = deviceDetails.knownApps[appTechnicalId]
-                        MembershipAppResponse(
-                            appPath = appTechnicalId,
-                            appName = known?.appName ?: appTechnicalId,
-                            iconBase64Png = known?.iconBase64Png,
-                            deviceName = deviceDetails.deviceName,
-                            deviceId = deviceDetails.deviceId.toString()
-                        )
-                    }
-                )
-            }
+            val deviceDetails = device.get()
+            val appGroup = appGroupService.get(device.getOwner(), request.appGroupId)
+            val appTechnicalIds = appGroup.getMembers(device)
+            MembershipResponse(
+                appGroupId = request.appGroupId,
+                apps = appTechnicalIds.map { appTechnicalId ->
+                    val known = deviceDetails.knownApps[appTechnicalId]
+                    MembershipAppResponse(
+                        appPath = appTechnicalId,
+                        appName = known?.appName ?: appTechnicalId,
+                        iconBase64Png = known?.iconBase64Png,
+                        deviceName = deviceDetails.deviceName,
+                        deviceId = deviceDetails.deviceId.toString()
+                    )
+                }
+            )
+
         }
     }
 
     @PostMapping("/api/v2/groups-usage-report")
     fun getAppGroupsUsageReport(authentication: Authentication): AppGroupsUsageReportResponse {
         return devicesService.withDeviceContext(authentication) { device ->
-            usersService.withUserContext(device.getOwner()) { user ->
-                val report = appGroupService.getReport(user, today())
+            val report = appGroupService.getReport(device.getOwner(), today())
 
-                AppGroupsUsageReportResponse(
-                    appGroups = report.map { it.toUsageReport() }
-                )
-            }
+            AppGroupsUsageReportResponse(
+                appGroups = report.map { it.toUsageReport() }
+            )
         }
     }
 

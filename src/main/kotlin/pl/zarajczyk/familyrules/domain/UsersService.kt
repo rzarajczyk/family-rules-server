@@ -6,22 +6,14 @@ import pl.zarajczyk.familyrules.domain.port.UsersRepository
 
 @Service
 class UsersService(private val usersRepository: UsersRepository) {
-
-    fun <T> withUserContext(username: String, action: (user: User) -> T): T {
-        val ref = usersRepository.get(username) ?: throw UserNotFoundException(username)
-        val user = RefBasedUser(ref, usersRepository)
-        return action(user)
-    }
-
     fun get(username: String): User {
         val ref = usersRepository.get(username) ?: throw UserNotFoundException(username)
         return RefBasedUser(ref, usersRepository)
     }
 
     @Deprecated("avoid refs on a Service level")
-    fun <T> withUserContext(ref: UserRef, action: (user: User) -> T): T {
-        val user = RefBasedUser(ref, usersRepository)
-        return action(user)
+    fun get(ref: UserRef): User {
+        return RefBasedUser(ref, usersRepository)
     }
 
     fun getAllUsers() = usersRepository.getAll()

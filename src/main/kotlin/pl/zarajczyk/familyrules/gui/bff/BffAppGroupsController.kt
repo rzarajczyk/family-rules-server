@@ -21,31 +21,31 @@ class BffAppGroupsController(
     fun createAppGroup(
         @RequestBody request: CreateAppGroupRequest,
         authentication: Authentication
-    ): CreateAppGroupResponse =
-        usersService.withUserContext(authentication.name) { user ->
-            val group = appGroupService.createAppGroup(user, request.name)
-            CreateAppGroupResponse(group.fetchDetails())
-        }
+    ): CreateAppGroupResponse {
+        val user = usersService.get(authentication.name)
+        val group = appGroupService.createAppGroup(user, request.name)
+        return CreateAppGroupResponse(group.fetchDetails())
+    }
 
 
     @GetMapping("/bff/app-groups")
-    fun getAppGroups(authentication: Authentication): GetAppGroupsResponse =
-        usersService.withUserContext(authentication.name) { user ->
-            val groups = appGroupService.listAllAppGroups(user).map { it.fetchDetails() }
-            GetAppGroupsResponse(groups)
-        }
+    fun getAppGroups(authentication: Authentication): GetAppGroupsResponse {
+        val user = usersService.get(authentication.name)
+        val groups = appGroupService.listAllAppGroups(user).map { it.fetchDetails() }
+        return GetAppGroupsResponse(groups)
+    }
 
 
     @DeleteMapping("/bff/app-groups/{groupId}")
     fun deleteAppGroup(
         @PathVariable groupId: String,
         authentication: Authentication
-    ): DeleteAppGroupResponse =
-        usersService.withUserContext(authentication.name) { user ->
-            val appGroup = appGroupService.get(user, groupId)
-            appGroup.delete()
-            DeleteAppGroupResponse(true)
-        }
+    ): DeleteAppGroupResponse {
+        val user = usersService.get(authentication.name)
+        val appGroup = appGroupService.get(user, groupId)
+        appGroup.delete()
+        return DeleteAppGroupResponse(true)
+    }
 
 
     @PutMapping("/bff/app-groups/{groupId}")
@@ -53,26 +53,25 @@ class BffAppGroupsController(
         @PathVariable groupId: String,
         @RequestBody request: RenameAppGroupRequest,
         authentication: Authentication
-    ): RenameAppGroupResponse =
-        usersService.withUserContext(authentication.name) { user ->
-            val appGroup = appGroupService.get(user, groupId)
-            appGroup.rename(request.newName)
-            RenameAppGroupResponse(true)
-
-        }
+    ): RenameAppGroupResponse {
+        val user = usersService.get(authentication.name)
+        val appGroup = appGroupService.get(user, groupId)
+        appGroup.rename(request.newName)
+        return RenameAppGroupResponse(true)
+    }
 
     @PostMapping("/bff/app-groups/{groupId}/apps")
     fun addAppToGroup(
         @PathVariable groupId: String,
         @RequestBody request: AddAppToGroupRequest,
         authentication: Authentication
-    ): AddAppToGroupResponse =
-        usersService.withUserContext(authentication.name) { user ->
-            val appGroup = appGroupService.get(user, groupId)
-            val deviceRef = devicesRepository.findDeviceOrThrow(request.instanceId)
-            appGroup.addMember(deviceRef, request.appPath)
-            AddAppToGroupResponse(true)
-        }
+    ): AddAppToGroupResponse {
+        val user = usersService.get(authentication.name)
+        val appGroup = appGroupService.get(user, groupId)
+        val deviceRef = devicesRepository.findDeviceOrThrow(request.instanceId)
+        appGroup.addMember(deviceRef, request.appPath)
+        return AddAppToGroupResponse(true)
+    }
 
     @DeleteMapping("/bff/app-groups/{groupId}/apps/{appPath}")
     fun removeAppFromGroup(
@@ -80,13 +79,13 @@ class BffAppGroupsController(
         @PathVariable appPath: String,
         @RequestParam instanceId: UUID,
         authentication: Authentication
-    ): RemoveAppFromGroupResponse =
-        usersService.withUserContext(authentication.name) { user ->
-            val appGroup = appGroupService.get(user, groupId)
-            val deviceRef = devicesRepository.findDeviceOrThrow(instanceId)
-            appGroup.removeMember(deviceRef, appPath)
-            RemoveAppFromGroupResponse(true)
-        }
+    ): RemoveAppFromGroupResponse {
+        val user = usersService.get(authentication.name)
+        val appGroup = appGroupService.get(user, groupId)
+        val deviceRef = devicesRepository.findDeviceOrThrow(instanceId)
+        appGroup.removeMember(deviceRef, appPath)
+        return RemoveAppFromGroupResponse(true)
+    }
 
 
     @GetMapping("/bff/app-groups/statistics")
@@ -95,9 +94,8 @@ class BffAppGroupsController(
         authentication: Authentication
     ): AppGroupStatisticsResponse {
         val day = LocalDate.parse(date)
-        val username = authentication.name
 
-        val report = usersService.withUserContext(username) { user ->
+        val report = usersService.get(authentication.name).let { user ->
             appGroupService.getReport(user, day)
         }
 

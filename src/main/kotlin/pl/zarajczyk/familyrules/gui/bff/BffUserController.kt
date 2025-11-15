@@ -14,45 +14,43 @@ class BffUserController(
 ) {
 
     @GetMapping("/bff/users")
-    fun getAllUsers(authentication: Authentication): GetUsersResponse =
-        usersService.withUserContext(authentication.name) { user ->
-            user.mustBeAdmin()
+    fun getAllUsers(authentication: Authentication): GetUsersResponse {
+        val user = usersService.get(authentication.name)
+        user.mustBeAdmin()
 
-            GetUsersResponse(
-                users = usersService.getAllUsers().map {
-                    GetUsersUserResponse(it.fetchDetails().username)
-                }
-            )
-        }
+        return GetUsersResponse(
+            users = usersService.getAllUsers().map {
+                GetUsersUserResponse(it.fetchDetails().username)
+            }
+        )
+    }
 
     @GetMapping("/bff/current-user")
-    fun getCurrentUser(authentication: Authentication): CurrentUserResponse =
-        usersService.withUserContext(authentication.name) { user ->
-            val details = user.fetchDetails()
-            CurrentUserResponse(
-                username = details.username,
-                accessLevel = details.accessLevel
-            )
-        }
+    fun getCurrentUser(authentication: Authentication): CurrentUserResponse {
+        val user = usersService.get(authentication.name)
+        val details = user.fetchDetails()
+        return CurrentUserResponse(
+            username = details.username,
+            accessLevel = details.accessLevel
+        )
+    }
 
     @DeleteMapping("/bff/users/{username}")
     fun deleteUser(
         @PathVariable username: String,
         authentication: Authentication
-    ): DeleteUserResponse =
-        usersService.withUserContext(authentication.name) { user ->
-            user.mustBeAdmin()
+    ): DeleteUserResponse {
+        val user = usersService.get(authentication.name)
+        user.mustBeAdmin()
 
-            if (user.fetchDetails().username == username) {
-                throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot delete your own account")
-            }
-
-            usersService.withUserContext(username) { userToBeDeleted ->
-                userToBeDeleted.delete()
-            }
-
-            DeleteUserResponse(success = true, message = "User deleted successfully")
+        if (user.fetchDetails().username == username) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot delete your own account")
         }
+
+        usersService.get(username).delete()
+
+        return DeleteUserResponse(success = true, message = "User deleted successfully")
+    }
 
 
     @PostMapping("/bff/users/{username}/reset-password")
@@ -60,33 +58,31 @@ class BffUserController(
         @PathVariable username: String,
         @RequestBody request: ResetPasswordRequest,
         authentication: Authentication
-    ): ResetPasswordResponse =
-        usersService.withUserContext(authentication.name) { user ->
-            user.mustBeAdmin()
+    ): ResetPasswordResponse {
+        val user = usersService.get(authentication.name)
+        user.mustBeAdmin()
 
-            usersService.withUserContext(username) { userToBeUpdated ->
-                userToBeUpdated.changePassword(request.newPassword)
-            }
+        usersService.get(username).changePassword(request.newPassword)
 
-            ResetPasswordResponse(success = true, message = "Password reset successfully")
-        }
+        return ResetPasswordResponse(success = true, message = "Password reset successfully")
+    }
 
     @PostMapping("/bff/users")
     fun createUser(
         @RequestBody request: CreateUserRequest,
         authentication: Authentication
-    ): CreateUserResponse =
-        usersService.withUserContext(authentication.name) { user ->
-            user.mustBeAdmin()
+    ): CreateUserResponse {
+        val user = usersService.get(authentication.name)
+        user.mustBeAdmin()
 
-            if (usersService.userExists(request.username)) {
-                throw ResponseStatusException(HttpStatus.BAD_REQUEST, "User already exists")
-            }
-
-            usersService.createUser(request.username, request.password, request.accessLevel)
-
-            CreateUserResponse(success = true, message = "User created successfully")
+        if (usersService.userExists(request.username)) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "User already exists")
         }
+
+        usersService.createUser(request.username, request.password, request.accessLevel)
+
+        return CreateUserResponse(success = true, message = "User created successfully")
+    }
 
     private fun User.mustBeAdmin() {
         if (fetchDetails().accessLevel != AccessLevel.ADMIN) {
