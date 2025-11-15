@@ -7,15 +7,12 @@ import pl.zarajczyk.familyrules.domain.AppGroupDetails
 import pl.zarajczyk.familyrules.domain.AppGroupService
 import pl.zarajczyk.familyrules.domain.DevicesService
 import pl.zarajczyk.familyrules.domain.UsersService
-import pl.zarajczyk.familyrules.domain.findDeviceOrThrow
-import pl.zarajczyk.familyrules.domain.port.DevicesRepository
 import java.util.*
 
 @RestController
 class BffAppGroupsController(
     private val usersService: UsersService,
     private val appGroupService: AppGroupService,
-    private val devicesRepository: DevicesRepository,
     private val devicesService: DevicesService
 ) {
 

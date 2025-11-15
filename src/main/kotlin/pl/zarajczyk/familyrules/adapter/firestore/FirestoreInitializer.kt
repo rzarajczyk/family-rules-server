@@ -6,7 +6,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.event.EventListener
 import org.springframework.stereotype.Component
 import pl.zarajczyk.familyrules.domain.AccessLevel
-import pl.zarajczyk.familyrules.domain.DatabaseInitializationProperties
+import pl.zarajczyk.familyrules.configuration.DatabaseInitializationProperties
 import pl.zarajczyk.familyrules.domain.sha256
 
 @Component

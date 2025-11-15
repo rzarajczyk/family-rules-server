@@ -383,11 +383,3 @@ data class TimeOfDay(
 enum class Day {
     MON, TUE, WED, THU, FRI, SAT, SUN
 }
-
-data class SetAssociatedGroupRequest(
-    val groupId: String?
-)
-
-data class SetAssociatedGroupResponse(
-    val success: Boolean
-)

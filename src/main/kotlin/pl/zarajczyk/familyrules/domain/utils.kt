@@ -9,10 +9,6 @@ import java.util.*
 import org.springframework.security.core.Authentication
 import pl.zarajczyk.familyrules.domain.port.DevicesRepository
 
-fun DevicesRepository.findDeviceOrThrow(id: DeviceId) = this.get(id) ?: throw RuntimeException("Device ≪$id≫ not found")
-
-fun DevicesRepository.findAuthenticatedDevice(authentication: Authentication) = findDeviceOrThrow(authentication.principal as DeviceId)
-
 fun DevicesService.get(authentication: Authentication): Device {
     return get(authentication.principal as DeviceId)
 }
@@ -38,15 +34,7 @@ fun String.sha256() = MessageDigest
 
 fun today() = Clock.System.todayIn(TimeZone.currentSystemDefault())
 
-fun randomSeed() = UUID.randomUUID().toString()
-
-
-
 data class BasicAuth(
     val user: String,
     val pass: String
 )
-
-fun main() {
-    println("admin".sha256())
-}
