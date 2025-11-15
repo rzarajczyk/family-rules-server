@@ -5,7 +5,6 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.extensions.spring.SpringExtension
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
-import io.kotest.matchers.string.shouldNotBeBlank
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
@@ -111,7 +110,7 @@ class V2ReportControllerIntegrationSpec : FunSpec() {
             // Verify database side-effects
             val instanceRef = devicesRepository.get(deviceId)!!
             val today = today()
-            val screenTimes = devicesRepository.getScreenTimes(instanceRef, today)
+            val screenTimes = devicesRepository.getScreenReport(instanceRef, today)
             screenTimes.screenTimeSeconds shouldBe 900L
             screenTimes.applicationsSeconds["com.example.app1"] shouldBe 600L
             screenTimes.applicationsSeconds["com.example.app2"] shouldBe 300L

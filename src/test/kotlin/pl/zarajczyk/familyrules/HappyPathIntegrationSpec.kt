@@ -188,7 +188,7 @@ class HappyPathIntegrationSpec : FunSpec() {
             val today = today()
             instanceRef = devicesRepository.get(UUID.fromString(instanceId))!!
             
-            val firstScreenTime = devicesRepository.getScreenTimes(instanceRef, today)
+            val firstScreenTime = devicesRepository.getScreenReport(instanceRef, today)
             firstScreenTime.screenTimeSeconds shouldBe 600L
             firstScreenTime.applicationsSeconds["com.example.app1"] shouldBe 400L
             firstScreenTime.applicationsSeconds["com.example.app2"] shouldBe 200L
@@ -226,7 +226,7 @@ class HappyPathIntegrationSpec : FunSpec() {
         test("step 9 - should verify second report overwrote first report in database") {
             val today = today()
             
-            val secondScreenTime = devicesRepository.getScreenTimes(instanceRef, today)
+            val secondScreenTime = devicesRepository.getScreenReport(instanceRef, today)
             secondScreenTime.screenTimeSeconds shouldBe 1200L
             secondScreenTime.applicationsSeconds["com.example.app1"] shouldBe 800L
             secondScreenTime.applicationsSeconds["com.example.app2"] shouldBe 400L

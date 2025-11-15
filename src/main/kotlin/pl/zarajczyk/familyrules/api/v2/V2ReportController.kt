@@ -1,6 +1,7 @@
 package pl.zarajczyk.familyrules.api.v2
 
 import com.fasterxml.jackson.annotation.JsonProperty
+import kotlinx.datetime.Clock
 import org.springframework.security.core.Authentication
 import org.springframework.stereotype.Component
 import org.springframework.web.bind.annotation.PostMapping
@@ -22,11 +23,14 @@ class V2ReportController(private val devicesRepository: DevicesRepository, priva
             authentication: Authentication,
         ): ReportResponse {
             val instanceRef = devicesRepository.findAuthenticatedDevice(authentication)
-            devicesRepository.saveReport(
+            devicesRepository.setScreenReport(
                 instance = instanceRef,
                 day = today(),
-                screenTimeSeconds = report.screenTimeSeconds,
-                applicationsSeconds = report.applicationsSeconds
+                screenReportDto = ScreenReportDto(
+                    screenTimeSeconds = report.screenTimeSeconds,
+                    applicationsSeconds = report.applicationsSeconds,
+                    updatedAt = Clock.System.now()
+                ),
             )
             val response = stateService.getDeviceState(instanceRef).finalState.toReportResponse()
             return response

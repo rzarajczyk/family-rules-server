@@ -45,7 +45,7 @@ class AppGroupService(private val devicesRepository: DevicesRepository, private 
 
             devices.forEach { deviceRef ->
                 val instance = devicesRepository.fetchDetails(deviceRef)
-                val screenTimeDto = devicesRepository.getScreenTimes(deviceRef, day)
+                val screenTimeDto = devicesRepository.getScreenReport(deviceRef, day) ?: ScreenReportDto.empty()
                 val appTechnicalIds = appGroupRepository.getMembers(appGroupRef, deviceRef)
 
                 if (appTechnicalIds.isNotEmpty()) {

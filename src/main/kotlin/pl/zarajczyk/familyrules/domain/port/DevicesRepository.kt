@@ -14,12 +14,11 @@ interface DevicesRepository {
     fun fetchDetails(device: DeviceRef, includePasswordHash: Boolean = false): DeviceDetailsDto
     fun delete(device: DeviceRef)
     fun update(device: DeviceRef, details: DeviceDetailsUpdateDto)
+    fun getOwner(deviceRef: DeviceRef): UserRef
 
     // Screen time operations
-    fun saveReport(instance: DeviceRef, day: LocalDate, screenTimeSeconds: Long, applicationsSeconds: Map<String, Long>)
-    fun getScreenTimes(instance: DeviceRef, day: LocalDate): ScreenTimeDto
-
-    fun getOwner(deviceRef: DeviceRef): UserRef
+    fun setScreenReport(instance: DeviceRef, day: LocalDate, screenReportDto: ScreenReportDto)
+    fun getScreenReport(instance: DeviceRef, day: LocalDate): ScreenReportDto?
 }
 
 interface InstanceRef

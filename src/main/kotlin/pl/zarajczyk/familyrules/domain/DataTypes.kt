@@ -5,11 +5,15 @@ import kotlinx.datetime.Instant
 import kotlinx.serialization.Serializable
 import pl.zarajczyk.familyrules.domain.port.DeviceStateDto
 
-data class ScreenTimeDto(
+data class ScreenReportDto(
     val screenTimeSeconds: Long,
     val applicationsSeconds: Map<String, Long>,
     val updatedAt: Instant
-)
+) {
+    companion object {
+        fun empty() = ScreenReportDto(0, emptyMap(), Instant.DISTANT_PAST)
+    }
+}
 
 data class DeviceDto(
     val id: InstanceId,

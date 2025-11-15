@@ -41,7 +41,7 @@ class BffOverviewController(
         val day = LocalDate.parse(date)
         val devices = devicesService.getAllDevices(user)
         StatusResponse(devices.map { device ->
-            val screenTimeDto = dbConnector.getScreenTimes(device.asRef(), day)
+            val screenTimeDto = dbConnector.getScreenReport(device.asRef(), day) ?: ScreenReportDto.empty()
             val state = stateService.getDeviceState(device.asRef())
             val deviceDetails = device.fetchDetails()
             val availableStates = deviceDetails.availableDeviceStates

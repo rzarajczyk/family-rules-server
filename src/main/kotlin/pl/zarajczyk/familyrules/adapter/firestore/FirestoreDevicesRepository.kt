@@ -1,8 +1,8 @@
 package pl.zarajczyk.familyrules.adapter.firestore
 
+import com.google.cloud.firestore.DocumentSnapshot
 import com.google.cloud.firestore.Firestore
 import com.google.cloud.firestore.QueryDocumentSnapshot
-import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.Serializable
@@ -43,12 +43,12 @@ class FirestoreDevicesRepository(
             "clientType" to details.clientType,
             "clientVersion" to details.clientVersion,
             "clientTimezoneOffsetSeconds" to details.clientTimezoneOffsetSeconds,
-            "schedule" to encode(WeeklyScheduleDto.Companion.empty()),
+            "schedule" to WeeklyScheduleDto.empty().encodeSchedule(),
             "iconData" to details.iconData,
             "iconType" to details.iconType,
-            "knownApps" to encode(details.knownApps),
+            "knownApps" to details.knownApps.encodeKnownApps(),
             "reportIntervalSeconds" to details.reportIntervalSeconds,
-            "deviceStates" to encode(details.availableDeviceStates)
+            "deviceStates" to details.availableDeviceStates.encodeDeviceStates()
         )
 
         val doc = (user as FirestoreUserRef).doc
@@ -60,15 +60,15 @@ class FirestoreDevicesRepository(
         return get(details.deviceId) ?: throw DeviceNotFoundException(details.deviceId)
     }
 
-    private fun encode(schedule: WeeklyScheduleDto): String =
-        json.encodeToString(schedulePacker.pack(schedule))
+    private fun WeeklyScheduleDto.encodeSchedule(): String =
+        json.encodeToString(schedulePacker.pack(this))
 
-    private fun encode(states: List<DeviceStateTypeDto>): String =
-        json.encodeToString(states)
+    private fun List<DeviceStateTypeDto>.encodeDeviceStates(): String =
+        json.encodeToString(this)
 
-    private fun encode(knownApps: Map<String, AppDto>): String =
+    private fun Map<String, AppDto>.encodeKnownApps(): String =
         json.encodeToString(
-            knownApps.mapValues {
+            this.mapValues {
                 FirestoreKnownApp(
                     appName = it.value.appName,
                     iconBase64 = it.value.iconBase64Png
@@ -127,12 +127,12 @@ class FirestoreDevicesRepository(
             details.clientType.ifPresent { "clientType" to it },
             details.clientVersion.ifPresent { "clientVersion" to it },
             details.clientTimezoneOffsetSeconds.ifPresent { "clientTimezoneOffsetSeconds" to it },
-            details.schedule.ifPresent { "schedule" to encode(it) },
+            details.schedule.ifPresent { "schedule" to it.encodeSchedule() },
             details.iconData.ifPresent { "iconData" to it },
             details.iconType.ifPresent { "iconType" to it },
-            details.knownApps.ifPresent { "knownApps" to encode(it) },
+            details.knownApps.ifPresent { "knownApps" to it.encodeKnownApps() },
             details.reportIntervalSeconds.ifPresent { "reportIntervalSeconds" to it },
-            details.availableDeviceStates.ifPresent { "deviceStates" to encode(it) }
+            details.availableDeviceStates.ifPresent { "deviceStates" to it.encodeDeviceStates() }
         ).toMap()
 
         val doc = (device as FirestoreDeviceRef).document
@@ -165,31 +165,29 @@ class FirestoreDevicesRepository(
             .get()
     }
 
-    override fun saveReport(
+    override fun setScreenReport(
         instance: InstanceRef,
         day: LocalDate,
-        screenTimeSeconds: Long,
-        applicationsSeconds: Map<String, Long>
+        screenReportDto: ScreenReportDto
     ) {
         val instanceDoc = (instance as FirestoreDeviceRef).document
 
-        val applicationTimesJson = json.encodeToString(applicationsSeconds)
-
-        // Store as a single field in the day document
         val screenTimeRef = instanceDoc.reference
             .collection("screenTimes")
             .document(day.toString())
 
         screenTimeRef.set(
             mapOf(
-                "screenTime" to screenTimeSeconds,
-                "applicationTimes" to applicationTimesJson,
-                "updatedAt" to Clock.System.now().toString()
+                "screenTime" to screenReportDto.screenTimeSeconds,
+                "applicationTimes" to screenReportDto.applicationsSeconds.encodeApplicationTimes(),
+                "updatedAt" to screenReportDto.updatedAt.toString()
             )
         ).get()
     }
 
-    override fun getScreenTimes(instance: InstanceRef, day: LocalDate): ScreenTimeDto {
+    private fun Map<String, Long>.encodeApplicationTimes() = json.encodeToString(this)
+
+    override fun getScreenReport(instance: InstanceRef, day: LocalDate): ScreenReportDto? {
         val instanceDoc = (instance as FirestoreDeviceRef).document
 
         val dayDoc = instanceDoc.reference
@@ -198,22 +196,17 @@ class FirestoreDevicesRepository(
             .get()
             .get()
 
-        if (!dayDoc.exists()) return emptyScreenTime()
+        if (!dayDoc.exists()) return null
 
-        val totalSeconds = dayDoc.getLong("screenTime") ?: throw RuntimeException("Missing field ≪screenTime≫")
-        val applicationTimesJson =
-            dayDoc.getString("applicationTimes") ?: throw RuntimeException("Missing field ≪applicationTimes≫")
-        val updatedAt = dayDoc.getString("updatedAt")?.let { Instant.parse(it) }
-            ?: throw RuntimeException("Missing field ≪updatedAt≫")
-        try {
-            val applicationTimes = json.decodeFromString<Map<String, Long>>(applicationTimesJson)
-            return ScreenTimeDto(totalSeconds, applicationTimes, updatedAt)
-        } catch (e: Exception) {
-            throw RuntimeException("JSON decoding error: $applicationTimesJson", e)
-        }
+        val totalSeconds = dayDoc.getLongOrThrow("screenTime")
+        val updatedAt = dayDoc.getStringOrThrow("updatedAt").let { Instant.parse(it) }
+        val applicationTimes = dayDoc.getApplicationTimes("applicationTimes")
+
+        return ScreenReportDto(totalSeconds, applicationTimes, updatedAt)
     }
 
-    fun emptyScreenTime() = ScreenTimeDto(0, emptyMap(), Instant.DISTANT_PAST)
+    private fun DocumentSnapshot.getApplicationTimes(fieldName: String): Map<String, Long> =
+        json.decodeFromString(getStringOrThrow(fieldName))
 
 
     private fun List<DeviceStateTypeDto>.ensureActiveIsPresent(): List<DeviceStateTypeDto> {
