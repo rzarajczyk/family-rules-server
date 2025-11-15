@@ -1,7 +1,6 @@
 package pl.zarajczyk.familyrules.api.v2
 
 import com.fasterxml.jackson.annotation.JsonProperty
-import kotlinx.datetime.Clock
 import org.springframework.security.core.Authentication
 import org.springframework.stereotype.Component
 import org.springframework.web.bind.annotation.PostMapping
@@ -28,7 +27,7 @@ class V2ReportController(private val devicesRepository: DevicesRepository, priva
                 screenTimeSeconds = report.screenTimeSeconds,
                 applicationsSeconds = report.applicationsSeconds,
             )
-            val response = stateService.getDeviceState(device.asRef()).finalState.toReportResponse()
+            val response = stateService.calculateCurrentDeviceState(device).finalState.toReportResponse()
             return response
         }
     }
