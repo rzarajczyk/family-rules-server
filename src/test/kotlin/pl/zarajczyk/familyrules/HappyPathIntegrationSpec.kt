@@ -22,8 +22,8 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import org.testcontainers.gcloud.FirestoreEmulatorContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
+import pl.zarajczyk.familyrules.domain.port.DeviceRef
 import pl.zarajczyk.familyrules.domain.port.DevicesRepository
-import pl.zarajczyk.familyrules.domain.port.InstanceRef
 import pl.zarajczyk.familyrules.domain.port.UsersRepository
 import pl.zarajczyk.familyrules.domain.today
 import java.util.*
@@ -73,9 +73,9 @@ class HappyPathIntegrationSpec : FunSpec() {
         val timezoneOffsetSeconds = 3600
         val reportIntervalSeconds = 60
         
-        var instanceId: String = ""
+        var deviceId: String = ""
         var token: String = ""
-        lateinit var instanceRef: InstanceRef
+        lateinit var deviceRef: DeviceRef
         lateinit var firstReportTimestamp: Instant
 
         test("step 1 - should verify default user exists in database") {
@@ -102,21 +102,21 @@ class HappyPathIntegrationSpec : FunSpec() {
                 .andReturn()
             
             val registerResponseBody = objectMapper.readTree(registerResponse.response.contentAsString)
-            instanceId = registerResponseBody.get("instanceId").asText()
+            deviceId = registerResponseBody.get("instanceId").asText()
             token = registerResponseBody.get("token").asText()
         }
 
         test("step 3 - should verify instance exists in database") {
-            val deviceRef = devicesRepository.get(UUID.fromString(instanceId))
+            val deviceRef = devicesRepository.get(UUID.fromString(deviceId))
             deviceRef shouldNotBe null
             val details = devicesRepository.fetchDetails(deviceRef!!)
-            details.deviceId.toString() shouldBe instanceId
+            details.deviceId.toString() shouldBe deviceId
             details.deviceName shouldBe instanceName
             details.clientType shouldBe clientType
         }
 
         test("step 4 - should send client-info successfully") {
-            val instanceBasic = Base64.getEncoder().encodeToString("$instanceId:$token".toByteArray())
+            val instanceBasic = Base64.getEncoder().encodeToString("$deviceId:$token".toByteArray())
             
             val clientInfoBody = """
                 {
@@ -153,7 +153,7 @@ class HappyPathIntegrationSpec : FunSpec() {
         }
 
         test("step 5 - should verify client-info data in database") {
-            val deviceRef = devicesRepository.get(UUID.fromString(instanceId))!!
+            val deviceRef = devicesRepository.get(UUID.fromString(deviceId))!!
             val details = devicesRepository.fetchDetails(deviceRef)
             details.clientVersion shouldBe clientVersion
             details.clientTimezoneOffsetSeconds shouldBe timezoneOffsetSeconds
@@ -163,7 +163,7 @@ class HappyPathIntegrationSpec : FunSpec() {
         }
 
         test("step 6 - should send first report successfully") {
-            val instanceBasic = Base64.getEncoder().encodeToString("$instanceId:$token".toByteArray())
+            val instanceBasic = Base64.getEncoder().encodeToString("$deviceId:$token".toByteArray())
             
             val firstReportBody = """
                 {
@@ -187,9 +187,9 @@ class HappyPathIntegrationSpec : FunSpec() {
 
         test("step 7 - should verify first report data in database") {
             val today = today()
-            instanceRef = devicesRepository.get(UUID.fromString(instanceId))!!
+            deviceRef = devicesRepository.get(UUID.fromString(deviceId))!!
             
-            val firstScreenTime = devicesRepository.getScreenReport(instanceRef, today)
+            val firstScreenTime = devicesRepository.getScreenReport(deviceRef, today)
             firstScreenTime.shouldNotBeNull()
             firstScreenTime.screenTimeSeconds shouldBe 600L
             firstScreenTime.applicationsSeconds["com.example.app1"] shouldBe 400L
@@ -203,7 +203,7 @@ class HappyPathIntegrationSpec : FunSpec() {
         }
 
         test("step 8 - should send second report successfully") {
-            val instanceBasic = Base64.getEncoder().encodeToString("$instanceId:$token".toByteArray())
+            val instanceBasic = Base64.getEncoder().encodeToString("$deviceId:$token".toByteArray())
             
             val secondReportBody = """
                 {
@@ -228,7 +228,7 @@ class HappyPathIntegrationSpec : FunSpec() {
         test("step 9 - should verify second report overwrote first report in database") {
             val today = today()
             
-            val secondScreenTime = devicesRepository.getScreenReport(instanceRef, today)
+            val secondScreenTime = devicesRepository.getScreenReport(deviceRef, today)
             secondScreenTime.shouldNotBeNull()
             secondScreenTime.screenTimeSeconds shouldBe 1200L
             secondScreenTime.applicationsSeconds["com.example.app1"] shouldBe 800L

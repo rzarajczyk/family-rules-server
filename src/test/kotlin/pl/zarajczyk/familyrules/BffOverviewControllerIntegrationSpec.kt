@@ -3,13 +3,9 @@ package pl.zarajczyk.familyrules
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.extensions.spring.SpringExtension
-import io.kotest.matchers.collections.shouldBeEmpty
-import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
-import io.kotest.matchers.shouldNotBe
-import io.kotest.matchers.string.shouldNotBeBlank
 import org.hamcrest.Matchers.containsString
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
@@ -75,7 +71,7 @@ class BffOverviewControllerIntegrationSpec : FunSpec() {
     init {
         val testUsername = "overview-user-${System.currentTimeMillis()}"
         val testPassword = "overview-pass"
-        var testInstanceId: InstanceId? = null
+        var testDeviceId: DeviceId? = null
 
         beforeSpec {
             usersRepository.createUser(testUsername, testPassword.sha256(), AccessLevel.PARENT)
@@ -109,7 +105,7 @@ class BffOverviewControllerIntegrationSpec : FunSpec() {
                 // Create a test device
                 val deviceName = "Test Device Status"
                 val deviceDetails = devicesService.setupNewDevice(testUsername, deviceName, "TEST")
-                testInstanceId = deviceDetails.deviceId
+                testDeviceId = deviceDetails.deviceId
 
                 val result = mockMvc.perform(
                     get("/bff/status")

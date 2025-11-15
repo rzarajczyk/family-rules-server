@@ -15,20 +15,6 @@ data class ScreenReportDto(
     }
 }
 
-data class DeviceDto(
-    val id: InstanceId,
-    val name: String,
-    val forcedDeviceState: DeviceStateDto?,
-    val clientType: String,
-    val clientVersion: String,
-    val schedule: WeeklyScheduleDto,
-    val clientTimezoneOffsetSeconds: Int,
-    val iconData: String? = null,
-    val iconType: String? = null,
-    val reportIntervalSeconds: Int?,
-    val knownApps: Map<String, AppDto>,
-)
-
 @Serializable
 data class DeviceStateTypeDto(
     val deviceState: String,

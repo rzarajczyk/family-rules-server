@@ -17,12 +17,11 @@ interface DevicesRepository {
     fun getOwner(deviceRef: DeviceRef): UserRef
 
     // Screen time operations
-    fun setScreenReport(instance: DeviceRef, day: LocalDate, screenReportDto: ScreenReportDto)
-    fun getScreenReport(instance: DeviceRef, day: LocalDate): ScreenReportDto?
+    fun setScreenReport(device: DeviceRef, day: LocalDate, screenReportDto: ScreenReportDto)
+    fun getScreenReport(device: DeviceRef, day: LocalDate): ScreenReportDto?
 }
 
-interface InstanceRef
-typealias DeviceRef = InstanceRef
+interface DeviceRef
 
 data class DeviceDetailsDto(
     val deviceId: DeviceId,

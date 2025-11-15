@@ -12,10 +12,7 @@ import org.springframework.security.authentication.BadCredentialsException
 import org.springframework.security.core.GrantedAuthority
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.web.filter.GenericFilterBean
-import pl.zarajczyk.familyrules.domain.DeviceNotFoundException
-import pl.zarajczyk.familyrules.domain.DevicesService
-import pl.zarajczyk.familyrules.domain.InstanceId
-import pl.zarajczyk.familyrules.domain.decodeBasicAuth
+import pl.zarajczyk.familyrules.domain.*
 import java.time.Instant
 import java.util.concurrent.ConcurrentHashMap
 
@@ -36,7 +33,7 @@ class ApiV2KeyAuthFilter(
     private val authCache = ConcurrentHashMap<String, AuthCacheEntry>()
 
     private data class AuthCacheEntry(
-        val instanceId: InstanceId,
+        val deviceId: DeviceId,
         val timestamp: Instant
     ) {
         fun isExpired(): Boolean {
@@ -74,15 +71,15 @@ class ApiV2KeyAuthFilter(
         val authHeader = request.getHeader("Authorization") ?: throw MissingHeaderException()
         val auth = authHeader.decodeBasicAuth()
 
-        val instanceId = InstanceId.fromString(auth.user)
+        val instanceId = DeviceId.fromString(auth.user)
 
         // Check cache first
         val cacheKey = "${instanceId}:${auth.pass.hashCode()}"
         val cachedEntry = authCache[cacheKey]
 
         if (cachedEntry != null && !cachedEntry.isExpired()) {
-            logger.info("Instance ≪${cachedEntry.instanceId}≫ validated successfully using the cache")
-            return ApiKeyAuthenticationToken.authorized(cachedEntry.instanceId, auth.pass)
+            logger.info("Instance ≪${cachedEntry.deviceId}≫ validated successfully using the cache")
+            return ApiKeyAuthenticationToken.authorized(cachedEntry.deviceId, auth.pass)
         }
 
         cleanupExpiredEntries()
@@ -102,7 +99,7 @@ class ApiV2KeyAuthFilter(
 
     }
 
-    private fun cacheValidationResult(cacheKey: String, instanceId: InstanceId) {
+    private fun cacheValidationResult(cacheKey: String, deviceId: DeviceId) {
         // Ensure cache doesn't exceed max size
         if (authCache.size >= maxCacheSize) {
             // Remove oldest entries (simple LRU approximation)
@@ -114,7 +111,7 @@ class ApiV2KeyAuthFilter(
             oldestKeys.forEach { authCache.remove(it) }
         }
 
-        authCache[cacheKey] = AuthCacheEntry(instanceId, Instant.now())
+        authCache[cacheKey] = AuthCacheEntry(deviceId, Instant.now())
     }
 
     private fun cleanupExpiredEntries() {
@@ -128,7 +125,7 @@ class ApiV2KeyAuthFilter(
 
 
 class ApiKeyAuthenticationToken private constructor(
-    private val instanceId: InstanceId,
+    private val deviceId: DeviceId,
     private val token: String,
     authorized: Boolean
 ) :
@@ -137,11 +134,11 @@ class ApiKeyAuthenticationToken private constructor(
         isAuthenticated = authorized
     }
 
-    override fun getPrincipal() = instanceId
+    override fun getPrincipal() = deviceId
     override fun getCredentials() = token
 
     companion object {
-        fun authorized(instanceId: InstanceId, token: String) = ApiKeyAuthenticationToken(instanceId, token, true)
+        fun authorized(deviceId: DeviceId, token: String) = ApiKeyAuthenticationToken(deviceId, token, true)
     }
 }
 

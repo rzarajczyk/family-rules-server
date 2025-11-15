@@ -103,12 +103,12 @@ class BffOverviewController(
 
     @GetMapping("/bff/instance-info")
     fun getInstanceInfo(
-        @RequestParam("instanceId") instanceId: InstanceId
+        @RequestParam("instanceId") deviceId: DeviceId
     ): InstanceInfoResponse {
-        val device = devicesService.get(instanceId)
+        val device = devicesService.get(deviceId)
         val details = device.fetchDetails()
         return InstanceInfoResponse(
-            instanceId = instanceId,
+            instanceId = deviceId,
             instanceName = details.deviceName,
             forcedDeviceState = details.forcedDeviceState,
             clientType = details.clientType,
@@ -120,9 +120,9 @@ class BffOverviewController(
 
     @GetMapping("/bff/instance-edit-info")
     fun getInstanceEditInfo(
-        @RequestParam("instanceId") instanceId: InstanceId
+        @RequestParam("instanceId") deviceId: DeviceId
     ): InstanceEditInfo {
-        val device = devicesService.get(instanceId)
+        val device = devicesService.get(deviceId)
         val details = device.fetchDetails()
         return InstanceEditInfo(
             instanceName = details.deviceName,
@@ -132,10 +132,10 @@ class BffOverviewController(
 
     @PostMapping("/bff/instance-edit-info")
     fun setInstanceEditInfo(
-        @RequestParam("instanceId") instanceId: InstanceId,
+        @RequestParam("instanceId") deviceId: DeviceId,
         @RequestBody data: InstanceEditInfo
     ) {
-        val device = devicesService.get(instanceId)
+        val device = devicesService.get(deviceId)
         device.update(
             DeviceDetailsUpdateDto(
                 deviceName = ValueUpdate.set(data.instanceName),
@@ -151,10 +151,10 @@ class BffOverviewController(
 
     @GetMapping("/bff/instance-schedule")
     fun getInstanceSchedule(
-        @RequestParam("instanceId") instanceId: InstanceId,
+        @RequestParam("instanceId") deviceId: DeviceId,
         authentication: Authentication,
     ): ScheduleResponse {
-        val device = devicesService.get(instanceId)
+        val device = devicesService.get(deviceId)
         val instance = device.fetchDetails()
         val availableStates = instance.availableDeviceStates
         val appGroups = usersService.get(authentication.name).let { user ->
@@ -202,10 +202,10 @@ class BffOverviewController(
 
     @PostMapping("/bff/instance-schedule/add-period")
     fun addInstanceSchedulePeriod(
-        @RequestParam("instanceId") instanceId: InstanceId,
+        @RequestParam("instanceId") deviceId: DeviceId,
         @RequestBody data: AddPeriodRequest
     ) {
-        val device = devicesService.get(instanceId)
+        val device = devicesService.get(deviceId)
         val deviceDetails = device.fetchDetails()
         val schedule = deviceDetails.schedule
         val period = PeriodDto(
@@ -241,16 +241,16 @@ class BffOverviewController(
 
     @GetMapping("/bff/instance-state")
     fun getInstanceState(
-        @RequestParam("instanceId") instanceId: InstanceId,
+        @RequestParam("instanceId") deviceId: DeviceId,
         authentication: Authentication,
     ): InstanceStateResponse {
-        val device = devicesService.get(instanceId)
+        val device = devicesService.get(deviceId)
         val appGroups = usersService.get(authentication.name).let { user ->
             appGroupService.listAllAppGroups(user).map { it.fetchDetails() }
         }
         val deviceDetails = device.fetchDetails()
         return InstanceStateResponse(
-            instanceId = instanceId,
+            instanceId = deviceId,
             instanceName = deviceDetails.deviceName,
             forcedDeviceState = deviceDetails.forcedDeviceState,
             availableStates = deviceDetails.availableDeviceStates
@@ -260,7 +260,7 @@ class BffOverviewController(
 
     @PostMapping("/bff/instance-state")
     fun setInstanceState(
-        @RequestParam("instanceId") instanceId: InstanceId,
+        @RequestParam("instanceId") deviceId: DeviceId,
         @RequestBody data: ForcedInstanceState
     ) {
         val forcedDeviceState = data.forcedDeviceState.emptyToNull()?.let {
@@ -270,7 +270,7 @@ class BffOverviewController(
             )
         }
 
-        val device = devicesService.get(instanceId)
+        val device = devicesService.get(deviceId)
         device.update(DeviceDetailsUpdateDto(
             forcedDeviceState = set(forcedDeviceState)
         ))
@@ -278,8 +278,8 @@ class BffOverviewController(
 
     @PostMapping("/bff/delete-instance")
     fun deleteInstance(
-        @RequestParam("instanceId") instanceId: InstanceId
-    ) = devicesService.get(instanceId).delete()
+        @RequestParam("instanceId") deviceId: DeviceId
+    ) = devicesService.get(deviceId).delete()
 
     private fun Instant.isOnline(reportIntervalSeconds: Long) =
         (Clock.System.now() - this).inWholeSeconds <= reportIntervalSeconds
@@ -301,14 +301,14 @@ class BffOverviewController(
 private fun String?.emptyToNull(): String? = if (this.isNullOrBlank()) null else this
 
 data class InstanceStateResponse(
-    val instanceId: InstanceId,
+    val instanceId: DeviceId,
     val instanceName: String,
     val forcedDeviceState: DeviceStateDto?,
     val availableStates: List<DeviceStateDescriptionResponse>
 )
 
 data class InstanceInfoResponse(
-    val instanceId: InstanceId,
+    val instanceId: DeviceId,
     val instanceName: String,
     val forcedDeviceState: DeviceStateDto?,
     val clientType: String,
@@ -330,7 +330,7 @@ data class StatusResponse(
 )
 
 data class Instance(
-    val instanceId: InstanceId,
+    val instanceId: DeviceId,
     val instanceName: String,
     val icon: Icon,
     val screenTimeSeconds: Long,

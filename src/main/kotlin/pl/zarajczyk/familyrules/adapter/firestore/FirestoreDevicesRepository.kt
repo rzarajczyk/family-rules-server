@@ -11,7 +11,6 @@ import kotlinx.serialization.json.Json
 import org.springframework.stereotype.Service
 import pl.zarajczyk.familyrules.domain.*
 import pl.zarajczyk.familyrules.domain.port.*
-import pl.zarajczyk.familyrules.adapter.firestore.SchedulePacker
 import java.util.*
 
 @Service
@@ -34,7 +33,7 @@ class FirestoreDevicesRepository(
     }
 
     override fun createDevice(user: UserRef, details: DeviceDetailsDto): DeviceRef {
-        val instanceData = mapOf(
+        val deviceData = mapOf(
             "instanceId" to details.deviceId.toString(),
             "instanceName" to details.deviceName,
             "forcedDeviceState" to details.forcedDeviceState?.deviceState,
@@ -55,7 +54,7 @@ class FirestoreDevicesRepository(
             .collection("instances")
             .document(details.deviceId.toString())
 
-        doc.set(instanceData).get()
+        doc.set(deviceData).get()
 
         return get(details.deviceId) ?: throw DeviceNotFoundException(details.deviceId)
     }
@@ -76,7 +75,7 @@ class FirestoreDevicesRepository(
             }
         )
 
-    override fun getAll(userRef: UserRef): List<InstanceRef> =
+    override fun getAll(userRef: UserRef): List<DeviceRef> =
         (userRef as FirestoreUserRef).doc
             .collection("instances")
             .orderBy("instanceName")
@@ -85,7 +84,7 @@ class FirestoreDevicesRepository(
             .documents
             .map { FirestoreDeviceRef(it) }
 
-    override fun get(id: InstanceId): InstanceRef? =
+    override fun get(id: DeviceId): DeviceRef? =
         firestore.collectionGroup("instances")
             .whereEqualTo("instanceId", id.toString())
             .get()
@@ -118,7 +117,7 @@ class FirestoreDevicesRepository(
     }
 
     override fun update(device: DeviceRef, details: DeviceDetailsUpdateDto) {
-        val instanceData = listOfNotNull(
+        val deviceData = listOfNotNull(
             details.deviceId.ifPresent { "instanceId" to it.toString() },
             details.deviceName.ifPresent { "instanceName" to it },
             details.forcedDeviceState.ifPresent { "forcedDeviceState" to it?.deviceState },
@@ -137,7 +136,7 @@ class FirestoreDevicesRepository(
 
         val doc = (device as FirestoreDeviceRef).document
 
-        doc.reference.update(instanceData).get()
+        doc.reference.update(deviceData).get()
     }
 
     private fun QueryDocumentSnapshot.getDeviceStateDto(fieldName: String, extraFieldName: String): DeviceStateDto? =
@@ -157,7 +156,7 @@ class FirestoreDevicesRepository(
         json.decodeFromString<List<DeviceStateTypeDto>>(getString(fieldName) ?: "[]").ensureActiveIsPresent()
 
 
-    override fun delete(device: InstanceRef) {
+    override fun delete(device: DeviceRef) {
         (device as FirestoreDeviceRef)
             .document
             .reference
@@ -166,13 +165,13 @@ class FirestoreDevicesRepository(
     }
 
     override fun setScreenReport(
-        instance: InstanceRef,
+        device: DeviceRef,
         day: LocalDate,
         screenReportDto: ScreenReportDto
     ) {
-        val instanceDoc = (instance as FirestoreDeviceRef).document
+        val doc = (device as FirestoreDeviceRef).document
 
-        val screenTimeRef = instanceDoc.reference
+        val screenTimeRef = doc.reference
             .collection("screenTimes")
             .document(day.toString())
 
@@ -187,10 +186,10 @@ class FirestoreDevicesRepository(
 
     private fun Map<String, Long>.encodeApplicationTimes() = json.encodeToString(this)
 
-    override fun getScreenReport(instance: InstanceRef, day: LocalDate): ScreenReportDto? {
-        val instanceDoc = (instance as FirestoreDeviceRef).document
+    override fun getScreenReport(device: DeviceRef, day: LocalDate): ScreenReportDto? {
+        val doc = (device as FirestoreDeviceRef).document
 
-        val dayDoc = instanceDoc.reference
+        val dayDoc = doc.reference
             .collection("screenTimes")
             .document(day.toString())
             .get()
@@ -240,4 +239,4 @@ class FirestoreKnownApp(
     val iconBase64: String?
 )
 
-class FirestoreDeviceRef(val document: QueryDocumentSnapshot) : InstanceRef
+class FirestoreDeviceRef(val document: QueryDocumentSnapshot) : DeviceRef

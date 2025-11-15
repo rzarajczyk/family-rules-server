@@ -1,9 +1,8 @@
 package pl.zarajczyk.familyrules.domain
 
-import java.util.UUID
+import java.util.*
 
-typealias InstanceId = UUID
-typealias DeviceId = InstanceId
+typealias DeviceId = UUID
 
 enum class AccessLevel {
     ADMIN,
