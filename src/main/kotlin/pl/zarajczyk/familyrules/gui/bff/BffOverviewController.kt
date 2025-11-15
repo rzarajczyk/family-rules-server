@@ -102,12 +102,6 @@ class BffOverviewController(
         Icon(type = null, data = null)
     }
 
-    private fun DeviceDto.getIcon() = if (iconType != null && iconData != null) {
-        Icon(type = iconType, data = iconData)
-    } else {
-        Icon(type = null, data = null)
-    }
-
     @GetMapping("/bff/instance-info")
     fun getInstanceInfo(
         @RequestParam("instanceId") instanceId: InstanceId
@@ -161,8 +155,8 @@ class BffOverviewController(
         @RequestParam("instanceId") instanceId: InstanceId,
         authentication: Authentication,
     ): ScheduleResponse {
-        val instanceRef = dbConnector.findDeviceOrThrow(instanceId)
-        val instance = dbConnector.fetchDetails(instanceRef)
+        val device = devicesService.get(instanceId)
+        val instance = device.fetchDetails()
         val availableStates = instance.availableDeviceStates
         val appGroups = usersService.get(authentication.name).let { user ->
             appGroupService.listAllAppGroups(user).map { it.fetchDetails() }
