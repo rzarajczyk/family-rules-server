@@ -12,7 +12,7 @@ import pl.zarajczyk.familyrules.domain.port.DeviceStateDto
 import pl.zarajczyk.familyrules.domain.port.DevicesRepository
 
 @Component
-class V2ReportController(private val devicesRepository: DevicesRepository, private val stateService: StateService) {
+class V2ReportController(private val devicesRepository: DevicesRepository, private val stateService: StateService, private val devicesService: DevicesService) {
 
     @RestController
     inner class ReportRestController {
@@ -22,17 +22,13 @@ class V2ReportController(private val devicesRepository: DevicesRepository, priva
             @RequestBody report: ReportRequest,
             authentication: Authentication,
         ): ReportResponse {
-            val instanceRef = devicesRepository.findAuthenticatedDevice(authentication)
-            devicesRepository.setScreenReport(
-                instance = instanceRef,
+            val device = devicesService.get(authentication)
+            device.saveScreenTimeReport(
                 day = today(),
-                screenReportDto = ScreenReportDto(
-                    screenTimeSeconds = report.screenTimeSeconds,
-                    applicationsSeconds = report.applicationsSeconds,
-                    updatedAt = Clock.System.now()
-                ),
+                screenTimeSeconds = report.screenTimeSeconds,
+                applicationsSeconds = report.applicationsSeconds,
             )
-            val response = stateService.getDeviceState(instanceRef).finalState.toReportResponse()
+            val response = stateService.getDeviceState(device.asRef()).finalState.toReportResponse()
             return response
         }
     }
