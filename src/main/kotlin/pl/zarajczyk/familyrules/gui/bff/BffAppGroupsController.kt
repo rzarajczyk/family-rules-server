@@ -5,6 +5,7 @@ import org.springframework.security.core.Authentication
 import org.springframework.web.bind.annotation.*
 import pl.zarajczyk.familyrules.domain.AppGroupDetails
 import pl.zarajczyk.familyrules.domain.AppGroupService
+import pl.zarajczyk.familyrules.domain.DevicesService
 import pl.zarajczyk.familyrules.domain.UsersService
 import pl.zarajczyk.familyrules.domain.findDeviceOrThrow
 import pl.zarajczyk.familyrules.domain.port.DevicesRepository
@@ -14,7 +15,8 @@ import java.util.*
 class BffAppGroupsController(
     private val usersService: UsersService,
     private val appGroupService: AppGroupService,
-    private val devicesRepository: DevicesRepository
+    private val devicesRepository: DevicesRepository,
+    private val devicesService: DevicesService
 ) {
 
     @PostMapping("/bff/app-groups")
@@ -68,8 +70,8 @@ class BffAppGroupsController(
     ): AddAppToGroupResponse {
         val user = usersService.get(authentication.name)
         val appGroup = appGroupService.get(user, groupId)
-        val deviceRef = devicesRepository.findDeviceOrThrow(request.instanceId)
-        appGroup.addMember(deviceRef, request.appPath)
+        val device = devicesService.get(request.instanceId)
+        appGroup.addMember(device, request.appPath)
         return AddAppToGroupResponse(true)
     }
 
@@ -82,8 +84,8 @@ class BffAppGroupsController(
     ): RemoveAppFromGroupResponse {
         val user = usersService.get(authentication.name)
         val appGroup = appGroupService.get(user, groupId)
-        val deviceRef = devicesRepository.findDeviceOrThrow(instanceId)
-        appGroup.removeMember(deviceRef, appPath)
+        val device = devicesService.get(instanceId)
+        appGroup.removeMember(device, appPath)
         return RemoveAppFromGroupResponse(true)
     }
 

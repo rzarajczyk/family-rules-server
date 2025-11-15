@@ -3,6 +3,7 @@ package pl.zarajczyk.familyrules
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.extensions.spring.SpringExtension
+import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import org.springframework.beans.factory.annotation.Autowired
@@ -111,6 +112,7 @@ class V2ReportControllerIntegrationSpec : FunSpec() {
             val instanceRef = devicesRepository.get(deviceId)!!
             val today = today()
             val screenTimes = devicesRepository.getScreenReport(instanceRef, today)
+            screenTimes.shouldNotBeNull()
             screenTimes.screenTimeSeconds shouldBe 900L
             screenTimes.applicationsSeconds["com.example.app1"] shouldBe 600L
             screenTimes.applicationsSeconds["com.example.app2"] shouldBe 300L

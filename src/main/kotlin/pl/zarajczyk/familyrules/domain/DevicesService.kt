@@ -1,5 +1,6 @@
 package pl.zarajczyk.familyrules.domain
 
+import kotlinx.datetime.LocalDate
 import org.springframework.stereotype.Service
 import pl.zarajczyk.familyrules.domain.port.DeviceDetailsDto
 import pl.zarajczyk.familyrules.domain.port.DeviceDetailsUpdateDto
@@ -82,6 +83,8 @@ interface Device {
     fun getOwner(): User
 
     fun fetchDetails(): DeviceDetailsDto
+
+    fun getScreenTimeReport(day: LocalDate): ScreenReportDto
 }
 
 data class RefBasedDevice(
@@ -113,5 +116,9 @@ data class RefBasedDevice(
 
     override fun fetchDetails(): DeviceDetailsDto {
         return devicesRepository.fetchDetails(deviceRef)
+    }
+
+    override fun getScreenTimeReport(day: LocalDate): ScreenReportDto {
+        return devicesRepository.getScreenReport(deviceRef, day) ?: ScreenReportDto.empty()
     }
 }

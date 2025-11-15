@@ -90,9 +90,9 @@ class V2AppGroupControllerIntegrationSpec : FunSpec() {
         beforeSpec {
             // Create user and device
             usersRepository.createUser(username, password.sha256(), AccessLevel.PARENT)
-            val device = devicesService.setupNewDevice(username, instanceName, clientType)
-            deviceId = device.deviceId
-            token = device.token
+            val newDevice = devicesService.setupNewDevice(username, instanceName, clientType)
+            deviceId = newDevice.deviceId
+            token = newDevice.token
 
             // Provide known apps via v2 client-info
             val basic = Base64.getEncoder().encodeToString("$deviceId:$token".toByteArray())
@@ -125,7 +125,7 @@ class V2AppGroupControllerIntegrationSpec : FunSpec() {
             val group = appGroupService.createAppGroup(user, "Test Group")
             groupId = group.fetchDetails().id
 
-            val deviceRef = devicesRepository.get(deviceId)!!
+            val deviceRef = devicesService.get(deviceId)
             group.addMember(deviceRef, appKnown1)
             group.addMember(deviceRef, appKnown2)
             group.addMember(deviceRef, appUnknown) // app not present in knownApps, to test fallback

@@ -14,7 +14,6 @@ import java.time.DayOfWeek
 
 @RestController
 class BffOverviewController(
-    private val dbConnector: DevicesRepository,
     private val devicesService: DevicesService,
     private val scheduleUpdater: ScheduleUpdater,
     private val stateService: StateService,
@@ -41,7 +40,7 @@ class BffOverviewController(
         val day = LocalDate.parse(date)
         val devices = devicesService.getAllDevices(user)
         StatusResponse(devices.map { device ->
-            val screenTimeDto = dbConnector.getScreenReport(device.asRef(), day) ?: ScreenReportDto.empty()
+            val screenTimeDto = device.getScreenTimeReport(day)
             val state = stateService.getDeviceState(device.asRef())
             val deviceDetails = device.fetchDetails()
             val availableStates = deviceDetails.availableDeviceStates

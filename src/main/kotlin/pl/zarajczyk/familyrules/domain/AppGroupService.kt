@@ -6,7 +6,7 @@ import pl.zarajczyk.familyrules.domain.port.*
 import java.util.*
 
 @Service
-class AppGroupService(private val devicesRepository: DevicesRepository, private val appGroupRepository: AppGroupRepository) {
+class AppGroupService(private val devicesRepository: DevicesRepository, private val appGroupRepository: AppGroupRepository, private val devicesService: DevicesService) {
     fun get(user: User, groupId: String): AppGroup {
         val ref = appGroupRepository.get(user.asRef(), groupId) ?: throw AppGroupNotFoundException(groupId)
         return RefBasedAppGroup(ref, appGroupRepository)
@@ -33,7 +33,7 @@ class AppGroupService(private val devicesRepository: DevicesRepository, private 
         user: User,
         day: LocalDate
     ): List<AppGroupReport> {
-        val devices = devicesRepository.getAll(user.asRef())
+        val devices = devicesService.getAllDevices(user)
         val appGroups = appGroupRepository.getAll(user.asRef())
 
         val groupStats = appGroups.map { appGroupRef ->
@@ -43,10 +43,10 @@ class AppGroupService(private val devicesRepository: DevicesRepository, private 
             val deviceCount = mutableSetOf<String>()
             val appDetails = mutableListOf<AppGroupAppReport>()
 
-            devices.forEach { deviceRef ->
-                val instance = devicesRepository.fetchDetails(deviceRef)
-                val screenTimeDto = devicesRepository.getScreenReport(deviceRef, day) ?: ScreenReportDto.empty()
-                val appTechnicalIds = appGroupRepository.getMembers(appGroupRef, deviceRef)
+            devices.forEach { device ->
+                val instance = device.fetchDetails()
+                val screenTimeDto = device.getScreenTimeReport(day)
+                val appTechnicalIds = appGroupRepository.getMembers(appGroupRef, device.asRef())
 
                 if (appTechnicalIds.isNotEmpty()) {
                     deviceCount.add(instance.deviceId.toString())
@@ -117,9 +117,9 @@ interface AppGroup {
 
     fun getMembers(device: Device): Set<AppTechnicalId>
 
-    fun addMember(deviceRef: DeviceRef, appTechnicalId: AppTechnicalId)
+    fun addMember(device: Device, appTechnicalId: AppTechnicalId)
 
-    fun removeMember(deviceRef: DeviceRef, appTechnicalId: AppTechnicalId)
+    fun removeMember(device: Device, appTechnicalId: AppTechnicalId)
 }
 
 data class RefBasedAppGroup(
@@ -148,12 +148,12 @@ data class RefBasedAppGroup(
         return appGroupRepository.getMembers(appGroupRef, device.asRef())
     }
 
-    override fun addMember(deviceRef: DeviceRef, appTechnicalId: AppTechnicalId) {
-        appGroupRepository.addMember(appGroupRef, deviceRef, appTechnicalId)
+    override fun addMember(device: Device, appTechnicalId: AppTechnicalId) {
+        appGroupRepository.addMember(appGroupRef, device.asRef(), appTechnicalId)
     }
 
-    override fun removeMember(deviceRef: DeviceRef, appTechnicalId: AppTechnicalId) {
-        appGroupRepository.removeMember(appGroupRef, deviceRef, appTechnicalId)
+    override fun removeMember(device: Device, appTechnicalId: AppTechnicalId) {
+        appGroupRepository.removeMember(appGroupRef, device.asRef(), appTechnicalId)
     }
 }
 

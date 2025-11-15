@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.extensions.spring.SpringExtension
 import io.kotest.matchers.comparables.shouldBeGreaterThan
+import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import kotlinx.datetime.Instant
@@ -189,6 +190,7 @@ class HappyPathIntegrationSpec : FunSpec() {
             instanceRef = devicesRepository.get(UUID.fromString(instanceId))!!
             
             val firstScreenTime = devicesRepository.getScreenReport(instanceRef, today)
+            firstScreenTime.shouldNotBeNull()
             firstScreenTime.screenTimeSeconds shouldBe 600L
             firstScreenTime.applicationsSeconds["com.example.app1"] shouldBe 400L
             firstScreenTime.applicationsSeconds["com.example.app2"] shouldBe 200L
@@ -227,6 +229,7 @@ class HappyPathIntegrationSpec : FunSpec() {
             val today = today()
             
             val secondScreenTime = devicesRepository.getScreenReport(instanceRef, today)
+            secondScreenTime.shouldNotBeNull()
             secondScreenTime.screenTimeSeconds shouldBe 1200L
             secondScreenTime.applicationsSeconds["com.example.app1"] shouldBe 800L
             secondScreenTime.applicationsSeconds["com.example.app2"] shouldBe 400L
