@@ -138,7 +138,7 @@ data class RefBasedDevice(
         val bucketKey = now.toBucket()
         val updatedHistogram = screenTimeHistogram.toMutableMap()
         val current = updatedHistogram[bucketKey] ?: 0L
-        updatedHistogram[bucketKey] = current + screenTimeSeconds
+        updatedHistogram[bucketKey] = current + 1
 
         devicesRepository.setScreenReport(
             deviceRef, day, ScreenReportDto(

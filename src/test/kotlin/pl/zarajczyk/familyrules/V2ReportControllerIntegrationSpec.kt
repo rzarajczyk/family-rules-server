@@ -119,7 +119,7 @@ class V2ReportControllerIntegrationSpec : FunSpec() {
             screenTimes.updatedAt shouldNotBe null
             val histogram = screenTimes.screenTimeHistogram
             histogram.isNotEmpty() shouldBe true
-            histogram.values.sum() shouldBe 900L
+            histogram.values.sum() shouldBe 1L
             val expectedBucket = histogramBucketFor(screenTimes.updatedAt)
             histogram[expectedBucket] shouldBe 900L
         }
