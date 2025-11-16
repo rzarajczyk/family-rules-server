@@ -311,10 +311,21 @@ function resizeImage(file, onResize, width = 64, height = 64) {
                 let modal = M.Modal.getInstance(document.querySelector("#usage-histogram-modal"))
                 document.getElementById('usage-histogram-title').textContent = `Screen Time Usage - ${instanceName}`
                 
-                // Sort histogram entries by time
-                let sortedEntries = Object.entries(histogram).sort((a, b) => a[0].localeCompare(b[0]))
-                let labels = sortedEntries.map(([time, _]) => time)
-                let data = sortedEntries.map(([_, seconds]) => Math.round(seconds / 60)) // Convert to minutes
+                // Generate all time buckets for 24 hours (00:00 to 23:50)
+                let allBuckets = []
+                for (let hour = 0; hour < 24; hour++) {
+                    for (let minute = 0; minute < 60; minute += 10) {
+                        let timeStr = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`
+                        allBuckets.push(timeStr)
+                    }
+                }
+                
+                // Create labels and data arrays with zeros for missing buckets
+                let labels = allBuckets
+                let data = allBuckets.map(time => {
+                    let seconds = histogram[time] || 0
+                    return Math.round(seconds / 60) // Convert to minutes
+                })
                 
                 // Destroy existing chart if it exists
                 if (window.histogramChart) {
