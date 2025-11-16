@@ -179,12 +179,14 @@ class FirestoreDevicesRepository(
             mapOf(
                 "screenTime" to screenReportDto.screenTimeSeconds,
                 "applicationTimes" to screenReportDto.applicationsSeconds.encodeApplicationTimes(),
-                "updatedAt" to screenReportDto.updatedAt.toString()
+                "updatedAt" to screenReportDto.updatedAt.toString(),
+                "screenTimeHistogram" to screenReportDto.screenTimeHistogram.encodeHistogram()
             )
         ).get()
     }
 
     private fun Map<String, Long>.encodeApplicationTimes() = json.encodeToString(this)
+    private fun Map<String, Long>.encodeHistogram() = json.encodeToString(this)
 
     override fun getScreenReport(device: DeviceRef, day: LocalDate): ScreenReportDto? {
         val doc = (device as FirestoreDeviceRef).document
@@ -197,15 +199,24 @@ class FirestoreDevicesRepository(
 
         if (!dayDoc.exists()) return null
 
-        val totalSeconds = dayDoc.getLongOrThrow("screenTime")
+        val screenTimeSeconds = dayDoc.getLongOrThrow("screenTime")
         val updatedAt = dayDoc.getStringOrThrow("updatedAt").let { Instant.parse(it) }
         val applicationTimes = dayDoc.getApplicationTimes("applicationTimes")
+        val screenTimeHistogram = dayDoc.getHistogram("screenTimeHistogram")
 
-        return ScreenReportDto(totalSeconds, applicationTimes, updatedAt)
+        return ScreenReportDto(
+            screenTimeSeconds = screenTimeSeconds,
+            applicationsSeconds = applicationTimes,
+            updatedAt = updatedAt,
+            screenTimeHistogram = screenTimeHistogram
+        )
     }
 
     private fun DocumentSnapshot.getApplicationTimes(fieldName: String): Map<String, Long> =
         json.decodeFromString(getStringOrThrow(fieldName))
+
+    private fun DocumentSnapshot.getHistogram(fieldName: String): Map<String, Long> =
+        json.decodeFromString(getString(fieldName) ?: "{}")
 
 
     private fun List<DeviceStateTypeDto>.ensureActiveIsPresent(): List<DeviceStateTypeDto> {

@@ -52,6 +52,7 @@ class BffOverviewController(
                 instanceId = deviceDetails.deviceId,
                 instanceName = deviceDetails.deviceName,
                 screenTimeSeconds = screenTimeDto.screenTimeSeconds,
+                screenTimeHistogram = screenTimeDto.screenTimeHistogram,
                 appUsageSeconds = screenTimeDto.applicationsSeconds
                     .map { (appTechnicalId, v) ->
                         val knownApp = deviceDetails.knownApps[appTechnicalId]
@@ -334,6 +335,7 @@ data class Instance(
     val instanceName: String,
     val icon: Icon,
     val screenTimeSeconds: Long,
+    val screenTimeHistogram: Map<String, Long>,
     val appUsageSeconds: List<AppUsage>,
     val automaticDeviceState: DeviceStateDescriptionResponse,
     val forcedDeviceState: DeviceStateDescriptionResponse?,

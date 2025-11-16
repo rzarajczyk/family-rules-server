@@ -8,10 +8,16 @@ import pl.zarajczyk.familyrules.domain.port.DeviceStateDto
 data class ScreenReportDto(
     val screenTimeSeconds: Long,
     val applicationsSeconds: Map<String, Long>,
-    val updatedAt: Instant
+    val updatedAt: Instant,
+    val screenTimeHistogram: Map<String, Long>
 ) {
     companion object {
-        fun empty() = ScreenReportDto(0, emptyMap(), Instant.DISTANT_PAST)
+        fun empty() = ScreenReportDto(
+            screenTimeSeconds = 0,
+            applicationsSeconds = emptyMap(),
+            updatedAt = Instant.DISTANT_PAST,
+            screenTimeHistogram = emptyMap()
+        )
     }
 }
 

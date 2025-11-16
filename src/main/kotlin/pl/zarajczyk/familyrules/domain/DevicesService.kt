@@ -1,13 +1,16 @@
 package pl.zarajczyk.familyrules.domain
 
-import kotlinx.datetime.Clock
-import kotlinx.datetime.LocalDate
-import org.springframework.stereotype.Service
 import pl.zarajczyk.familyrules.domain.port.DeviceDetailsDto
 import pl.zarajczyk.familyrules.domain.port.DeviceDetailsUpdateDto
 import pl.zarajczyk.familyrules.domain.port.DeviceRef
 import pl.zarajczyk.familyrules.domain.port.DevicesRepository
 import java.util.*
+import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
+import org.springframework.stereotype.Service
 
 @Service
 class DevicesService(
@@ -129,10 +132,29 @@ data class RefBasedDevice(
         screenTimeSeconds: Long,
         applicationsSeconds: Map<String, Long>
     ) {
-        devicesRepository.setScreenReport(deviceRef, day, ScreenReportDto(
-            screenTimeSeconds = screenTimeSeconds,
-            applicationsSeconds = applicationsSeconds,
-            updatedAt = Clock.System.now()
-        ))
+        val screenTimeHistogram = devicesRepository.getScreenReport(deviceRef, day)?.screenTimeHistogram ?: emptyMap()
+        val now = Clock.System.now()
+
+        val bucketKey = now.toBucket()
+        val updatedHistogram = screenTimeHistogram.toMutableMap()
+        val current = updatedHistogram[bucketKey] ?: 0L
+        updatedHistogram[bucketKey] = current + screenTimeSeconds
+
+        devicesRepository.setScreenReport(
+            deviceRef, day, ScreenReportDto(
+                screenTimeSeconds = screenTimeSeconds,
+                applicationsSeconds = applicationsSeconds,
+                updatedAt = now,
+                screenTimeHistogram = updatedHistogram
+            )
+        )
+    }
+
+    private fun Instant.toBucket(): String {
+        val localDateTime = this.toLocalDateTime(TimeZone.currentSystemDefault())
+        val hour = localDateTime.hour.toString().padStart(2, '0')
+        val minuteBucket = (localDateTime.minute / 10) * 10
+        val minuteStr = minuteBucket.toString().padStart(2, '0')
+        return "$hour:$minuteStr"
     }
 }
