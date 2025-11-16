@@ -121,7 +121,7 @@ class V2ReportControllerIntegrationSpec : FunSpec() {
             histogram.isNotEmpty() shouldBe true
             histogram.values.sum() shouldBe 1L
             val expectedBucket = histogramBucketFor(screenTimes.updatedAt)
-            histogram[expectedBucket] shouldBe 900L
+            histogram[expectedBucket] shouldBe 1L
         }
 
         test("should return 400 on invalid JSON") {
