@@ -41,6 +41,9 @@ document.addEventListener("DOMContentLoaded", (event) => {
                 instances.querySelectorAll("a.edit-schedule").forEach(it => {
                     it.addEventListener('click', onEditScheduleClicked)
                 })
+                instances.querySelectorAll("a.view-usage").forEach(it => {
+                    it.addEventListener('click', onViewUsageClicked)
+                })
                 M.Collapsible.init(instances, {});
                 
                 // Initialize tooltips for info icons (excluding app names)
@@ -286,6 +289,89 @@ function resizeImage(file, onResize, width = 64, height = 64) {
                         renderTimetable(tpl, content)
                         renderSchedule(data, content)
                     })
+            }
+
+            function onViewUsageClicked(e) {
+                let instanceId = e.target.closest('.instance-details').dataset["instanceid"]
+                let instanceName = e.target.closest('.instance-details').querySelector('.instance-name span').textContent
+                let date = document.querySelector("#datepicker").value
+                
+                // Find instance data to get histogram
+                let instanceData = window.currentInstanceData?.find(inst => inst.instanceId === instanceId)
+                
+                if (!instanceData || !instanceData.screenTimeHistogram) {
+                    Toast.info("No usage data available for this date")
+                    return
+                }
+                
+                showHistogramModal(instanceName, instanceData.screenTimeHistogram)
+            }
+
+            function showHistogramModal(instanceName, histogram) {
+                let modal = M.Modal.getInstance(document.querySelector("#usage-histogram-modal"))
+                document.getElementById('usage-histogram-title').textContent = `Screen Time Usage - ${instanceName}`
+                
+                // Sort histogram entries by time
+                let sortedEntries = Object.entries(histogram).sort((a, b) => a[0].localeCompare(b[0]))
+                let labels = sortedEntries.map(([time, _]) => time)
+                let data = sortedEntries.map(([_, seconds]) => Math.round(seconds / 60)) // Convert to minutes
+                
+                // Destroy existing chart if it exists
+                if (window.histogramChart) {
+                    window.histogramChart.destroy()
+                }
+                
+                // Create new chart
+                const ctx = document.getElementById('histogram-chart').getContext('2d')
+                window.histogramChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Screen Time (minutes)',
+                            data: data,
+                            backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                            borderColor: 'rgba(54, 162, 235, 1)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Minutes'
+                                }
+                            },
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Time of Day'
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        let minutes = context.parsed.y
+                                        let hours = Math.floor(minutes / 60)
+                                        let mins = minutes % 60
+                                        return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`
+                                    }
+                                }
+                            }
+                        }
+                    }
+                })
+                
+                modal.open()
             }
 
             function openModal(options) {

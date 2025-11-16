@@ -202,6 +202,7 @@
 
     <link rel="icon" type="image/png" href="icon.png">
     <title>Family Rules - Devices</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
 <header data-source="./header.handlebars"></header>
@@ -300,6 +301,18 @@
     <div class="modal-footer">
         <a href="#!" class="modal-close waves-effect btn-flat">Cancel</a>
         <a href="#!" class="waves-effect btn-flat" id="add-period-modal-ok">Add period</a>
+    </div>
+</div>
+
+<div id="usage-histogram-modal" class="modal modal-fixed-footer">
+    <div class="modal-content">
+        <h4 id="usage-histogram-title">Screen Time Usage</h4>
+        <div style="position: relative; height: 400px;">
+            <canvas id="histogram-chart"></canvas>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <a href="#!" class="modal-close waves-effect btn-flat">Close</a>
     </div>
 </div>
 
