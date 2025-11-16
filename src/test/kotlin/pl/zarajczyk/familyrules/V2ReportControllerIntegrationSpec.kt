@@ -6,6 +6,9 @@ import io.kotest.extensions.spring.SpringExtension
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
+import kotlinx.datetime.Instant
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
@@ -114,6 +117,11 @@ class V2ReportControllerIntegrationSpec : FunSpec() {
             screenTimes.applicationsSeconds["com.example.app1"] shouldBe 600L
             screenTimes.applicationsSeconds["com.example.app2"] shouldBe 300L
             screenTimes.updatedAt shouldNotBe null
+            val histogram = screenTimes.screenTimeHistogram
+            histogram.isNotEmpty() shouldBe true
+            histogram.values.sum() shouldBe 900L
+            val expectedBucket = histogramBucketFor(screenTimes.updatedAt)
+            histogram[expectedBucket] shouldBe 900L
         }
 
         test("should return 400 on invalid JSON") {
@@ -142,4 +150,12 @@ class V2ReportControllerIntegrationSpec : FunSpec() {
                 .andExpect(status().isUnauthorized)
         }
     }
+}
+
+private fun histogramBucketFor(updatedAt: Instant): String {
+    val localDateTime = updatedAt.toLocalDateTime(TimeZone.currentSystemDefault())
+    val hour = localDateTime.hour.toString().padStart(2, '0')
+    val minuteBucket = (localDateTime.minute / 10) * 10
+    val minute = minuteBucket.toString().padStart(2, '0')
+    return "$hour:$minute"
 }
