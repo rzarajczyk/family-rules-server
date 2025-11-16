@@ -88,7 +88,7 @@ interface Device {
 
     fun fetchDetails(): DeviceDetailsDto
 
-    fun getScreenTimeReport(day: LocalDate): ScreenReportDto
+    fun getScreenTimeReport(day: LocalDate): ScreenReport
 
     fun saveScreenTimeReport(day: LocalDate, screenTimeSeconds: Long, applicationsSeconds: Map<String, Long>,)
 }
@@ -123,9 +123,17 @@ data class RefBasedDevice(
         return devicesRepository.fetchDetails(deviceRef)
     }
 
-    override fun getScreenTimeReport(day: LocalDate): ScreenReportDto {
-        return devicesRepository.getScreenReport(deviceRef, day) ?: ScreenReportDto.empty()
+    override fun getScreenTimeReport(day: LocalDate): ScreenReport {
+        val reportIntervalSeconds = fetchDetails().reportIntervalSeconds
+        return ( devicesRepository.getScreenReport(deviceRef, day) ?: ScreenReportDto.empty() ).toDomain(reportIntervalSeconds)
     }
+
+    private fun ScreenReportDto.toDomain(reportIntervalSeconds: Long) = ScreenReport(
+        screenTimeSeconds = screenTimeSeconds,
+        applicationsSeconds = applicationsSeconds,
+        updatedAt = updatedAt,
+        screenTimeHistogram = screenTimeHistogram.mapValues { (_, v) -> v * reportIntervalSeconds }
+    )
 
     override fun saveScreenTimeReport(
         day: LocalDate,
@@ -158,3 +166,11 @@ data class RefBasedDevice(
         return "$hour:$minuteStr"
     }
 }
+
+
+data class ScreenReport(
+    val screenTimeSeconds: Long,
+    val applicationsSeconds: Map<String, Long>,
+    val updatedAt: Instant,
+    val screenTimeHistogram: Map<String, Long>
+)
