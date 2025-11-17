@@ -355,21 +355,29 @@ function resizeImage(file, onResize, width = 64, height = 64) {
                                 beginAtZero: true
                             },
                             x: {
+                                offset: false,
                                 grid: {
                                     display: true,
                                     drawOnChartArea: true,
-                                    color: 'rgba(0, 0, 0, 0.1)'
+                                    color: function(context) {
+                                        // Draw grid line only for hourly marks
+                                        if (context.index % 6 === 0) {
+                                            return 'rgba(0, 0, 0, 0.1)';
+                                        }
+                                        return 'transparent';
+                                    }
                                 },
                                 ticks: {
+                                    autoSkip: false,
                                     callback: function(value, index, ticks) {
                                         // Show label only for hourly marks (every 6th bucket: 0, 6, 12, 18...)
-                                        if (index % 12 === 0) {
+                                        if (index % 6 === 0) {
                                             return this.getLabelForValue(value);
                                         }
                                         return '';
                                     },
-                                    maxRotation: 0,
-                                    minRotation: 0
+                                    maxRotation: 45,
+                                    minRotation: 45
                                 },
                                 title: {
                                     display: true,
@@ -382,7 +390,15 @@ function resizeImage(file, onResize, width = 64, height = 64) {
                                 display: false
                             },
                             tooltip: {
-                                enabled: false
+                                enabled: true,
+                                callbacks: {
+                                    title: function(context) {
+                                        return context[0].label;
+                                    },
+                                    label: function(context) {
+                                        return '';
+                                    }
+                                }
                             }
                         }
                     }
