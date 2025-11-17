@@ -355,6 +355,22 @@ function resizeImage(file, onResize, width = 64, height = 64) {
                                 beginAtZero: true
                             },
                             x: {
+                                grid: {
+                                    display: true,
+                                    drawOnChartArea: true,
+                                    color: 'rgba(0, 0, 0, 0.1)'
+                                },
+                                ticks: {
+                                    callback: function(value, index, ticks) {
+                                        // Show label only for hourly marks (every 6th bucket: 0, 6, 12, 18...)
+                                        if (index % 12 === 0) {
+                                            return this.getLabelForValue(value);
+                                        }
+                                        return '';
+                                    },
+                                    maxRotation: 0,
+                                    minRotation: 0
+                                },
                                 title: {
                                     display: true,
                                     text: 'Time of Day'
