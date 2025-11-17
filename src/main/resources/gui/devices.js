@@ -351,11 +351,8 @@ function resizeImage(file, onResize, width = 64, height = 64) {
                         maintainAspectRatio: false,
                         scales: {
                             y: {
-                                beginAtZero: true,
-                                title: {
-                                    display: true,
-                                    text: 'Minutes'
-                                }
+                                display: false,
+                                beginAtZero: true
                             },
                             x: {
                                 title: {
@@ -369,14 +366,7 @@ function resizeImage(file, onResize, width = 64, height = 64) {
                                 display: false
                             },
                             tooltip: {
-                                callbacks: {
-                                    label: function(context) {
-                                        let minutes = context.parsed.y
-                                        let hours = Math.floor(minutes / 60)
-                                        let mins = minutes % 60
-                                        return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`
-                                    }
-                                }
+                                enabled: false
                             }
                         }
                     }
