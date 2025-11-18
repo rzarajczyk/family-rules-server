@@ -307,8 +307,10 @@
 <div id="usage-histogram-modal" class="modal modal-fixed-footer">
     <div class="modal-content">
         <h4 id="usage-histogram-title">Screen Time Usage</h4>
-        <div style="position: relative; height: 400px;">
-            <canvas id="histogram-chart"></canvas>
+        <div style="overflow-x: auto; width: 100%;">
+            <div style="position: relative; height: 400px; min-width: 1200px;">
+                <canvas id="histogram-chart"></canvas>
+            </div>
         </div>
     </div>
     <div class="modal-footer">
