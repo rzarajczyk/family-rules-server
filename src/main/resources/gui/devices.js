@@ -405,6 +405,19 @@ function resizeImage(file, onResize, width = 64, height = 64) {
                 })
                 
                 modal.open()
+                
+                // Scroll to show current hour after modal opens
+                setTimeout(() => {
+                    const scrollContainer = document.querySelector('#usage-histogram-modal .modal-content > div[style*="overflow-x"]')
+                    if (scrollContainer) {
+                        const currentHour = new Date().getHours()
+                        const containerWidth = scrollContainer.clientWidth
+                        const totalWidth = 1200 // min-width of chart
+                        const hourWidth = totalWidth / 24
+                        const scrollPosition = (currentHour * hourWidth) - (containerWidth / 2) + (hourWidth / 2)
+                        scrollContainer.scrollLeft = Math.max(0, scrollPosition)
+                    }
+                }, 100)
             }
 
             function openModal(options) {
