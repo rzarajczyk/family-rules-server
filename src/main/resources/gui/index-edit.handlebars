@@ -23,4 +23,13 @@
             <input class="file-path validate" type="text">
         </div>
     </div>
+
+    <div class="input-field" style="clear: both; margin-top: 12rem;">
+        <select id="app-groups-select" multiple class="no-autoinit">
+            {{#each availableAppGroups}}
+                <option value="{{id}}">{{name}}</option>
+            {{/each}}
+        </select>
+        <label for="app-groups-select">Show these app groups in 'All my devices' tab</label>
+    </div>
 </div>

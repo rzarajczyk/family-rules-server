@@ -37,10 +37,15 @@ class V2AppGroupController(
     @PostMapping("/api/v2/groups-usage-report")
     fun getAppGroupsUsageReport(authentication: Authentication): AppGroupsUsageReportResponse {
         val device = devicesService.get(authentication)
+        val deviceDetails = device.fetchDetails()
         val report = appGroupService.getReport(device.getOwner(), today())
+        
+        // Filter app groups based on device's appGroups.show configuration
+        val selectedAppGroupIds = deviceDetails.appGroups.show.toSet()
+        val filteredReport = report.filter { it.id in selectedAppGroupIds }
 
         return AppGroupsUsageReportResponse(
-            appGroups = report.map { it.toUsageReport() }
+            appGroups = filteredReport.map { it.toUsageReport() }
         )
     }
 

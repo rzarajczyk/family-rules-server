@@ -121,13 +121,18 @@ class BffOverviewController(
 
     @GetMapping("/bff/instance-edit-info")
     fun getInstanceEditInfo(
-        @RequestParam("instanceId") deviceId: DeviceId
+        @RequestParam("instanceId") deviceId: DeviceId,
+        authentication: Authentication
     ): InstanceEditInfo {
         val device = devicesService.get(deviceId)
         val details = device.fetchDetails()
+        val user = usersService.get(authentication.name)
+        val appGroups = appGroupService.listAllAppGroups(user).map { it.fetchDetails() }
         return InstanceEditInfo(
             instanceName = details.deviceName,
-            icon = details.getIcon()
+            icon = details.getIcon(),
+            appGroups = details.appGroups,
+            availableAppGroups = appGroups
         )
     }
 
@@ -141,13 +146,16 @@ class BffOverviewController(
             DeviceDetailsUpdateDto(
                 deviceName = ValueUpdate.set(data.instanceName),
                 iconData = data.icon?.let { ValueUpdate.set(data.icon.data) } ?: ValueUpdate.leaveUnchanged(),
-                iconType = data.icon?.let { ValueUpdate.set(data.icon.type) } ?: ValueUpdate.leaveUnchanged()
+                iconType = data.icon?.let { ValueUpdate.set(data.icon.type) } ?: ValueUpdate.leaveUnchanged(),
+                appGroups = ValueUpdate.set(data.appGroups)
             ))
     }
 
     data class InstanceEditInfo(
         val instanceName: String,
-        val icon: Icon?
+        val icon: Icon?,
+        val appGroups: AppGroupsDto = AppGroupsDto.empty(),
+        val availableAppGroups: List<AppGroupDetails> = emptyList()
     )
 
     @GetMapping("/bff/instance-schedule")

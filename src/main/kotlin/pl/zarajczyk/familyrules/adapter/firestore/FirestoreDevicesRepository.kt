@@ -47,7 +47,8 @@ class FirestoreDevicesRepository(
             "iconType" to details.iconType,
             "knownApps" to details.knownApps.encodeKnownApps(),
             "reportIntervalSeconds" to details.reportIntervalSeconds,
-            "deviceStates" to details.availableDeviceStates.encodeDeviceStates()
+            "deviceStates" to details.availableDeviceStates.encodeDeviceStates(),
+            "appGroups" to details.appGroups.encodeAppGroups()
         )
 
         val doc = (user as FirestoreUserRef).doc
@@ -63,6 +64,9 @@ class FirestoreDevicesRepository(
         json.encodeToString(schedulePacker.pack(this))
 
     private fun List<DeviceStateTypeDto>.encodeDeviceStates(): String =
+        json.encodeToString(this)
+
+    private fun AppGroupsDto.encodeAppGroups(): String =
         json.encodeToString(this)
 
     private fun Map<String, AppDto>.encodeKnownApps(): String =
@@ -112,7 +116,8 @@ class FirestoreDevicesRepository(
             iconType = doc.getString("iconType"),
             reportIntervalSeconds = doc.getLongOrThrow("reportIntervalSeconds"),
             knownApps = doc.getKnownAppsOrThrow("knownApps"),
-            availableDeviceStates = doc.getAvailableDeviceStates("deviceStates")
+            availableDeviceStates = doc.getAvailableDeviceStates("deviceStates"),
+            appGroups = doc.getAppGroups("appGroups")
         )
     }
 
@@ -131,7 +136,8 @@ class FirestoreDevicesRepository(
             details.iconType.ifPresent { "iconType" to it },
             details.knownApps.ifPresent { "knownApps" to it.encodeKnownApps() },
             details.reportIntervalSeconds.ifPresent { "reportIntervalSeconds" to it },
-            details.availableDeviceStates.ifPresent { "deviceStates" to it.encodeDeviceStates() }
+            details.availableDeviceStates.ifPresent { "deviceStates" to it.encodeDeviceStates() },
+            details.appGroups.ifPresent { "appGroups" to it.encodeAppGroups() }
         ).toMap()
 
         val doc = (device as FirestoreDeviceRef).document
@@ -154,6 +160,13 @@ class FirestoreDevicesRepository(
 
     private fun QueryDocumentSnapshot.getAvailableDeviceStates(fieldName: String) =
         json.decodeFromString<List<DeviceStateTypeDto>>(getString(fieldName) ?: "[]").ensureActiveIsPresent()
+
+    private fun QueryDocumentSnapshot.getAppGroups(fieldName: String): AppGroupsDto =
+        try {
+            json.decodeFromString<AppGroupsDto>(getString(fieldName) ?: "{}")
+        } catch (e: Exception) {
+            AppGroupsDto.empty()
+        }
 
 
     override fun delete(device: DeviceRef) {

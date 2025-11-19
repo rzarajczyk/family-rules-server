@@ -36,7 +36,8 @@ data class DeviceDetailsDto(
     val iconType: String?,
     val reportIntervalSeconds: Long,
     val knownApps: Map<String, AppDto>,
-    val availableDeviceStates: List<DeviceStateTypeDto>
+    val availableDeviceStates: List<DeviceStateTypeDto>,
+    val appGroups: AppGroupsDto = AppGroupsDto.empty()
 )
 
 data class DeviceDetailsUpdateDto(
@@ -52,7 +53,8 @@ data class DeviceDetailsUpdateDto(
     val iconType: ValueUpdate<String?> = leaveUnchanged(),
     val reportIntervalSeconds: ValueUpdate<Long> = leaveUnchanged(),
     val knownApps: ValueUpdate<Map<String, AppDto>> = leaveUnchanged(),
-    val availableDeviceStates: ValueUpdate<List<DeviceStateTypeDto>> = leaveUnchanged()
+    val availableDeviceStates: ValueUpdate<List<DeviceStateTypeDto>> = leaveUnchanged(),
+    val appGroups: ValueUpdate<AppGroupsDto> = leaveUnchanged()
 )
 
 data class ValueUpdate<T>(
@@ -77,5 +79,14 @@ data class DeviceStateDto(
 ) {
     companion object {
         fun default() = DeviceStateDto(DEFAULT_DEVICE_STATE, null)
+    }
+}
+
+@Serializable
+data class AppGroupsDto(
+    val show: List<String> = emptyList()
+) {
+    companion object {
+        fun empty() = AppGroupsDto(emptyList())
     }
 }

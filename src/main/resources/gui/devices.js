@@ -132,6 +132,9 @@ document.addEventListener("DOMContentLoaded", (event) => {
                         
                         // Setup remove icon functionality
                         setupRemoveIconFunctionality();
+                        
+                        // Initialize app groups select
+                        setupAppGroupsSelect(data.appGroups);
                     })
             }
 
@@ -147,7 +150,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
                 }
             }
 
-            function submitClientEdit(instanceId, instanceName, iconType, iconData) {
+            function submitClientEdit(instanceId, instanceName, iconType, iconData, appGroups) {
                 ServerRequest.fetch(`/bff/instance-edit-info?instanceId=${instanceId}`, {
                     method: 'POST',
                     body: JSON.stringify({
@@ -155,7 +158,8 @@ document.addEventListener("DOMContentLoaded", (event) => {
                         icon: iconType && iconData ? {
                             type: iconType,
                             data: iconData
-                        } : null
+                        } : null,
+                        appGroups: appGroups
                     })
                 }).then(response => {
                     Toast.info("Saved")
@@ -237,9 +241,14 @@ document.addEventListener("DOMContentLoaded", (event) => {
                 let iconFile = document.querySelector("#instance-icon").files[0]
                 let iconImg = document.querySelector('.edit-instance-data img')
                 
+                // Get selected app groups
+                let appGroupsSelect = document.querySelector('#app-groups-select');
+                let selectedGroups = Array.from(appGroupsSelect.selectedOptions).map(option => option.value);
+                let appGroupsObj = { show: selectedGroups };
+                
                 if (iconFile) {
                     resizeImage(iconFile, (iconData) => {
-                        submitClientEdit(instanceId, instanceName, iconFile.type, iconData)
+                        submitClientEdit(instanceId, instanceName, iconFile.type, iconData, appGroupsObj)
                     })
                 } else {
                     let iconType = iconImg.dataset['type']
@@ -247,9 +256,9 @@ document.addEventListener("DOMContentLoaded", (event) => {
                     
                     // If the icon is the default icon (empty or null), send null values to clear the custom icon
                     if (!iconType || !iconData) {
-                        submitClientEdit(instanceId, instanceName, null, null)
+                        submitClientEdit(instanceId, instanceName, null, null, appGroupsObj)
                     } else {
-                        submitClientEdit(instanceId, instanceName, iconType, iconData)
+                        submitClientEdit(instanceId, instanceName, iconType, iconData, appGroupsObj)
                     }
                 }
             }
@@ -689,4 +698,21 @@ function toggleAppNameDisplay(element) {
         element.textContent = appPath;
         element.classList.add('showing-path');
     }
+}
+
+// Setup app groups multi-select
+function setupAppGroupsSelect(appGroupsData) {
+    const selectElement = document.querySelector('#app-groups-select');
+    if (!selectElement) return;
+    
+    // Get selected groups from the AppGroupsDto object
+    const selectedGroups = appGroupsData?.show || [];
+    
+    // Set selected options
+    Array.from(selectElement.options).forEach(option => {
+        option.selected = selectedGroups.includes(option.value);
+    });
+    
+    // Initialize Materialize select
+    M.FormSelect.init(selectElement, {});
 }
