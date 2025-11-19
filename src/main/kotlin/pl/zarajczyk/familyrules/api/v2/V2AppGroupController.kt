@@ -41,8 +41,12 @@ class V2AppGroupController(
         val report = appGroupService.getReport(device.getOwner(), today())
         
         // Filter app groups based on device's appGroups.show configuration
-        val selectedAppGroupIds = deviceDetails.appGroups.show.toSet()
-        val filteredReport = report.filter { it.id in selectedAppGroupIds }
+        val selectedAppGroupIds = deviceDetails.appGroups.show
+        val filteredReport = if (selectedAppGroupIds.isNotEmpty()) {
+            report.filter { it.id in selectedAppGroupIds }
+        } else {
+            report
+        }
 
         return AppGroupsUsageReportResponse(
             appGroups = filteredReport.map { it.toUsageReport() }
