@@ -184,6 +184,72 @@ class V2AppGroupControllerIntegrationSpec : FunSpec() {
                 )
                     .andExpect(status().isInternalServerError)
             }
+
+            test("should filter apps based on device's appGroups.block configuration") {
+                // Create a second group
+                val user = usersService.get(username)
+                val otherGroup = appGroupService.createAppGroup(user, "Other Group")
+                val otherGroupId = otherGroup.fetchDetails().id
+                
+                try {
+                    // Configure device to only block apps from the first group
+                    val deviceRef = devicesService.get(deviceId)
+                    deviceRef.update(
+                        pl.zarajczyk.familyrules.domain.port.DeviceDetailsUpdateDto(
+                            appGroups = pl.zarajczyk.familyrules.domain.port.ValueUpdate.set(
+                                pl.zarajczyk.familyrules.domain.port.AppGroupsDto(
+                                    show = emptyList(),
+                                    block = listOf(groupId)
+                                )
+                            )
+                        )
+                    )
+
+                    val apiV2Basic = Base64.getEncoder().encodeToString("$deviceId:$token".toByteArray())
+                    
+                    // Request for the first group (included in block list) should return apps
+                    val requestBody1 = """{ "appGroupId": "$groupId" }"""
+                    val result1 = mockMvc.perform(
+                        post("/api/v2/group-membership-for-device")
+                            .header("Authorization", "Basic $apiV2Basic")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(requestBody1)
+                    )
+                        .andExpect(status().isOk)
+                        .andReturn()
+
+                    val json1 = objectMapper.readTree(result1.response.contentAsString)
+                    val apps1 = json1.get("apps")
+                    apps1.size() shouldBe 3  // Should return all apps
+                    
+                    // Request for the second group (not in block list) should return empty
+                    val requestBody2 = """{ "appGroupId": "$otherGroupId" }"""
+                    val result2 = mockMvc.perform(
+                        post("/api/v2/group-membership-for-device")
+                            .header("Authorization", "Basic $apiV2Basic")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(requestBody2)
+                    )
+                        .andExpect(status().isOk)
+                        .andReturn()
+
+                    val json2 = objectMapper.readTree(result2.response.contentAsString)
+                    val apps2 = json2.get("apps")
+                    apps2.size() shouldBe 0  // Should return no apps
+                    
+                    // Reset device configuration to default for other tests
+                    deviceRef.update(
+                        pl.zarajczyk.familyrules.domain.port.DeviceDetailsUpdateDto(
+                            appGroups = pl.zarajczyk.familyrules.domain.port.ValueUpdate.set(
+                                pl.zarajczyk.familyrules.domain.port.AppGroupsDto.empty()
+                            )
+                        )
+                    )
+                } finally {
+                    // Clean up: delete the test group
+                    otherGroup.delete()
+                }
+            }
         }
 
         context("POST /api/v2/groups-usage-report") {

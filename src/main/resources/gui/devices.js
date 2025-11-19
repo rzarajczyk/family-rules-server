@@ -133,8 +133,9 @@ document.addEventListener("DOMContentLoaded", (event) => {
                         // Setup remove icon functionality
                         setupRemoveIconFunctionality();
                         
-                        // Initialize app groups select
+                        // Initialize app groups selects
                         setupAppGroupsSelect(data.appGroups);
+                        setupAppGroupsBlockSelect(data.appGroups);
                     })
             }
 
@@ -241,10 +242,15 @@ document.addEventListener("DOMContentLoaded", (event) => {
                 let iconFile = document.querySelector("#instance-icon").files[0]
                 let iconImg = document.querySelector('.edit-instance-data img')
                 
-                // Get selected app groups
+                // Get selected app groups for show
                 let appGroupsSelect = document.querySelector('#app-groups-select');
-                let selectedGroups = Array.from(appGroupsSelect.selectedOptions).map(option => option.value);
-                let appGroupsObj = { show: selectedGroups };
+                let selectedShowGroups = Array.from(appGroupsSelect.selectedOptions).map(option => option.value);
+                
+                // Get selected app groups for block
+                let appGroupsBlockSelect = document.querySelector('#app-groups-block-select');
+                let selectedBlockGroups = Array.from(appGroupsBlockSelect.selectedOptions).map(option => option.value);
+                
+                let appGroupsObj = { show: selectedShowGroups, block: selectedBlockGroups };
                 
                 if (iconFile) {
                     resizeImage(iconFile, (iconData) => {
@@ -707,6 +713,23 @@ function setupAppGroupsSelect(appGroupsData) {
     
     // Get selected groups from the AppGroupsDto object
     const selectedGroups = appGroupsData?.show || [];
+    
+    // Set selected options
+    Array.from(selectElement.options).forEach(option => {
+        option.selected = selectedGroups.includes(option.value);
+    });
+    
+    // Initialize Materialize select
+    M.FormSelect.init(selectElement, {});
+}
+
+// Setup app groups block multi-select
+function setupAppGroupsBlockSelect(appGroupsData) {
+    const selectElement = document.querySelector('#app-groups-block-select');
+    if (!selectElement) return;
+    
+    // Get selected groups from the AppGroupsDto object
+    const selectedGroups = appGroupsData?.block || [];
     
     // Set selected options
     Array.from(selectElement.options).forEach(option => {

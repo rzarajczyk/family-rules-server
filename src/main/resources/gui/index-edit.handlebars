@@ -32,4 +32,13 @@
         </select>
         <label for="app-groups-select">Show these app groups in 'All my devices' tab</label>
     </div>
+
+    <div class="input-field" style="margin-top: 2rem;">
+        <select id="app-groups-block-select" multiple class="no-autoinit">
+            {{#each availableAppGroups}}
+                <option value="{{id}}">{{name}}</option>
+            {{/each}}
+        </select>
+        <label for="app-groups-block-select">Block apps from these app groups when device is blocking selected apps</label>
+    </div>
 </div>

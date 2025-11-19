@@ -17,9 +17,16 @@ class V2AppGroupController(
         val deviceDetails = device.fetchDetails()
         val appGroup = appGroupService.get(device.getOwner(), request.appGroupId)
         val appTechnicalIds = appGroup.getMembers(device)
+        
+        // Filter based on device's appGroups.block configuration
+        val selectedBlockGroupIds = deviceDetails.appGroups.block
+        val shouldIncludeGroup = selectedBlockGroupIds.isEmpty() || request.appGroupId in selectedBlockGroupIds
+        
+        val filteredAppTechnicalIds = if (shouldIncludeGroup) appTechnicalIds else emptyList()
+        
         return MembershipResponse(
             appGroupId = request.appGroupId,
-            apps = appTechnicalIds.map { appTechnicalId ->
+            apps = filteredAppTechnicalIds.map { appTechnicalId ->
                 val known = deviceDetails.knownApps[appTechnicalId]
                 MembershipAppResponse(
                     appPath = appTechnicalId,
@@ -30,8 +37,6 @@ class V2AppGroupController(
                 )
             }
         )
-
-
     }
 
     @PostMapping("/api/v2/groups-usage-report")
