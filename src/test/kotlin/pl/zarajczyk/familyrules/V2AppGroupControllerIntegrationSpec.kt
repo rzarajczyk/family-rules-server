@@ -139,6 +139,19 @@ class V2AppGroupControllerIntegrationSpec : FunSpec() {
 
         context("POST /api/v2/group-membership-for-device") {
             test("should return membership list for device with app names resolved from knownApps and fallback for unknown") {
+                // Configure device to block apps from the test group
+                val deviceRef = devicesService.get(deviceId)
+                deviceRef.update(
+                    pl.zarajczyk.familyrules.domain.port.DeviceDetailsUpdateDto(
+                        appGroups = pl.zarajczyk.familyrules.domain.port.ValueUpdate.set(
+                            pl.zarajczyk.familyrules.domain.port.AppGroupsDto(
+                                show = emptyList(),
+                                block = listOf(groupId)
+                            )
+                        )
+                    )
+                )
+                
                 val apiV2Basic = Base64.getEncoder().encodeToString("$deviceId:$token".toByteArray())
                 val requestBody = """{ "appGroupId": "$groupId" }"""
 
@@ -170,6 +183,15 @@ class V2AppGroupControllerIntegrationSpec : FunSpec() {
                 val deviceIdFromResponse = byPath[appKnown1]!!.get("deviceId").asText()
                 deviceName.shouldNotBeBlank()
                 UUID.fromString(deviceIdFromResponse) shouldBe deviceId
+                
+                // Reset device configuration
+                deviceRef.update(
+                    pl.zarajczyk.familyrules.domain.port.DeviceDetailsUpdateDto(
+                        appGroups = pl.zarajczyk.familyrules.domain.port.ValueUpdate.set(
+                            pl.zarajczyk.familyrules.domain.port.AppGroupsDto.empty()
+                        )
+                    )
+                )
             }
 
             test("should return 500 for non-existing app group id") {
@@ -254,6 +276,19 @@ class V2AppGroupControllerIntegrationSpec : FunSpec() {
 
         context("POST /api/v2/groups-usage-report") {
             test("should aggregate screen time for apps in group across user's devices (single device here)") {
+                // Configure device to show the test group
+                val deviceRef = devicesService.get(deviceId)
+                deviceRef.update(
+                    pl.zarajczyk.familyrules.domain.port.DeviceDetailsUpdateDto(
+                        appGroups = pl.zarajczyk.familyrules.domain.port.ValueUpdate.set(
+                            pl.zarajczyk.familyrules.domain.port.AppGroupsDto(
+                                show = listOf(groupId),
+                                block = emptyList()
+                            )
+                        )
+                    )
+                )
+                
                 // Send a daily report for today with usage of our apps
                 val apiV2Basic = Base64.getEncoder().encodeToString("$deviceId:$token".toByteArray())
                 val reportBody = """
@@ -307,6 +342,15 @@ class V2AppGroupControllerIntegrationSpec : FunSpec() {
                 val deviceIdFromResponse = byPath[appKnown1]!!.get("deviceId").asText()
                 deviceName.shouldNotBeBlank()
                 UUID.fromString(deviceIdFromResponse) shouldBe deviceId
+                
+                // Reset device configuration
+                deviceRef.update(
+                    pl.zarajczyk.familyrules.domain.port.DeviceDetailsUpdateDto(
+                        appGroups = pl.zarajczyk.familyrules.domain.port.ValueUpdate.set(
+                            pl.zarajczyk.familyrules.domain.port.AppGroupsDto.empty()
+                        )
+                    )
+                )
             }
 
             test("should return empty apps when group has no members for device") {
@@ -315,6 +359,19 @@ class V2AppGroupControllerIntegrationSpec : FunSpec() {
                 val user = usersService.get(username)
                 val group = appGroupService.createAppGroup(user, "Empty Group")
                 emptyGroupId = group.fetchDetails().id
+                
+                // Configure device to show both groups
+                val deviceRef = devicesService.get(deviceId)
+                deviceRef.update(
+                    pl.zarajczyk.familyrules.domain.port.DeviceDetailsUpdateDto(
+                        appGroups = pl.zarajczyk.familyrules.domain.port.ValueUpdate.set(
+                            pl.zarajczyk.familyrules.domain.port.AppGroupsDto(
+                                show = listOf(groupId, emptyGroupId),
+                                block = emptyList()
+                            )
+                        )
+                    )
+                )
 
                 val apiV2Basic = Base64.getEncoder().encodeToString("$deviceId:$token".toByteArray())
                 val result = mockMvc.perform(
@@ -333,6 +390,16 @@ class V2AppGroupControllerIntegrationSpec : FunSpec() {
                 emptyGroup shouldNotBe null
                 emptyGroup!!.get("apps").size() shouldBe 0
                 emptyGroup.get("totalTimeSeconds").asLong() shouldBe 0L
+                
+                // Reset device configuration and clean up group
+                deviceRef.update(
+                    pl.zarajczyk.familyrules.domain.port.DeviceDetailsUpdateDto(
+                        appGroups = pl.zarajczyk.familyrules.domain.port.ValueUpdate.set(
+                            pl.zarajczyk.familyrules.domain.port.AppGroupsDto.empty()
+                        )
+                    )
+                )
+                group.delete()
             }
         }
     }

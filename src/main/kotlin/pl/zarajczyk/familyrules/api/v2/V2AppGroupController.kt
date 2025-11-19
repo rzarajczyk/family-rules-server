@@ -20,7 +20,7 @@ class V2AppGroupController(
         
         // Filter based on device's appGroups.block configuration
         val selectedBlockGroupIds = deviceDetails.appGroups.block
-        val shouldIncludeGroup = selectedBlockGroupIds.isEmpty() || request.appGroupId in selectedBlockGroupIds
+        val shouldIncludeGroup = request.appGroupId in selectedBlockGroupIds
         
         val filteredAppTechnicalIds = if (shouldIncludeGroup) appTechnicalIds else emptyList()
         
@@ -47,11 +47,7 @@ class V2AppGroupController(
         
         // Filter app groups based on device's appGroups.show configuration
         val selectedAppGroupIds = deviceDetails.appGroups.show
-        val filteredReport = if (selectedAppGroupIds.isNotEmpty()) {
-            report.filter { it.id in selectedAppGroupIds }
-        } else {
-            report
-        }
+        val filteredReport =  report.filter { it.id in selectedAppGroupIds }
 
         return AppGroupsUsageReportResponse(
             appGroups = filteredReport.map { it.toUsageReport() }
