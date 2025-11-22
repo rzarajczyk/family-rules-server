@@ -11,22 +11,18 @@ class V2AppGroupController(
     private val devicesService: DevicesService,
     private val appGroupService: AppGroupService
 ) {
-    @PostMapping("/api/v2/group-membership-for-device")
-    fun getMembership(@RequestBody request: MembershipRequest, authentication: Authentication): MembershipResponse {
+    @PostMapping("/api/v2/get-blocked-apps")
+    fun getBlockedApps(authentication: Authentication): BlockedAppsResponse {
         val device = devicesService.get(authentication)
         val deviceDetails = device.fetchDetails()
-        val appGroup = appGroupService.get(device.getOwner(), request.appGroupId)
-        val appTechnicalIds = appGroup.getMembers(device)
+
+        val blockedAppsTechnicalIds = deviceDetails.appGroups.block.flatMap { appGroupId ->
+            val appGroup = appGroupService.get(device.getOwner(), appGroupId)
+            appGroup.getMembers(device)
+        }
         
-        // Filter based on device's appGroups.block configuration
-        val selectedBlockGroupIds = deviceDetails.appGroups.block
-        val shouldIncludeGroup = request.appGroupId in selectedBlockGroupIds
-        
-        val filteredAppTechnicalIds = if (shouldIncludeGroup) appTechnicalIds else emptyList()
-        
-        return MembershipResponse(
-            appGroupId = request.appGroupId,
-            apps = filteredAppTechnicalIds.map { appTechnicalId ->
+        return BlockedAppsResponse(
+            apps = blockedAppsTechnicalIds.map { appTechnicalId ->
                 val known = deviceDetails.knownApps[appTechnicalId]
                 MembershipAppResponse(
                     appPath = appTechnicalId,
@@ -71,12 +67,7 @@ class V2AppGroupController(
     )
 }
 
-data class MembershipRequest(
-    val appGroupId: String
-)
-
-data class MembershipResponse(
-    val appGroupId: String,
+data class BlockedAppsResponse(
     val apps: List<MembershipAppResponse>
 )
 
