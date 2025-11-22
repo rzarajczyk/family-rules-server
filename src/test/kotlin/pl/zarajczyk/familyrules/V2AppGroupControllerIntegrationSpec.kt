@@ -265,5 +265,151 @@ class V2AppGroupControllerIntegrationSpec : FunSpec() {
                 group.delete()
             }
         }
+
+        context("POST /api/v2/get-blocked-apps") {
+            test("should return apps from blocked groups") {
+                // Configure device to block the test group
+                val deviceRef = devicesService.get(deviceId)
+                deviceRef.update(
+                    pl.zarajczyk.familyrules.domain.port.DeviceDetailsUpdateDto(
+                        appGroups = pl.zarajczyk.familyrules.domain.port.ValueUpdate.set(
+                            pl.zarajczyk.familyrules.domain.port.AppGroupsDto(
+                                show = emptyList(),
+                                block = listOf(groupId)
+                            )
+                        )
+                    )
+                )
+
+                val apiV2Basic = Base64.getEncoder().encodeToString("$deviceId:$token".toByteArray())
+                val result = mockMvc.perform(
+                    post("/api/v2/get-blocked-apps")
+                        .header("Authorization", "Basic $apiV2Basic")
+                        .contentType(MediaType.APPLICATION_JSON)
+                )
+                    .andExpect(status().isOk)
+                    .andExpect(jsonPath("$.apps").isArray)
+                    .andReturn()
+
+                val json = objectMapper.readTree(result.response.contentAsString)
+                val apps = json.get("apps")
+                apps.size() shouldBe 3
+
+                val appPaths = apps.map { it.get("appPath").asText() }
+                appPaths shouldContainAll listOf(appKnown1, appKnown2, appUnknown)
+
+                // Verify known apps have proper names
+                val byPath = apps.associateBy { it.get("appPath").asText() }
+                byPath[appKnown1]!!.get("appName").asText() shouldBe "Known App 1"
+                byPath[appKnown2]!!.get("appName").asText() shouldBe "Known App 2"
+                
+                // Unknown app should fall back to package name
+                byPath[appUnknown]!!.get("appName").asText() shouldBe appUnknown
+
+                // Verify device info is included
+                byPath[appKnown1]!!.get("deviceName").asText().shouldNotBeBlank()
+                UUID.fromString(byPath[appKnown1]!!.get("deviceId").asText()) shouldBe deviceId
+
+                // Reset device configuration
+                deviceRef.update(
+                    pl.zarajczyk.familyrules.domain.port.DeviceDetailsUpdateDto(
+                        appGroups = pl.zarajczyk.familyrules.domain.port.ValueUpdate.set(
+                            pl.zarajczyk.familyrules.domain.port.AppGroupsDto.empty()
+                        )
+                    )
+                )
+            }
+
+            test("should return empty list when no groups are blocked") {
+                // Ensure device has no blocked groups
+                val deviceRef = devicesService.get(deviceId)
+                deviceRef.update(
+                    pl.zarajczyk.familyrules.domain.port.DeviceDetailsUpdateDto(
+                        appGroups = pl.zarajczyk.familyrules.domain.port.ValueUpdate.set(
+                            pl.zarajczyk.familyrules.domain.port.AppGroupsDto(
+                                show = listOf(groupId),
+                                block = emptyList()
+                            )
+                        )
+                    )
+                )
+
+                val apiV2Basic = Base64.getEncoder().encodeToString("$deviceId:$token".toByteArray())
+                val result = mockMvc.perform(
+                    post("/api/v2/get-blocked-apps")
+                        .header("Authorization", "Basic $apiV2Basic")
+                        .contentType(MediaType.APPLICATION_JSON)
+                )
+                    .andExpect(status().isOk)
+                    .andExpect(jsonPath("$.apps").isArray)
+                    .andReturn()
+
+                val json = objectMapper.readTree(result.response.contentAsString)
+                val apps = json.get("apps")
+                apps.size() shouldBe 0
+
+                // Reset device configuration
+                deviceRef.update(
+                    pl.zarajczyk.familyrules.domain.port.DeviceDetailsUpdateDto(
+                        appGroups = pl.zarajczyk.familyrules.domain.port.ValueUpdate.set(
+                            pl.zarajczyk.familyrules.domain.port.AppGroupsDto.empty()
+                        )
+                    )
+                )
+            }
+
+            test("should aggregate apps from multiple blocked groups") {
+                // Create a second app group with different apps
+                val user = usersService.get(username)
+                val group2 = appGroupService.createAppGroup(user, "Test Group 2")
+                val group2Id = group2.fetchDetails().id
+
+                val deviceRef = devicesService.get(deviceId)
+                val appExtra1 = "com.example.extra1"
+                val appExtra2 = "com.example.extra2"
+                
+                group2.addMember(deviceRef, appExtra1)
+                group2.addMember(deviceRef, appExtra2)
+
+                // Configure device to block both groups
+                deviceRef.update(
+                    pl.zarajczyk.familyrules.domain.port.DeviceDetailsUpdateDto(
+                        appGroups = pl.zarajczyk.familyrules.domain.port.ValueUpdate.set(
+                            pl.zarajczyk.familyrules.domain.port.AppGroupsDto(
+                                show = emptyList(),
+                                block = listOf(groupId, group2Id)
+                            )
+                        )
+                    )
+                )
+
+                val apiV2Basic = Base64.getEncoder().encodeToString("$deviceId:$token".toByteArray())
+                val result = mockMvc.perform(
+                    post("/api/v2/get-blocked-apps")
+                        .header("Authorization", "Basic $apiV2Basic")
+                        .contentType(MediaType.APPLICATION_JSON)
+                )
+                    .andExpect(status().isOk)
+                    .andExpect(jsonPath("$.apps").isArray)
+                    .andReturn()
+
+                val json = objectMapper.readTree(result.response.contentAsString)
+                val apps = json.get("apps")
+                apps.size() shouldBe 5
+
+                val appPaths = apps.map { it.get("appPath").asText() }
+                appPaths shouldContainAll listOf(appKnown1, appKnown2, appUnknown, appExtra1, appExtra2)
+
+                // Reset device configuration and clean up
+                deviceRef.update(
+                    pl.zarajczyk.familyrules.domain.port.DeviceDetailsUpdateDto(
+                        appGroups = pl.zarajczyk.familyrules.domain.port.ValueUpdate.set(
+                            pl.zarajczyk.familyrules.domain.port.AppGroupsDto.empty()
+                        )
+                    )
+                )
+                group2.delete()
+            }
+        }
     }
 }
