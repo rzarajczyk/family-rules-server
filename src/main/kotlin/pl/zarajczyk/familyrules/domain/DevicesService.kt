@@ -90,7 +90,7 @@ interface Device {
 
     fun getScreenTimeReport(day: LocalDate): ScreenReport
 
-    fun saveScreenTimeReport(day: LocalDate, screenTimeSeconds: Long, applicationsSeconds: Map<String, Long>,)
+    fun saveScreenTimeReport(day: LocalDate, screenTimeSeconds: Long, applicationsSeconds: Map<String, Long>)
 }
 
 data class RefBasedDevice(
@@ -132,7 +132,8 @@ data class RefBasedDevice(
         screenTimeSeconds = screenTimeSeconds,
         applicationsSeconds = applicationsSeconds,
         updatedAt = updatedAt,
-        screenTimeHistogram = screenTimeHistogram.mapValues { (_, v) -> v * reportIntervalSeconds }
+        screenTimeHistogram = screenTimeHistogram.mapValues { (_, v) -> v * reportIntervalSeconds },
+        lastUpdatedApps = lastUpdatedApps
     )
 
     override fun saveScreenTimeReport(
@@ -140,8 +141,13 @@ data class RefBasedDevice(
         screenTimeSeconds: Long,
         applicationsSeconds: Map<String, Long>
     ) {
-        val screenTimeHistogram = devicesRepository.getScreenReport(deviceRef, day)?.screenTimeHistogram ?: emptyMap()
+        val previousReport = devicesRepository.getScreenReport(deviceRef, day) ?: ScreenReportDto.empty()
+        val screenTimeHistogram = previousReport.screenTimeHistogram
         val now = Clock.System.now()
+
+        val lastUpdatedApps = applicationsSeconds
+            .filter { (appId, seconds) -> seconds > (previousReport.applicationsSeconds[appId] ?: 0L) }
+            .keys
 
         val bucketKey = now.toBucket()
         val updatedHistogram = screenTimeHistogram.toMutableMap()
@@ -149,11 +155,14 @@ data class RefBasedDevice(
         updatedHistogram[bucketKey] = current + 1
 
         devicesRepository.setScreenReport(
-            deviceRef, day, ScreenReportDto(
+            device = deviceRef,
+            day = day,
+            screenReportDto = ScreenReportDto(
                 screenTimeSeconds = screenTimeSeconds,
                 applicationsSeconds = applicationsSeconds,
                 updatedAt = now,
-                screenTimeHistogram = updatedHistogram
+                screenTimeHistogram = updatedHistogram,
+                lastUpdatedApps = lastUpdatedApps
             )
         )
     }
@@ -172,5 +181,6 @@ data class ScreenReport(
     val screenTimeSeconds: Long,
     val applicationsSeconds: Map<String, Long>,
     val updatedAt: Instant,
-    val screenTimeHistogram: Map<String, Long>
+    val screenTimeHistogram: Map<String, Long>,
+    val lastUpdatedApps: Set<String>
 )

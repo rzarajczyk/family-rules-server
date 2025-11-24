@@ -193,13 +193,15 @@ class FirestoreDevicesRepository(
                 "screenTime" to screenReportDto.screenTimeSeconds,
                 "applicationTimes" to screenReportDto.applicationsSeconds.encodeApplicationTimes(),
                 "updatedAt" to screenReportDto.updatedAt.toString(),
-                "screenTimeHistogram" to screenReportDto.screenTimeHistogram.encodeHistogram()
+                "screenTimeHistogram" to screenReportDto.screenTimeHistogram.encodeHistogram(),
+                "lastUpdatedApps" to screenReportDto.lastUpdatedApps.encodeLastUpdatedApps()
             )
         ).get()
     }
 
     private fun Map<String, Long>.encodeApplicationTimes() = json.encodeToString(this)
     private fun Map<String, Long>.encodeHistogram() = json.encodeToString(this)
+    private fun Set<String>.encodeLastUpdatedApps() = json.encodeToString(this)
 
     override fun getScreenReport(device: DeviceRef, day: LocalDate): ScreenReportDto? {
         val doc = (device as FirestoreDeviceRef).document
@@ -216,12 +218,14 @@ class FirestoreDevicesRepository(
         val updatedAt = dayDoc.getStringOrThrow("updatedAt").let { Instant.parse(it) }
         val applicationTimes = dayDoc.getApplicationTimes("applicationTimes")
         val screenTimeHistogram = dayDoc.getHistogram("screenTimeHistogram")
+        val lastUpdatedApps = dayDoc.getLastUpdatedApps("lastUpdatedApps")
 
         return ScreenReportDto(
             screenTimeSeconds = screenTimeSeconds,
             applicationsSeconds = applicationTimes,
             updatedAt = updatedAt,
-            screenTimeHistogram = screenTimeHistogram
+            screenTimeHistogram = screenTimeHistogram,
+            lastUpdatedApps = lastUpdatedApps
         )
     }
 
@@ -230,6 +234,9 @@ class FirestoreDevicesRepository(
 
     private fun DocumentSnapshot.getHistogram(fieldName: String): Map<String, Long> =
         json.decodeFromString(getString(fieldName) ?: "{}")
+
+    private fun DocumentSnapshot.getLastUpdatedApps(fieldName: String): Set<String> =
+        json.decodeFromString(getString(fieldName) ?: "[]")
 
 
     private fun List<DeviceStateTypeDto>.ensureActiveIsPresent(): List<DeviceStateTypeDto> {

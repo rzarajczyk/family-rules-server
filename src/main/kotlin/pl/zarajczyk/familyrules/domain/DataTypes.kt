@@ -9,14 +9,16 @@ data class ScreenReportDto(
     val screenTimeSeconds: Long,
     val applicationsSeconds: Map<String, Long>,
     val updatedAt: Instant,
-    val screenTimeHistogram: Map<String, Long>
+    val screenTimeHistogram: Map<String, Long>,
+    val lastUpdatedApps: Set<String>
 ) {
     companion object {
         fun empty() = ScreenReportDto(
             screenTimeSeconds = 0,
             applicationsSeconds = emptyMap(),
             updatedAt = Instant.DISTANT_PAST,
-            screenTimeHistogram = emptyMap()
+            screenTimeHistogram = emptyMap(),
+            lastUpdatedApps = emptySet()
         )
     }
 }

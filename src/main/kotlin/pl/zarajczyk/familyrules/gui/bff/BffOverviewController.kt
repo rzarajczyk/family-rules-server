@@ -48,6 +48,7 @@ class BffOverviewController(
 
             val appGroupsDetails = appGroups.associateWith { it.fetchDetails() }
 
+            val isOnline = screenTimeDto.updatedAt.isOnline(deviceDetails.reportIntervalSeconds)
             Instance(
                 instanceId = deviceDetails.deviceId,
                 instanceName = deviceDetails.deviceName,
@@ -74,7 +75,8 @@ class BffOverviewController(
                             usageSeconds = v,
                             appName = knownApp?.appName,
                             iconBase64 = knownApp?.iconBase64Png,
-                            appGroups = appGroupsForThisApp
+                            appGroups = appGroupsForThisApp,
+                            online = isOnline && appTechnicalId in screenTimeDto.lastUpdatedApps
                         )
                     }.sortedByDescending { it.usageSeconds },
                 forcedDeviceState = availableStates
@@ -84,7 +86,7 @@ class BffOverviewController(
                     .flatMap { it.toDeviceStateDescriptions(appGroupsDetails.values) }
                     .firstOrNull { it.isEqualTo(state.automaticState) }
                     ?: throw RuntimeException("Instance ≪${deviceDetails.deviceId}≫ doesn't have automatic state ≪${state.automaticState}≫"),
-                online = screenTimeDto.updatedAt.isOnline(deviceDetails.reportIntervalSeconds),
+                online = isOnline,
                 icon = deviceDetails.getIcon(),
                 availableAppGroups = appGroupsDetails.values.toList(),
             )
@@ -362,6 +364,7 @@ data class AppUsage(
     val usageSeconds: Long,
     val appName: String? = null,
     val iconBase64: String? = null,
+    val online: Boolean,
     val appGroups: List<AppGroupWithColor> = emptyList()
 )
 
