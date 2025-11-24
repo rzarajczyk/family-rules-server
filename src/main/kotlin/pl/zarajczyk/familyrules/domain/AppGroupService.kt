@@ -61,6 +61,7 @@ class AppGroupService(private val devicesRepository: DevicesRepository, private 
                         val knownApp = instance.knownApps[appTechnicalId]
                         val appName = knownApp?.appName ?: appTechnicalId
                         val appIcon = knownApp?.iconBase64Png
+                        val isOnline = appTechnicalId in screenTimeDto.onlineApps
 
                         appDetails.add(
                             AppGroupAppReport(
@@ -70,7 +71,8 @@ class AppGroupService(private val devicesRepository: DevicesRepository, private 
                                 deviceId = instance.deviceId.toString(),
                                 screenTime = appScreenTimeSeconds,
                                 percentage = 0.0, // Will be calculated below
-                                iconBase64 = appIcon
+                                iconBase64 = appIcon,
+                                online = isOnline
                             )
                         )
                     }
@@ -90,6 +92,7 @@ class AppGroupService(private val devicesRepository: DevicesRepository, private 
 
             val group = appGroupRepository.fetchDetails(appGroupRef)
             val colorInfo = AppGroupColorPalette.getColorInfo(group.color)
+            val isGroupOnline = appsWithPercentages.any { it.online }
             AppGroupReport(
                 id = group.id,
                 name = group.name,
@@ -98,7 +101,8 @@ class AppGroupService(private val devicesRepository: DevicesRepository, private 
                 appsCount = totalApps,
                 devicesCount = deviceCount.size,
                 totalScreenTime = totalScreenTimeSeconds,
-                apps = appsWithPercentages
+                apps = appsWithPercentages,
+                online = isGroupOnline
             )
         }
 
@@ -171,7 +175,8 @@ data class AppGroupReport(
     val appsCount: Int,
     val devicesCount: Int,
     val totalScreenTime: Long,
-    val apps: List<AppGroupAppReport> = emptyList()
+    val apps: List<AppGroupAppReport> = emptyList(),
+    val online: Boolean = false
 )
 
 data class AppGroupAppReport(
@@ -181,5 +186,6 @@ data class AppGroupAppReport(
     val deviceId: String,
     val screenTime: Long,
     val percentage: Double,
-    val iconBase64: String? = null
+    val iconBase64: String? = null,
+    val online: Boolean = false
 )

@@ -108,6 +108,7 @@ class BffAppGroupsController(
                     appsCount = it.appsCount,
                     devicesCount = it.devicesCount,
                     totalScreenTime = it.totalScreenTime,
+                    online = it.online,
                     apps = it.apps.map {
                         AppGroupAppDetail(
                             name = it.name,
@@ -115,7 +116,8 @@ class BffAppGroupsController(
                             deviceName = it.deviceName,
                             screenTime = it.screenTime,
                             percentage = it.percentage,
-                            iconBase64 = it.iconBase64
+                            iconBase64 = it.iconBase64,
+                            online = it.online
                         )
                     }
                 )
@@ -177,6 +179,7 @@ data class AppGroupStatistics(
     val appsCount: Int,
     val devicesCount: Int,
     val totalScreenTime: Long,
+    val online: Boolean = false,
     val apps: List<AppGroupAppDetail> = emptyList()
 )
 
@@ -186,7 +189,8 @@ data class AppGroupAppDetail(
     val deviceName: String,
     val screenTime: Long,
     val percentage: Double,
-    val iconBase64: String? = null
+    val iconBase64: String? = null,
+    val online: Boolean = false
 )
 
 data class AppGroupStatisticsResponse(

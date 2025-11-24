@@ -1,9 +1,12 @@
 <li class="app-group-item" data-group-id="{{id}}" data-group-color="{{color}}" style="--group-color: {{color}};">
     <div class="collapsible-header">
         <div class="app-group-header-content">
-            <div class="app-group-name" style="color: {{textColor}};">{{name}}</div>
+            <div class="app-group-name" style="color: {{textColor}};">
+                {{name}}
+            </div>
             <div class="app-group-stats-header">
                 <span class="app-group-screen-time">
+                    {{#if online}}<span class="is-online mr-2"><i class="material-icons tiny">online_prediction</i></span>{{/if}}
                     <i class="material-icons tiny">schedule</i>
                     {{#formatScreenTime}}{{totalScreenTime}}{{/formatScreenTime}}
                 </span>
@@ -29,14 +32,19 @@
                                 <div class="app-details">
                                     <span class="app-name clickable-app-name" 
                                           data-app-name="{{name}}"
-                                          data-app-path="{{packageName}}">{{name}}</span>
+                                          data-app-path="{{packageName}}">
+                                        {{name}}
+                                    </span>
                                     <div class="app-device-info">
                                         <span class="app-device">{{deviceName}}</span>
                                         <span class="app-percentage">{{percentage}}%</span>
                                     </div>
                                 </div>
                             </div>
-                            <span class="secondary-content">{{#formatScreenTime}}{{screenTime}}{{/formatScreenTime}}</span>
+                            <span class="secondary-content">
+                                {{#if online}}<span class="is-online mr-2"><i class="material-icons tiny">online_prediction</i></span>{{/if}}
+                                {{#formatScreenTime}}{{screenTime}}{{/formatScreenTime}}
+                            </span>
                         </li>
                         {{/each}}
                     </ul>

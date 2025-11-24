@@ -7,6 +7,7 @@ import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.collections.shouldContain
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.collections.shouldNotContain
+import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldNotBeBlank
@@ -32,6 +33,7 @@ import pl.zarajczyk.familyrules.domain.port.AppGroupRepository
 import pl.zarajczyk.familyrules.domain.port.DevicesRepository
 import pl.zarajczyk.familyrules.domain.port.UserRef
 import pl.zarajczyk.familyrules.domain.port.UsersRepository
+import pl.zarajczyk.familyrules.domain.today
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc
@@ -745,6 +747,234 @@ class BffAppGroupsControllerIntegrationSpec : FunSpec() {
 
                 val response = objectMapper.readTree(result.response.getContentAsString(Charsets.UTF_8))
                 response.get("group").get("name").asText() shouldBe unicodeName
+            }
+        }
+
+        context("GET /bff/app-groups/statistics - online status") {
+            var testGroupId: String? = null
+
+            test("should create a test group for online status tests") {
+                val createGroupRequest = """
+                    {
+                        "name": "Online Test Group"
+                    }
+                """.trimIndent()
+
+                val result = mockMvc.perform(
+                    post("/bff/app-groups")
+                        .with(SecurityMockMvcRequestPostProcessors.user(testUsername))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(createGroupRequest)
+                )
+                    .andExpect(status().isOk)
+                    .andReturn()
+
+                val response = objectMapper.readTree(result.response.contentAsString)
+                testGroupId = response.get("group").get("id").asText()
+                testGroupId.shouldNotBeBlank()
+            }
+
+            test("should add apps to the test group") {
+                val app1 = "com.example.onlineapp1"
+                val app2 = "com.example.onlineapp2"
+                val app3 = "com.example.offlineapp"
+
+                listOf(app1, app2, app3).forEach { appPath ->
+                    val addAppRequest = """
+                        {
+                            "instanceId": "$deviceId",
+                            "appPath": "$appPath"
+                        }
+                    """.trimIndent()
+
+                    mockMvc.perform(
+                        post("/bff/app-groups/$testGroupId/apps")
+                            .with(SecurityMockMvcRequestPostProcessors.user(testUsername))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(addAppRequest)
+                    )
+                        .andExpect(status().isOk)
+                }
+            }
+
+            test("should show group and apps as offline when no reports exist") {
+                val result = mockMvc.perform(
+                    get("/bff/app-groups/statistics")
+                        .param("date", today().toString())
+                        .with(SecurityMockMvcRequestPostProcessors.user(testUsername))
+                )
+                    .andExpect(status().isOk)
+                    .andReturn()
+
+                val response = objectMapper.readTree(result.response.contentAsString)
+                val groups = response.get("groups")
+                val testGroup = groups.find { it.get("id").asText() == testGroupId }
+                testGroup.shouldNotBeNull()
+                testGroup.get("online").asBoolean() shouldBe false
+                
+                val apps = testGroup.get("apps")
+                apps.forEach { app ->
+                    app.get("online").asBoolean() shouldBe false
+                }
+            }
+
+            test("should show group and apps as online after recent report") {
+                val device = devicesService.get(deviceId)
+                device.saveScreenTimeReport(
+                    today(),
+                    2000,
+                    mapOf(
+                        "com.example.onlineapp1" to 1000L,
+                        "com.example.onlineapp2" to 800L,
+                        "com.example.offlineapp" to 200L
+                    )
+                )
+
+                val result = mockMvc.perform(
+                    get("/bff/app-groups/statistics")
+                        .param("date", today().toString())
+                        .with(SecurityMockMvcRequestPostProcessors.user(testUsername))
+                )
+                    .andExpect(status().isOk)
+                    .andReturn()
+
+                val response = objectMapper.readTree(result.response.contentAsString)
+                val groups = response.get("groups")
+                val testGroup = groups.find { it.get("id").asText() == testGroupId }
+                testGroup.shouldNotBeNull()
+                
+                // All apps should be online (all were just reported)
+                testGroup.get("online").asBoolean() shouldBe true
+                val apps = testGroup.get("apps")
+                apps.forEach { app ->
+                    app.get("online").asBoolean() shouldBe true
+                }
+            }
+
+            test("should show only actively used apps as online in subsequent reports") {
+                val device = devicesService.get(deviceId)
+                
+                // Second report - only app1 and app2 usage increased
+                device.saveScreenTimeReport(
+                    today(),
+                    3500,
+                    mapOf(
+                        "com.example.onlineapp1" to 1800L,
+                        "com.example.onlineapp2" to 1500L,
+                        "com.example.offlineapp" to 200L  // No change
+                    )
+                )
+
+                val result = mockMvc.perform(
+                    get("/bff/app-groups/statistics")
+                        .param("date", today().toString())
+                        .with(SecurityMockMvcRequestPostProcessors.user(testUsername))
+                )
+                    .andExpect(status().isOk)
+                    .andReturn()
+
+                val response = objectMapper.readTree(result.response.contentAsString)
+                val groups = response.get("groups")
+                val testGroup = groups.find { it.get("id").asText() == testGroupId }
+                testGroup.shouldNotBeNull()
+                
+                // Group should be online (some apps are online)
+                testGroup.get("online").asBoolean() shouldBe true
+                
+                val apps = testGroup.get("apps")
+                val app1 = apps.find { it.get("packageName").asText() == "com.example.onlineapp1" }
+                val app2 = apps.find { it.get("packageName").asText() == "com.example.onlineapp2" }
+                val app3 = apps.find { it.get("packageName").asText() == "com.example.offlineapp" }
+                
+                app1.shouldNotBeNull()
+                app2.shouldNotBeNull()
+                app3.shouldNotBeNull()
+                
+                // Only apps with increased usage should be online
+                app1.get("online").asBoolean() shouldBe true
+                app2.get("online").asBoolean() shouldBe true
+                app3.get("online").asBoolean() shouldBe false
+            }
+
+            test("should show group as offline when all apps become idle") {
+                val device = devicesService.get(deviceId)
+                
+                // Third report - no changes (device idle)
+                device.saveScreenTimeReport(
+                    today(),
+                    3500,
+                    mapOf(
+                        "com.example.onlineapp1" to 1800L,
+                        "com.example.onlineapp2" to 1500L,
+                        "com.example.offlineapp" to 200L
+                    )
+                )
+
+                val result = mockMvc.perform(
+                    get("/bff/app-groups/statistics")
+                        .param("date", today().toString())
+                        .with(SecurityMockMvcRequestPostProcessors.user(testUsername))
+                )
+                    .andExpect(status().isOk)
+                    .andReturn()
+
+                val response = objectMapper.readTree(result.response.contentAsString)
+                val groups = response.get("groups")
+                val testGroup = groups.find { it.get("id").asText() == testGroupId }
+                testGroup.shouldNotBeNull()
+                
+                // Group should be offline (no apps are online)
+                testGroup.get("online").asBoolean() shouldBe false
+                
+                val apps = testGroup.get("apps")
+                apps.forEach { app ->
+                    app.get("online").asBoolean() shouldBe false
+                }
+            }
+
+            test("should show group as online when at least one app is online") {
+                val device = devicesService.get(deviceId)
+                
+                // Fourth report - only one app changes
+                device.saveScreenTimeReport(
+                    today(),
+                    4000,
+                    mapOf(
+                        "com.example.onlineapp1" to 2300L,  // Increased
+                        "com.example.onlineapp2" to 1500L,  // No change
+                        "com.example.offlineapp" to 200L    // No change
+                    )
+                )
+
+                val result = mockMvc.perform(
+                    get("/bff/app-groups/statistics")
+                        .param("date", today().toString())
+                        .with(SecurityMockMvcRequestPostProcessors.user(testUsername))
+                )
+                    .andExpect(status().isOk)
+                    .andReturn()
+
+                val response = objectMapper.readTree(result.response.contentAsString)
+                val groups = response.get("groups")
+                val testGroup = groups.find { it.get("id").asText() == testGroupId }
+                testGroup.shouldNotBeNull()
+                
+                // Group should be online (at least one app is online)
+                testGroup.get("online").asBoolean() shouldBe true
+                
+                val apps = testGroup.get("apps")
+                val app1 = apps.find { it.get("packageName").asText() == "com.example.onlineapp1" }
+                val app2 = apps.find { it.get("packageName").asText() == "com.example.onlineapp2" }
+                val app3 = apps.find { it.get("packageName").asText() == "com.example.offlineapp" }
+                
+                app1.shouldNotBeNull()
+                app2.shouldNotBeNull()
+                app3.shouldNotBeNull()
+                
+                // Only app1 should be online
+                app1.get("online").asBoolean() shouldBe true
+                app2.get("online").asBoolean() shouldBe false
+                app3.get("online").asBoolean() shouldBe false
             }
         }
     }
