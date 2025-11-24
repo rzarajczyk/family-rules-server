@@ -290,3 +290,14 @@ nav li.active {
 .settings-container h4 {
     font-size: 1.2rem;
 }
+/* Online badge styling with blinking animation */
+span.is-online {
+    color: red;
+    animation: blinker 2s linear infinite;
+}
+
+@keyframes blinker {
+    50% {
+        opacity: 0;
+    }
+}

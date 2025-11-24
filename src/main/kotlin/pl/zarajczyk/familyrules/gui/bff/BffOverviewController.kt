@@ -48,7 +48,6 @@ class BffOverviewController(
 
             val appGroupsDetails = appGroups.associateWith { it.fetchDetails() }
 
-            val isOnline = screenTimeDto.updatedAt.isOnline(deviceDetails.reportIntervalSeconds)
             Instance(
                 instanceId = deviceDetails.deviceId,
                 instanceName = deviceDetails.deviceName,
@@ -76,7 +75,7 @@ class BffOverviewController(
                             appName = knownApp?.appName,
                             iconBase64 = knownApp?.iconBase64Png,
                             appGroups = appGroupsForThisApp,
-                            online = isOnline && appTechnicalId in screenTimeDto.lastUpdatedApps
+                            online = appTechnicalId in screenTimeDto.onlineApps
                         )
                     }.sortedByDescending { it.usageSeconds },
                 forcedDeviceState = availableStates
@@ -86,7 +85,7 @@ class BffOverviewController(
                     .flatMap { it.toDeviceStateDescriptions(appGroupsDetails.values) }
                     .firstOrNull { it.isEqualTo(state.automaticState) }
                     ?: throw RuntimeException("Instance ≪${deviceDetails.deviceId}≫ doesn't have automatic state ≪${state.automaticState}≫"),
-                online = isOnline,
+                online = screenTimeDto.online,
                 icon = deviceDetails.getIcon(),
                 availableAppGroups = appGroupsDetails.values.toList(),
             )
@@ -291,9 +290,6 @@ class BffOverviewController(
     fun deleteInstance(
         @RequestParam("instanceId") deviceId: DeviceId
     ) = devicesService.get(deviceId).delete()
-
-    private fun Instant.isOnline(reportIntervalSeconds: Long) =
-        (Clock.System.now() - this).inWholeSeconds <= reportIntervalSeconds
 
     private fun DeviceStateTypeDto.toDeviceStateDescriptions(appGroups: Collection<AppGroupDetails>) =
         deviceStateService.createActualInstances(this, appGroups)

@@ -52,7 +52,12 @@
                                 </div>
                             </div>
                         </div>
-                        <span class="secondary-content">{{#formatScreenTime}}{{usageSeconds}}{{/formatScreenTime}}</span>
+                        <span class="secondary-content">
+                            {{#if online}}
+                                <span class="mr-2 is-online"><i class="material-icons tiny">online_prediction</i></span>
+                            {{/if}}
+                            {{#formatScreenTime}}{{usageSeconds}}{{/formatScreenTime}}
+                        </span>
                     </li>
                 {{/each}}
             </ul>

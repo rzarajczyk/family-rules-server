@@ -128,13 +128,22 @@ data class RefBasedDevice(
         return ( devicesRepository.getScreenReport(deviceRef, day) ?: ScreenReportDto.empty() ).toDomain(reportIntervalSeconds)
     }
 
-    private fun ScreenReportDto.toDomain(reportIntervalSeconds: Long) = ScreenReport(
-        screenTimeSeconds = screenTimeSeconds,
-        applicationsSeconds = applicationsSeconds,
-        updatedAt = updatedAt,
-        screenTimeHistogram = screenTimeHistogram.mapValues { (_, v) -> v * reportIntervalSeconds },
-        lastUpdatedApps = lastUpdatedApps
-    )
+    private fun ScreenReportDto.toDomain(reportIntervalSeconds: Long): ScreenReport {
+        val isOnline = updatedAt.isOnline(reportIntervalSeconds)
+        val onlineApps = if (isOnline) lastUpdatedApps else emptySet()
+        return ScreenReport(
+            screenTimeSeconds = screenTimeSeconds,
+            applicationsSeconds = applicationsSeconds,
+            updatedAt = updatedAt,
+            screenTimeHistogram = screenTimeHistogram.mapValues { (_, v) -> v * reportIntervalSeconds },
+            lastUpdatedApps = lastUpdatedApps,
+            online = isOnline,
+            onlineApps = onlineApps
+        )
+    }
+
+    private fun Instant.isOnline(reportIntervalSeconds: Long) =
+        (Clock.System.now() - this).inWholeSeconds <= reportIntervalSeconds
 
     override fun saveScreenTimeReport(
         day: LocalDate,
@@ -182,5 +191,7 @@ data class ScreenReport(
     val applicationsSeconds: Map<String, Long>,
     val updatedAt: Instant,
     val screenTimeHistogram: Map<String, Long>,
-    val lastUpdatedApps: Set<String>
+    val lastUpdatedApps: Set<String>,
+    val online: Boolean,
+    val onlineApps: Set<String>
 )
