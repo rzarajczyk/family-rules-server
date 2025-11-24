@@ -28,6 +28,7 @@ import pl.zarajczyk.familyrules.domain.port.DeviceStateDto
 import pl.zarajczyk.familyrules.domain.port.DevicesRepository
 import pl.zarajczyk.familyrules.domain.port.UsersRepository
 import pl.zarajczyk.familyrules.domain.port.ValueUpdate.Companion.set
+import pl.zarajczyk.familyrules.domain.today
 import java.util.*
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -127,6 +128,176 @@ class BffOverviewControllerIntegrationSpec : FunSpec() {
                 val instances = response.get("instances")
                 instances.size() shouldBe 1
                 instances[0].get("instanceName").asText() shouldBe deviceName
+            }
+
+            test("should show device as offline when no recent reports") {
+                val deviceName = "Test Device Offline"
+                val deviceDetails = devicesService.setupNewDevice(testUsername, deviceName, "TEST")
+                testDeviceId = deviceDetails.deviceId
+
+                val result = mockMvc.perform(
+                    get("/bff/status")
+                        .param("date", today().toString())
+                        .with(user(testUsername))
+                )
+                    .andExpect(status().isOk)
+                    .andExpect(jsonPath("$.instances").isArray)
+                    .andExpect(jsonPath("$.instances[0].online").value(false))
+                    .andReturn()
+
+                val response = objectMapper.readTree(result.response.contentAsString)
+                val instance = response.get("instances")[0]
+                instance.get("online").asBoolean() shouldBe false
+            }
+
+            test("should show device as online and track onlineApps after recent report") {
+                val deviceName = "Test Device Online"
+                val deviceDetails = devicesService.setupNewDevice(testUsername, deviceName, "TEST")
+                testDeviceId = deviceDetails.deviceId
+
+                // Submit a report with app usage
+                val device = devicesService.get(deviceDetails.deviceId)
+                device.saveScreenTimeReport(
+                    today(),
+                    1000,
+                    mapOf(
+                        "com.example.app1" to 600L,
+                        "com.example.app2" to 400L
+                    )
+                )
+
+                val result = mockMvc.perform(
+                    get("/bff/status")
+                        .param("date", today().toString())
+                        .with(user(testUsername))
+                )
+                    .andExpect(status().isOk)
+                    .andExpect(jsonPath("$.instances").isArray)
+                    .andReturn()
+
+                val response = objectMapper.readTree(result.response.contentAsString)
+                val instances = response.get("instances")
+                // Find our specific device by ID
+                val instance = instances.find { it.get("instanceId").asText() == deviceDetails.deviceId.toString() }
+                instance.shouldNotBeNull()
+                
+                // Verify the device is online
+                instance.get("online").asBoolean() shouldBe true
+                
+                // Both apps should be marked as online since they were just reported
+                val apps = instance.get("appUsageSeconds")
+                apps.size() shouldBe 2
+                apps.forEach { app ->
+                    app.get("online").asBoolean() shouldBe true
+                }
+            }
+
+            test("should mark only actively used apps as online in subsequent reports") {
+                val deviceName = "Test Device Partial Online"
+                val deviceDetails = devicesService.setupNewDevice(testUsername, deviceName, "TEST")
+                testDeviceId = deviceDetails.deviceId
+
+                val device = devicesService.get(deviceDetails.deviceId)
+                
+                // First report - both apps used
+                device.saveScreenTimeReport(
+                    today(),
+                    1000,
+                    mapOf(
+                        "com.example.app1" to 500L,
+                        "com.example.app2" to 500L
+                    )
+                )
+
+                // Second report - only app1 usage increased
+                device.saveScreenTimeReport(
+                    today(),
+                    1500,
+                    mapOf(
+                        "com.example.app1" to 900L,
+                        "com.example.app2" to 500L
+                    )
+                )
+
+                val result = mockMvc.perform(
+                    get("/bff/status")
+                        .param("date", today().toString())
+                        .with(user(testUsername))
+                )
+                    .andExpect(status().isOk)
+                    .andReturn()
+
+                val response = objectMapper.readTree(result.response.contentAsString)
+                val instances = response.get("instances")
+                // Find our specific device by ID
+                val instance = instances.find { it.get("instanceId").asText() == deviceDetails.deviceId.toString() }
+                instance.shouldNotBeNull()
+                instance.get("online").asBoolean() shouldBe true
+                
+                val apps = instance.get("appUsageSeconds")
+                apps.size() shouldBe 2
+                
+                // Find app1 and app2 in the response
+                val app1 = apps.find { it.get("name").asText() == "com.example.app1" }
+                val app2 = apps.find { it.get("name").asText() == "com.example.app2" }
+                
+                app1.shouldNotBeNull()
+                app2.shouldNotBeNull()
+                
+                // Only app1 should be marked as online (usage increased)
+                app1.get("online").asBoolean() shouldBe true
+                app2.get("online").asBoolean() shouldBe false
+            }
+
+            test("should mark no apps as online when device becomes idle") {
+                val deviceName = "Test Device Idle"
+                val deviceDetails = devicesService.setupNewDevice(testUsername, deviceName, "TEST")
+                testDeviceId = deviceDetails.deviceId
+
+                val device = devicesService.get(deviceDetails.deviceId)
+                
+                // First report
+                device.saveScreenTimeReport(
+                    today(),
+                    1000,
+                    mapOf(
+                        "com.example.app1" to 600L,
+                        "com.example.app2" to 400L
+                    )
+                )
+
+                // Second report - same values (device idle)
+                device.saveScreenTimeReport(
+                    today(),
+                    1000,
+                    mapOf(
+                        "com.example.app1" to 600L,
+                        "com.example.app2" to 400L
+                    )
+                )
+
+                val result = mockMvc.perform(
+                    get("/bff/status")
+                        .param("date", today().toString())
+                        .with(user(testUsername))
+                )
+                    .andExpect(status().isOk)
+                    .andReturn()
+
+                val response = objectMapper.readTree(result.response.contentAsString)
+                val instances = response.get("instances")
+                // Find our specific device by ID
+                val instance = instances.find { it.get("instanceId").asText() == deviceDetails.deviceId.toString() }
+                instance.shouldNotBeNull()
+                instance.get("online").asBoolean() shouldBe true // Device is still online
+                
+                val apps = instance.get("appUsageSeconds")
+                apps.size() shouldBe 2
+                
+                // No apps should be marked as online (no usage change)
+                apps.forEach { app ->
+                    app.get("online").asBoolean() shouldBe false
+                }
             }
 
             test("should redirect to login page for unauthenticated request") {
