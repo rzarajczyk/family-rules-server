@@ -1,5 +1,6 @@
 document.addEventListener("DOMContentLoaded", (event) => {
     const LOADING = '<center>... loading ...</center>'
+    let currentStatisticsData = null; // Store the statistics data for modal use
 
     M.Datepicker.init(document.querySelector("#datepicker"), {
         defaultDate: new Date(),
@@ -8,6 +9,10 @@ document.addEventListener("DOMContentLoaded", (event) => {
         onClose: onDateChanged
     })
 
+    // Initialize modal
+    const modal = document.getElementById('all-apps-modal');
+    M.Modal.init(modal, {});
+
     function onDateChanged() {
         console.log('date changed')
         update()
@@ -15,6 +20,9 @@ document.addEventListener("DOMContentLoaded", (event) => {
 
     function renderAppGroups(statisticsResponse) {
         try {
+            // Store the data for modal use
+            currentStatisticsData = statisticsResponse;
+            
             const appGroupsContainer = document.querySelector('#app-groups');
             
             if (!appGroupsContainer) {
@@ -84,6 +92,14 @@ document.addEventListener("DOMContentLoaded", (event) => {
                 }
             });
         });
+
+        document.querySelectorAll('.app-group-all-apps-btn').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const groupId = this.dataset.groupId;
+                showAllAppsModal(groupId);
+            });
+        });
     }
 
     function deleteAppGroup(groupId) {
@@ -124,6 +140,131 @@ document.addEventListener("DOMContentLoaded", (event) => {
         .catch(error => {
             console.error('Error renaming app group:', error);
         });
+    }
+
+    function showAllAppsModal(groupId) {
+        if (!currentStatisticsData) {
+            console.error('No statistics data available');
+            return;
+        }
+
+        const group = currentStatisticsData.groups.find(g => g.id === groupId);
+        if (!group) {
+            console.error('Group not found:', groupId);
+            return;
+        }
+
+        // Set modal title
+        document.getElementById('modal-group-name').textContent = group.name;
+
+        // Group apps by device
+        const appsByDevice = {};
+        group.apps.forEach(app => {
+            if (!appsByDevice[app.deviceId]) {
+                appsByDevice[app.deviceId] = {
+                    deviceName: app.deviceName,
+                    apps: []
+                };
+            }
+            appsByDevice[app.deviceId].apps.push(app);
+        });
+
+        // Render apps grouped by device
+        const modalContent = document.getElementById('modal-apps-content');
+        let html = '';
+
+        if (Object.keys(appsByDevice).length === 0) {
+            html = '<p class="center-align" style="padding: 2rem; color: var(--md-sys-color-on-surface-variant);">No apps in this group</p>';
+        } else {
+            Object.entries(appsByDevice).forEach(([deviceId, deviceData]) => {
+                html += `
+                    <div class="modal-device-section">
+                        <h6>${deviceData.deviceName}</h6>
+                `;
+                
+                deviceData.apps.forEach(app => {
+                    const screenTimeFormatted = formatScreenTime(app.screenTime);
+                    html += `
+                        <div class="modal-app-item">
+                            <div class="modal-app-info">
+                                <img src="${app.iconBase64 ? 'data:image/png;base64,' + app.iconBase64 : 'default-icon.png'}" 
+                                     alt="${app.name}" 
+                                     class="modal-app-icon circle">
+                                <div class="modal-app-details">
+                                    <span class="modal-app-name">${app.name}</span>
+                                    <span class="modal-app-path">${app.packageName}</span>
+                                </div>
+                            </div>
+                            ${app.screenTime > 0 ? `<span class="modal-app-usage">${screenTimeFormatted}</span>` : ''}
+                            <button class="modal-app-remove-btn" 
+                                    data-group-id="${groupId}" 
+                                    data-device-id="${deviceId}" 
+                                    data-app-path="${app.packageName}"
+                                    title="Remove app from group">
+                                <i class="material-icons">delete</i>
+                            </button>
+                        </div>
+                    `;
+                });
+                
+                html += '</div>';
+            });
+        }
+
+        modalContent.innerHTML = html;
+
+        // Add event listeners for remove buttons
+        modalContent.querySelectorAll('.modal-app-remove-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const groupId = this.dataset.groupId;
+                const deviceId = this.dataset.deviceId;
+                const appPath = this.dataset.appPath;
+                
+                if (confirm('Are you sure you want to remove this app from the group?')) {
+                    removeAppFromGroup(groupId, deviceId, appPath);
+                }
+            });
+        });
+
+        // Open modal
+        const modalInstance = M.Modal.getInstance(document.getElementById('all-apps-modal'));
+        modalInstance.open();
+    }
+
+    function removeAppFromGroup(groupId, deviceId, appPath) {
+        ServerRequest.fetch(`/bff/app-groups/${groupId}/apps/${encodeURIComponent(appPath)}?instanceId=${deviceId}`, {
+            method: 'DELETE'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Close modal and reload data
+                const modalInstance = M.Modal.getInstance(document.getElementById('all-apps-modal'));
+                modalInstance.close();
+                window.update();
+            } else {
+                console.error('Failed to remove app from group');
+                alert('Failed to remove app from group');
+            }
+        })
+        .catch(error => {
+            console.error('Error removing app from group:', error);
+            alert('Error removing app from group');
+        });
+    }
+
+    function formatScreenTime(seconds) {
+        if (seconds < 60) {
+            return `${seconds}s`;
+        } else if (seconds < 3600) {
+            const minutes = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return secs > 0 ? `${minutes}m ${secs}s` : `${minutes}m`;
+        } else {
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
+        }
     }
 
     function showLoading() {

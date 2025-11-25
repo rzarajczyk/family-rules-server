@@ -282,6 +282,101 @@
             color: var(--md-sys-color-on-surface-variant);
             margin-bottom: 1.5rem;
         }
+        
+        /* All Apps Modal Styles */
+        #all-apps-modal {
+            max-height: 90%;
+        }
+        
+        #all-apps-modal .modal-content {
+            padding: 24px;
+        }
+        
+        #all-apps-modal h4 {
+            color: var(--md-sys-color-primary);
+            margin-top: 0;
+        }
+        
+        .modal-device-section {
+            margin-bottom: 1.5rem;
+        }
+        
+        .modal-device-section h6 {
+            color: var(--md-sys-color-on-surface);
+            font-weight: 500;
+            margin: 1rem 0 0.5rem 0;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--md-sys-color-outline-variant);
+        }
+        
+        .modal-app-item {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem;
+            border-bottom: 1px solid var(--md-sys-color-outline-variant);
+            transition: background-color 0.2s;
+        }
+        
+        .modal-app-item:hover {
+            background-color: rgba(0, 0, 0, 0.02);
+        }
+        
+        .modal-app-item:last-child {
+            border-bottom: none;
+        }
+        
+        .modal-app-info {
+            display: flex;
+            align-items: center;
+            flex: 1;
+        }
+        
+        .modal-app-icon {
+            width: 40px;
+            height: 40px;
+            margin-right: 1rem;
+        }
+        
+        .modal-app-details {
+            flex: 1;
+        }
+        
+        .modal-app-name {
+            font-weight: 500;
+            color: var(--md-sys-color-on-surface);
+            display: block;
+            margin-bottom: 0.25rem;
+        }
+        
+        .modal-app-path {
+            font-size: 0.85rem;
+            color: var(--md-sys-color-on-surface-variant);
+            font-family: monospace;
+        }
+        
+        .modal-app-usage {
+            color: var(--md-sys-color-primary);
+            font-weight: 500;
+            margin-right: 1rem;
+        }
+        
+        .modal-app-remove-btn {
+            background: none;
+            border: none;
+            color: var(--md-sys-color-error);
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 50%;
+            transition: background-color 0.2s;
+        }
+        
+        .modal-app-remove-btn:hover {
+            background-color: rgba(255, 0, 0, 0.1);
+        }
+        
+        .modal-app-remove-btn i {
+            font-size: 20px;
+        }
     </style>
     <!--Let browser know website is optimized for mobile-->
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -332,6 +427,19 @@
             <ul class="collapsible no-autoinit popout" id="app-groups" style="display: none;">
             </ul>
         </div>
+    </div>
+</div>
+
+<!-- All Apps Modal -->
+<div id="all-apps-modal" class="modal">
+    <div class="modal-content">
+        <h4 id="modal-group-name"></h4>
+        <div id="modal-apps-content">
+            <!-- Apps will be loaded here -->
+        </div>
+    </div>
+    <div class="modal-footer">
+        <a href="#!" class="modal-close waves-effect waves-light btn-flat">Close</a>
     </div>
 </div>
 

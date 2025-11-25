@@ -24,6 +24,7 @@
                 <div class="app-group-apps-list">
                     <ul class="collection">
                         {{#each apps}}
+                        {{#if screenTime}}
                         <li class="collection-item app-usage-item" data-app-path="{{packageName}}">
                             <div class="app-info">
                                 <img src="{{#if iconBase64}}data:image/png;base64,{{iconBase64}}{{else}}default-icon.png{{/if}}" 
@@ -46,6 +47,7 @@
                                 {{#formatScreenTime}}{{screenTime}}{{/formatScreenTime}}
                             </span>
                         </li>
+                        {{/if}}
                         {{/each}}
                     </ul>
                 </div>
@@ -58,6 +60,7 @@
             </div>
         </div>
         <div class="app-group-actions">
+            <button class="app-group-all-apps-btn btn outlined" data-group-id="{{id}}">All Apps</button>
             <button class="app-group-rename-btn btn outlined" data-group-id="{{id}}">Rename Group</button>
             <button class="app-group-remove-btn btn outlined" data-group-id="{{id}}">Delete Group</button>
         </div>
