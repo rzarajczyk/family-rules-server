@@ -126,6 +126,72 @@ class BffAppGroupsController(
         )
     }
 
+    @GetMapping("/bff/app-groups/{groupId}/all-apps")
+    fun getAllAppsForGroup(
+        @PathVariable groupId: String,
+        authentication: Authentication
+    ): GetAllAppsForGroupResponse {
+        val user = usersService.get(authentication.name)
+        val appGroup = appGroupService.get(user, groupId)
+        val devices = devicesService.getAllDevices(user)
+
+        val deviceApps = devices.map { device ->
+            val deviceDetails = device.fetchDetails()
+            val appsInGroup = appGroup.getMembers(device)
+            
+            val apps = deviceDetails.knownApps.map { (packageName, appInfo) ->
+                AppInGroupInfo(
+                    packageName = packageName,
+                    name = appInfo.appName,
+                    iconBase64 = appInfo.iconBase64Png,
+                    inGroup = packageName in appsInGroup
+                )
+            }.sortedBy { it.name.lowercase() }
+
+            DeviceAppsInfo(
+                deviceId = deviceDetails.deviceId.toString(),
+                deviceName = deviceDetails.deviceName,
+                apps = apps
+            )
+        }.filter { it.apps.isNotEmpty() }
+
+        return GetAllAppsForGroupResponse(
+            groupId = groupId,
+            devices = deviceApps
+        )
+    }
+
+    @PutMapping("/bff/app-groups/{groupId}/members")
+    fun updateGroupMembers(
+        @PathVariable groupId: String,
+        @RequestBody request: UpdateGroupMembersRequest,
+        authentication: Authentication
+    ): UpdateGroupMembersResponse {
+        val user = usersService.get(authentication.name)
+        val appGroup = appGroupService.get(user, groupId)
+
+        // Process each device's app changes
+        request.devices.forEach { deviceUpdate ->
+            val device = devicesService.get(UUID.fromString(deviceUpdate.deviceId))
+            
+            // Add new apps
+            deviceUpdate.appsToAdd.forEach { appPath ->
+                if (!appGroup.containsMember(device, appPath)) {
+                    appGroup.addMember(device, appPath)
+                }
+            }
+            
+            // Remove apps
+            deviceUpdate.appsToRemove.forEach { appPath ->
+                if (appGroup.containsMember(device, appPath)) {
+                    appGroup.removeMember(device, appPath)
+                }
+            }
+        }
+
+        return UpdateGroupMembersResponse(success = true)
+    }
+
 }
 
 data class CreateAppGroupRequest(
@@ -197,4 +263,36 @@ data class AppGroupAppDetail(
 
 data class AppGroupStatisticsResponse(
     val groups: List<AppGroupStatistics>
+)
+
+data class GetAllAppsForGroupResponse(
+    val groupId: String,
+    val devices: List<DeviceAppsInfo>
+)
+
+data class DeviceAppsInfo(
+    val deviceId: String,
+    val deviceName: String,
+    val apps: List<AppInGroupInfo>
+)
+
+data class AppInGroupInfo(
+    val packageName: String,
+    val name: String,
+    val iconBase64: String?,
+    val inGroup: Boolean
+)
+
+data class UpdateGroupMembersRequest(
+    val devices: List<DeviceGroupUpdate>
+)
+
+data class DeviceGroupUpdate(
+    val deviceId: String,
+    val appsToAdd: List<String>,
+    val appsToRemove: List<String>
+)
+
+data class UpdateGroupMembersResponse(
+    val success: Boolean
 )

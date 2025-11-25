@@ -157,78 +157,167 @@ document.addEventListener("DOMContentLoaded", (event) => {
         // Set modal title
         document.getElementById('modal-group-name').textContent = group.name;
 
-        // Group apps by device
-        const appsByDevice = {};
-        group.apps.forEach(app => {
-            if (!appsByDevice[app.deviceId]) {
-                appsByDevice[app.deviceId] = {
-                    deviceName: app.deviceName,
-                    apps: []
-                };
-            }
-            appsByDevice[app.deviceId].apps.push(app);
-        });
+        // Show loading state
+        document.getElementById('modal-loading').style.display = 'block';
+        document.getElementById('modal-apps-content').style.display = 'none';
 
-        // Render apps grouped by device
+        // Open modal
+        const modalInstance = M.Modal.getInstance(document.getElementById('all-apps-modal'));
+        modalInstance.open();
+
+        // Fetch all apps for this group
+        ServerRequest.fetch(`/bff/app-groups/${groupId}/all-apps`)
+            .then(response => response.json())
+            .then(data => {
+                renderAllAppsModal(groupId, data);
+            })
+            .catch(error => {
+                console.error('Error loading apps:', error);
+                document.getElementById('modal-loading').style.display = 'none';
+                document.getElementById('modal-apps-content').innerHTML = 
+                    '<p class="modal-no-apps">Failed to load apps. Please try again.</p>';
+                document.getElementById('modal-apps-content').style.display = 'block';
+            });
+    }
+
+    function renderAllAppsModal(groupId, allAppsData) {
         const modalContent = document.getElementById('modal-apps-content');
         let html = '';
 
-        if (Object.keys(appsByDevice).length === 0) {
-            html = '<p class="center-align" style="padding: 2rem; color: var(--md-sys-color-on-surface-variant);">No apps in this group</p>';
+        if (!allAppsData.devices || allAppsData.devices.length === 0) {
+            html = '<p class="modal-no-apps">No apps found on any device</p>';
         } else {
-            Object.entries(appsByDevice).forEach(([deviceId, deviceData]) => {
+            allAppsData.devices.forEach(device => {
                 html += `
                     <div class="modal-device-section">
-                        <h6>${deviceData.deviceName}</h6>
+                        <h6>
+                            <i class="material-icons">phone_android</i>
+                            ${device.deviceName}
+                        </h6>
                 `;
                 
-                deviceData.apps.forEach(app => {
-                    const screenTimeFormatted = formatScreenTime(app.screenTime);
-                    html += `
-                        <div class="modal-app-item">
-                            <div class="modal-app-info">
-                                <img src="${app.iconBase64 ? 'data:image/png;base64,' + app.iconBase64 : 'default-icon.png'}" 
-                                     alt="${app.name}" 
-                                     class="modal-app-icon circle">
-                                <div class="modal-app-details">
-                                    <span class="modal-app-name">${app.name}</span>
-                                    <span class="modal-app-path">${app.packageName}</span>
-                                </div>
+                if (device.apps.length === 0) {
+                    html += '<p style="padding: 1rem; color: var(--md-sys-color-on-surface-variant);">No apps on this device</p>';
+                } else {
+                    device.apps.forEach(app => {
+                        const checkboxId = `app-${device.deviceId}-${app.packageName.replace(/[^a-zA-Z0-9]/g, '_')}`;
+                        html += `
+                            <div class="modal-app-item">
+                                <label for="${checkboxId}">
+                                    <input type="checkbox" 
+                                           id="${checkboxId}"
+                                           class="filled-in app-checkbox" 
+                                           data-device-id="${device.deviceId}"
+                                           data-app-path="${app.packageName}"
+                                           ${app.inGroup ? 'checked' : ''} />
+                                    <span class="modal-app-info">
+                                        <img src="${app.iconBase64 ? 'data:image/png;base64,' + app.iconBase64 : 'default-icon.png'}" 
+                                             alt="${app.name}" 
+                                             class="modal-app-icon circle">
+                                        <div class="modal-app-details">
+                                            <span class="modal-app-name">${app.name}</span>
+                                            <!--<span class="modal-app-path">${app.packageName}</span>-->
+                                        </div>
+                                    </span>
+                                </label>
                             </div>
-                            ${app.screenTime > 0 ? `<span class="modal-app-usage">${screenTimeFormatted}</span>` : ''}
-                            <button class="modal-app-remove-btn" 
-                                    data-group-id="${groupId}" 
-                                    data-device-id="${deviceId}" 
-                                    data-app-path="${app.packageName}"
-                                    title="Remove app from group">
-                                <i class="material-icons">delete</i>
-                            </button>
-                        </div>
-                    `;
-                });
+                        `;
+                    });
+                }
                 
                 html += '</div>';
             });
         }
 
         modalContent.innerHTML = html;
+        document.getElementById('modal-loading').style.display = 'none';
+        modalContent.style.display = 'block';
 
-        // Add event listeners for remove buttons
-        modalContent.querySelectorAll('.modal-app-remove-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
-                const groupId = this.dataset.groupId;
-                const deviceId = this.dataset.deviceId;
-                const appPath = this.dataset.appPath;
-                
-                if (confirm('Are you sure you want to remove this app from the group?')) {
-                    removeAppFromGroup(groupId, deviceId, appPath);
-                }
-            });
+        // Store initial state for comparison
+        const initialState = new Map();
+        document.querySelectorAll('.app-checkbox').forEach(checkbox => {
+            const key = `${checkbox.dataset.deviceId}:${checkbox.dataset.appPath}`;
+            initialState.set(key, checkbox.checked);
         });
 
-        // Open modal
-        const modalInstance = M.Modal.getInstance(document.getElementById('all-apps-modal'));
-        modalInstance.open();
+        // Setup save button handler
+        const saveBtn = document.getElementById('modal-save-btn');
+        saveBtn.onclick = () => saveGroupChanges(groupId, initialState);
+    }
+
+    function saveGroupChanges(groupId, initialState) {
+        const changes = {
+            devices: new Map()
+        };
+
+        // Collect all changes
+        document.querySelectorAll('.app-checkbox').forEach(checkbox => {
+            const deviceId = checkbox.dataset.deviceId;
+            const appPath = checkbox.dataset.appPath;
+            const key = `${deviceId}:${appPath}`;
+            const wasChecked = initialState.get(key);
+            const isChecked = checkbox.checked;
+
+            if (wasChecked !== isChecked) {
+                if (!changes.devices.has(deviceId)) {
+                    changes.devices.set(deviceId, {
+                        deviceId: deviceId,
+                        appsToAdd: [],
+                        appsToRemove: []
+                    });
+                }
+
+                if (isChecked) {
+                    changes.devices.get(deviceId).appsToAdd.push(appPath);
+                } else {
+                    changes.devices.get(deviceId).appsToRemove.push(appPath);
+                }
+            }
+        });
+
+        // If no changes, just close the modal
+        if (changes.devices.size === 0) {
+            const modalInstance = M.Modal.getInstance(document.getElementById('all-apps-modal'));
+            modalInstance.close();
+            return;
+        }
+
+        // Disable save button during save
+        const saveBtn = document.getElementById('modal-save-btn');
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Saving...';
+
+        // Send changes to server
+        const requestBody = {
+            devices: Array.from(changes.devices.values())
+        };
+
+        ServerRequest.fetch(`/bff/app-groups/${groupId}/members`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestBody)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const modalInstance = M.Modal.getInstance(document.getElementById('all-apps-modal'));
+                modalInstance.close();
+                window.update();
+            } else {
+                console.error('Failed to save group changes');
+                alert('Failed to save changes');
+                saveBtn.disabled = false;
+                saveBtn.textContent = 'Save Changes';
+            }
+        })
+        .catch(error => {
+            console.error('Error saving group changes:', error);
+            alert('Error saving changes');
+            saveBtn.disabled = false;
+            saveBtn.textContent = 'Save Changes';
+        });
     }
 
     function removeAppFromGroup(groupId, deviceId, appPath) {
