@@ -4,8 +4,6 @@ document.addEventListener("DOMContentLoaded", (event) => {
 
     Handlebars.fetchTemplate("./index.handlebars")
         .then(([template]) => {
-            const LOADING = '<center>... loading ...</center>'
-
             M.Datepicker.init(document.querySelector("#datepicker"), {
                 defaultDate: new Date(),
                 setDefaultDate: true,
@@ -444,7 +442,7 @@ function resizeImage(file, onResize, width = 64, height = 64) {
                 let div = document.querySelector(selector)
                 let content = div.querySelector(".modal-content")
                 content.dataset['instanceid'] = instanceId
-                content.innerHTML = LOADING
+                content.innerHTML = '<center>... loading ...</center>'
                 let modal = M.Modal.getInstance(div)
                 modal.open()
                 let templatePromise = Handlebars.fetchTemplate(templateUrl).then(([it]) => it)
