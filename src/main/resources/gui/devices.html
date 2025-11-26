@@ -165,11 +165,6 @@
 
         }
         
-        .loading-container {
-            text-align: center;
-            padding: 2rem;
-        }
-        
         .error-container {
             text-align: center;
             padding: 2rem;
@@ -195,7 +190,7 @@
 
     <link rel="icon" type="image/png" href="icon.png">
     <title>Family Rules - Devices</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
 </head>
 <body>
 <header data-source="./header.handlebars"></header>
@@ -211,19 +206,7 @@
             </form>
         </div>
     </div>
-    <div id="loading" class="loading-container">
-        <div class="preloader-wrapper active">
-            <div class="spinner-layer spinner-blue-only">
-                <div class="circle-clipper left">
-                    <div class="circle"></div>
-                </div>
-                <div class="circle-clipper right">
-                    <div class="circle"></div>
-                </div>
-            </div>
-        </div>
-        <p>Loading devices...</p>
-    </div>
+    <div id="loading"></div>
     
     <div id="error" class="error-container" style="display: none;">
         <i class="material-icons large">error</i>
@@ -318,6 +301,7 @@
 <script src="components.js"></script>
 <script src="common.js"></script>
 <script src="index-schedule.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="devices.js"></script>
 
 </body>

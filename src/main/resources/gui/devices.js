@@ -1,4 +1,7 @@
 document.addEventListener("DOMContentLoaded", (event) => {
+
+    Loading.init(document.getElementById('loading'))
+
     Handlebars.fetchTemplate("./index.handlebars")
         .then(([template]) => {
             const LOADING = '<center>... loading ...</center>'

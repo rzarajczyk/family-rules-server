@@ -1,4 +1,3 @@
-// Toast Component
 const Toast = {
     container: null,
     
@@ -59,3 +58,23 @@ const Toast = {
     }
 };
 
+const Loading = {
+
+    init(container, text='Loading...') {
+        container.classList.add('loading-container')
+        container.innerHTML = `
+                <div class="preloader-wrapper active">
+                    <div class="spinner-layer spinner-blue-only">
+                        <div class="circle-clipper left">
+                            <div class="circle"></div>
+                        </div>
+                        <div class="circle-clipper right">
+                            <div class="circle"></div>
+                        </div>
+                    </div>
+                </div>
+                <p>${text}</p>
+        `
+    }
+
+}

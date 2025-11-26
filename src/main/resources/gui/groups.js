@@ -1,4 +1,6 @@
 document.addEventListener("DOMContentLoaded", (event) => {
+    Loading.init(document.getElementById('loading'))
+
     const LOADING = '<center>... loading ...</center>'
     let currentStatisticsData = null; // Store the statistics data for modal use
 
