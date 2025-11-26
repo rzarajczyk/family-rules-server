@@ -31,6 +31,9 @@ const ServerRequest = {
                 window.location.href = response.url
                 return null
             }
+            if (response.status !== 200) {
+                throw new Error('Received HTTP status code: ' + response.status);
+            }
             return response
         })
     }

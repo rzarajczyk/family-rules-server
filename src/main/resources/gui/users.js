@@ -1,11 +1,13 @@
 // User management functionality
 let users = [];
 
+Loading.init(document.getElementById('loading'))
+
 // Load users from the backend
 async function loadUsers() {
     try {
         showLoading();
-        
+
         const response = await ServerRequest.fetch('/bff/users');
 
         if (!response.ok) {
@@ -18,7 +20,7 @@ async function loadUsers() {
         const data = await response.json();
         users = data.users;
         displayUsers();
-        
+
     } catch (error) {
         console.error('Error loading users:', error);
         showError(error.message);
@@ -28,13 +30,9 @@ async function loadUsers() {
 // Display users in the UI
 function displayUsers() {
     const container = document.getElementById('users-container');
-    const loading = document.getElementById('loading');
-    const error = document.getElementById('error');
-    
-    // Hide loading and error
-    loading.style.display = 'none';
-    error.style.display = 'none';
-    
+
+    Loading.hide()
+
     if (users.length === 0) {
         container.innerHTML = `
             <div class="card">
@@ -50,7 +48,7 @@ function displayUsers() {
     } else {
         container.innerHTML = users.map(user => createUserCard(user)).join('');
     }
-    
+
     container.style.display = 'block';
 }
 
@@ -59,7 +57,7 @@ function createUserCard(user) {
     const accessLevelClass = getAccessLevelClass(user.accessLevel);
     const accessLevelText = getAccessLevelText(user.accessLevel);
     const userInitial = user.username.charAt(0).toUpperCase();
-    
+
     return `
         <div class="card user-card" data-username="${escapeHtml(user.username)}">
             <div class="card-content">
@@ -116,22 +114,15 @@ function getAccessLevelText(accessLevel) {
 
 // Show loading state
 function showLoading() {
-    document.getElementById('loading').style.display = 'block';
-    document.getElementById('error').style.display = 'none';
+    Loading.show()
     document.getElementById('users-container').style.display = 'none';
 }
 
 // Show error state
 function showError(message) {
-    const loading = document.getElementById('loading');
-    const error = document.getElementById('error');
+    Loading.error(message)
     const container = document.getElementById('users-container');
-    
-    loading.style.display = 'none';
     container.style.display = 'none';
-    
-    document.getElementById('error-message').textContent = message;
-    error.style.display = 'block';
 }
 
 // Escape HTML to prevent XSS
@@ -146,23 +137,23 @@ async function deleteUser(username) {
     if (!confirm(`Are you sure you want to delete user "${username}"? This action cannot be undone.`)) {
         return;
     }
-    
+
     try {
         const response = await ServerRequest.fetch(`/bff/users/${encodeURIComponent(username)}`, {
             method: 'DELETE'
         });
-        
+
         if (!response.ok) {
             const errorData = await response.json();
             throw new Error(errorData.message || `Failed to delete user: ${response.status}`);
         }
-        
+
         const result = await response.json();
         Toast.info(result.message);
-        
+
         // Reload users list
         loadUsers();
-        
+
     } catch (error) {
         console.error('Error deleting user:', error);
         Toast.error(`Error: ${error.message}`);
@@ -175,7 +166,7 @@ async function resetPassword(username) {
     if (!newPassword) {
         return;
     }
-    
+
     try {
         const response = await ServerRequest.fetch(`/bff/users/${encodeURIComponent(username)}/reset-password`, {
             method: 'POST',
@@ -186,15 +177,15 @@ async function resetPassword(username) {
                 newPassword: newPassword
             })
         });
-        
+
         if (!response.ok) {
             const errorData = await response.json();
             throw new Error(errorData.message || `Failed to reset password: ${response.status}`);
         }
-        
+
         const result = await response.json();
         Toast.info(result.message);
-        
+
     } catch (error) {
         console.error('Error resetting password:', error);
         Toast.error(`Error: ${error.message}`);
@@ -207,7 +198,7 @@ let addUserModal;
 // Initialize the page
 document.addEventListener('DOMContentLoaded', function() {
     loadUsers();
-    
+
     // Initialize modal
     addUserModal = M.Modal.init(document.getElementById('addUserModal'), {
         onCloseEnd: function() {
@@ -232,18 +223,18 @@ async function submitAddUser() {
     const username = document.getElementById('username').value.trim();
     const password = document.getElementById('password').value;
     const adminRights = document.getElementById('adminRights').checked;
-    
+
     // Validation
     if (!username) {
         Toast.error('Username is required');
         return;
     }
-    
+
     if (!password) {
         Toast.error('Password is required');
         return;
     }
-    
+
     try {
         const response = await ServerRequest.fetch('/bff/users', {
             method: 'POST',
@@ -256,19 +247,19 @@ async function submitAddUser() {
                 accessLevel: adminRights ? 'ADMIN' : 'PARENT'
             })
         });
-        
+
         if (!response.ok) {
             const errorData = await response.json();
             throw new Error(errorData.message || `Failed to create user: ${response.status}`);
         }
-        
+
         const result = await response.json();
         Toast.info(result.message);
-        
+
         // Close modal and reload users
         closeAddUserModal();
         loadUsers();
-        
+
     } catch (error) {
         console.error('Error creating user:', error);
         Toast.error(`Error: ${error.message}`);

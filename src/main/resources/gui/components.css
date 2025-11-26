@@ -124,3 +124,17 @@
     text-align: center;
     padding: 2rem;
 }
+
+.error-container i {
+    color: var(--md-sys-color-error);
+}
+
+.error-container h5 {
+    color: var(--md-sys-color-on-surface);
+    margin-bottom: 1rem;
+}
+
+.error-container p {
+    color: var(--md-sys-color-on-surface-variant);
+    margin-bottom: 1.5rem;
+}

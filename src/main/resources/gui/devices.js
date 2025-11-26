@@ -19,7 +19,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
                 autoClose: true
             })
 
-            function render(response) {
+            function renderDevices(response) {
                 // Store instance data globally for app group functionality
                 window.currentInstanceData = response.instances;
                 
@@ -453,26 +453,19 @@ function resizeImage(file, onResize, width = 64, height = 64) {
             }
 
             function showLoading() {
-                document.getElementById('loading').style.display = 'block';
-                document.getElementById('error').style.display = 'none';
+                Loading.show()
                 document.getElementById('instances').style.display = 'none';
             }
 
             function showError(message) {
-                const loading = document.getElementById('loading');
-                const error = document.getElementById('error');
+                Loading.error(message)
+
                 const container = document.getElementById('instances');
-                
-                loading.style.display = 'none';
                 container.style.display = 'none';
-                
-                document.getElementById('error-message').textContent = message;
-                error.style.display = 'block';
             }
 
             function showContent() {
-                document.getElementById('loading').style.display = 'none';
-                document.getElementById('error').style.display = 'none';
+                Loading.hide()
                 document.getElementById('instances').style.display = 'block';
             }
 
@@ -480,12 +473,12 @@ function resizeImage(file, onResize, width = 64, height = 64) {
                 showLoading();
                 let date = document.querySelector("#datepicker").value
                 ServerRequest.fetch(`/bff/status?date=${date}`)
-                .then(response => response.json())
-                .then(render)
-                .catch(error => {
-                    console.error('Error in update function:', error);
-                    showError('Failed to load devices data. Please try again.');
-                })
+                    .then(response => response.json())
+                    .then(renderDevices)
+                    .catch(error => {
+                        console.error('Error in update function:', error);
+                        showError('Failed to load devices data. Please try again.');
+                    })
             }
 
             update()

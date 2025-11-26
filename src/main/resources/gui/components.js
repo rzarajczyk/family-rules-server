@@ -59,22 +59,44 @@ const Toast = {
 };
 
 const Loading = {
+    container: null,
 
-    init(container, text='Loading...') {
+    init(container) {
         container.classList.add('loading-container')
-        container.innerHTML = `
-                <div class="preloader-wrapper active">
-                    <div class="spinner-layer spinner-blue-only">
-                        <div class="circle-clipper left">
-                            <div class="circle"></div>
-                        </div>
-                        <div class="circle-clipper right">
-                            <div class="circle"></div>
-                        </div>
+        this.container = container
+    },
+
+    show(text='Loading...') {
+        this.container.innerHTML = `
+            <div class="preloader-wrapper active">
+                <div class="spinner-layer spinner-blue-only">
+                    <div class="circle-clipper left">
+                        <div class="circle"></div>
+                    </div>
+                    <div class="circle-clipper right">
+                        <div class="circle"></div>
                     </div>
                 </div>
-                <p>${text}</p>
-        `
+            </div>
+            <p>${text}</p>`
+        this.container.style.display = 'block'
+    },
+
+    hide() {
+        this.container.style.display = 'none'
+    },
+
+    error(msg) {
+        this.container.innerHTML = `
+            <div class="error-container">
+                <i class="material-icons large">error</i>
+                <h5>Loading error</h5>
+                <p id="error-message">${msg}</p>
+                <button class="btn waves-effect waves-light mb-2" onclick="location.reload()">
+                    <i class="material-icons left">refresh</i>
+                    Retry
+                </button>
+            </div>`
     }
 
 }

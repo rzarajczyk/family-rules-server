@@ -21,55 +21,50 @@ document.addEventListener("DOMContentLoaded", (event) => {
     }
 
     function renderAppGroups(statisticsResponse) {
-        try {
-            // Store the data for modal use
-            currentStatisticsData = statisticsResponse;
-            
-            const appGroupsContainer = document.querySelector('#app-groups');
-            
-            if (!appGroupsContainer) {
-                console.error('App groups container not found');
-                showError('App groups container not found');
-                return;
-            }
-            
-            if (!statisticsResponse || !statisticsResponse.groups || statisticsResponse.groups.length === 0) {
-                appGroupsContainer.innerHTML = '<li><div class="center-align" style="padding: 20px; color: var(--md-sys-color-outline);">No app groups created yet</div></li>';
-                showContent();
-                return;
-            }
-            
-            // Load the template
-            Handlebars.fetchTemplate('./app-group-collapsible.handlebars')
-                .then(([template]) => {
-                    // Apps are already sorted by the server, so we can use them directly
-                    const html = statisticsResponse.groups.map(group => template(group)).join('');
-                    appGroupsContainer.innerHTML = html;
-                    
-                    // Initialize Materialize collapsibles
-                    try {
-                        M.Collapsible.init(appGroupsContainer, {});
-                    } catch (collapsibleError) {
-                        console.error('Error initializing collapsibles:', collapsibleError);
-                    }
-                    
-                    // Initialize remove group button handlers
-                    initializeAppGroupHandlers();
-                    
-                    // Initialize clickable app names
-                    initializeClickableAppNames();
-                    
-                    // Show content after successful render
-                    showContent();
-                })
-                .catch(templateError => {
-                    console.error('Error loading template:', templateError);
-                    showError('Failed to load app groups template. Please try again.');
-                });
-        } catch (error) {
-            console.error('Error in renderAppGroups:', error);
-            showError('An error occurred while rendering app groups. Please try again.');
+        // Store the data for modal use
+        currentStatisticsData = statisticsResponse;
+
+        const appGroupsContainer = document.querySelector('#app-groups');
+
+        if (!appGroupsContainer) {
+            console.error('App groups container not found');
+            showError('App groups container not found');
+            return;
         }
+
+        if (!statisticsResponse || !statisticsResponse.groups || statisticsResponse.groups.length === 0) {
+            appGroupsContainer.innerHTML = '<li><div class="center-align" style="padding: 20px; color: var(--md-sys-color-outline);">No app groups created yet</div></li>';
+            showContent();
+            return;
+        }
+
+        // Load the template
+        Handlebars.fetchTemplate('./app-group-collapsible.handlebars')
+            .then(([template]) => {
+                // Apps are already sorted by the server, so we can use them directly
+                const html = statisticsResponse.groups.map(group => template(group)).join('');
+                appGroupsContainer.innerHTML = html;
+
+                // Initialize Materialize collapsibles
+                try {
+                    M.Collapsible.init(appGroupsContainer, {});
+                } catch (collapsibleError) {
+                    console.error('Error initializing collapsibles:', collapsibleError);
+                }
+
+                // Initialize remove group button handlers
+                initializeAppGroupHandlers();
+
+                // Initialize clickable app names
+                initializeClickableAppNames();
+
+                // Show content after successful render
+                showContent();
+            })
+            .catch(templateError => {
+                console.error('Error loading template:', templateError);
+                showError('Failed to load app groups template. Please try again.');
+            });
     }
 
     function initializeAppGroupHandlers() {
@@ -359,26 +354,18 @@ document.addEventListener("DOMContentLoaded", (event) => {
     }
 
     function showLoading() {
-        document.getElementById('loading').style.display = 'block';
-        document.getElementById('error').style.display = 'none';
+        Loading.show()
         document.getElementById('app-groups').style.display = 'none';
     }
 
     function showError(message) {
-        const loading = document.getElementById('loading');
-        const error = document.getElementById('error');
+        Loading.error(message)
         const container = document.getElementById('app-groups');
-        
-        loading.style.display = 'none';
         container.style.display = 'none';
-        
-        document.getElementById('error-message').textContent = message;
-        error.style.display = 'block';
     }
 
     function showContent() {
-        document.getElementById('loading').style.display = 'none';
-        document.getElementById('error').style.display = 'none';
+        Loading.hide()
         document.getElementById('app-groups').style.display = 'block';
     }
 
@@ -386,12 +373,12 @@ document.addEventListener("DOMContentLoaded", (event) => {
         showLoading();
         let date = document.querySelector("#datepicker").value
         ServerRequest.fetch(`/bff/app-groups/statistics?date=${date}`)
-        .then(response => response.json())
-        .then(renderAppGroups)
-        .catch(error => {
-            console.error('Error in update function:', error);
-            showError('Failed to load app groups data. Please try again.');
-        })
+            .then(response => response.json())
+            .then(renderAppGroups)
+            .catch(error => {
+                console.error('Error in update function:', error);
+                showError('Failed to load app groups data. Please try again.');
+            })
     }
 
     update()
