@@ -1,0 +1,28 @@
+.fr-collapsible {
+    display: block;
+}
+
+.fr-collapsible .collapsible-header::after {
+    content: "";
+    display: none;
+}
+
+.fr-collapsible .fr-image-icon {
+    margin-right: 1em;
+    width: 64px;
+    height: 64px;
+    flex-shrink: 0;
+    border-radius: 50%;
+}
+
+.fr-collapsible .fr-name-row {
+    width: 100%;
+}
+
+@media only screen and (max-width: 600.99px) {
+    .fr-collapsible .fr-name-row .badge {
+        clear: right;
+        margin-right: 0 !important;
+        margin-top: 0.2em;
+    }
+}

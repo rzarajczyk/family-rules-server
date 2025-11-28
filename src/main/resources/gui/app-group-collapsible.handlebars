@@ -1,16 +1,14 @@
-<li class="app-group-item" data-group-id="{{id}}" data-group-color="{{color}}" style="--group-color: {{color}};">
-    <div class="collapsible-header">
-<!--        <img src="default-icon.png" alt="Device" class="circle image-icon">-->
-<!--        <div class="circle image-icon" style="background-color: {{textColor}}"></div>-->
-        <div class="app-group-header-content">
-            <div class="app-group-name" style="color: {{textColor}};">{{name}}</div>
-            <div class="app-group-stats-header">
-                <span class="app-group-screen-time">
-                    {{#if online}}<span class="is-online mr-2"><i class="material-icons tiny">online_prediction</i></span>{{/if}}
-                    <i class="material-icons tiny">schedule</i>
-                    {{#formatScreenTime}}{{totalScreenTime}}{{/formatScreenTime}}
-                </span>
-            </div>
+<li class="fr-collapsible" data-group-id="{{id}}" data-group-color="{{color}}">
+    <div class="fr-header collapsible-header">
+        <div class="fr-image-icon" style="background-color: {{textColor}}"></div>
+        <div class="fr-name-row">
+            <span class="fr-name-text" style="color: {{textColor}};">{{name}}</span>
+
+            <!-- badges -->
+            <span class="new badge" style="width: 6rem" data-badge-caption="">{{#formatScreenTime}}{{totalScreenTime}}{{/formatScreenTime}}</span>
+            {{#if online}}
+                <span class="badge mr-2 is-online" data-badge-caption=""><i class="material-icons tiny">online_prediction</i></span>
+            {{/if}}
         </div>
     </div>
     <div class="collapsible-body">

@@ -221,11 +221,6 @@ nav li.active {
     border: 2px solid transparent; /* Default transparent border */
 }
 
-/* Dynamic border color based on group color */
-.app-group-tile[data-group-color] {
-    border-color: var(--group-color);
-}
-
 .app-group-tile:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 8px rgba(0,0,0,0.15);

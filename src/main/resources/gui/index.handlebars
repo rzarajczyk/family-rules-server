@@ -1,9 +1,11 @@
-<li class="instance-details" data-instanceid="{{instanceId}}">
-    <div class="collapsible-header">
-        <img src="{{#if icon.type}}data:{{icon.type}};base64,{{icon.data}}{{else}}default-icon.png{{/if}}" alt="Device" class="circle image-icon">
-        <div class="instance-name">
-            <span>{{instanceName}}</span>
-            <span class="new badge screen-time" data-badge-caption="">{{#formatScreenTime}}{{screenTimeSeconds}}{{/formatScreenTime}}</span>
+<li class="instance-details fr-collapsible" data-instanceid="{{instanceId}}">
+    <div class="fr-header collapsible-header">
+        <img class="fr-image-icon" src="{{#if icon.type}}data:{{icon.type}};base64,{{icon.data}}{{else}}default-icon.png{{/if}}" alt="Device" >
+        <div class="fr-name-row instance-name">
+            <span class="fr-name-text">{{instanceName}}</span>
+
+            <!-- badges -->
+            <span class="new badge" style="width: 6rem" data-badge-caption="">{{#formatScreenTime}}{{screenTimeSeconds}}{{/formatScreenTime}}</span>
             {{#if forcedDeviceState}}
                 <span class="new badge orange mr-2" data-badge-caption="">
                     <svg xmlns="http://www.w3.org/2000/svg" height="12px" viewBox="0 -960 960 960" width="12px" fill="var(--md-sys-color-on-primary)">{{{forcedDeviceState.icon}}}</svg>

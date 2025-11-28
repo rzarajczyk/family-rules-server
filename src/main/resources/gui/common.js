@@ -125,12 +125,12 @@ document.addEventListener("DOMContentLoaded", (event) => {
         var remainingSeconds = seconds % 60;
 
         // Pad the minutes and seconds with leading zeros if necessary
-        var formattedHours = hours > 0 ? hours + ":" : "";
+        var formattedHours = hours > 0 ? hours + "h " : "";
         var formattedMinutes = (minutes < 10 ? "0" : "") + minutes;
         var formattedSeconds = (remainingSeconds < 10 ? "0" : "") + remainingSeconds;
 
         // Combine the parts into the final formatted string
-        return formattedHours + formattedMinutes + ":" + formattedSeconds;
+        return formattedHours + formattedMinutes + "m " + formattedSeconds + "s";
     })
 
     Handlebars.registerHelper('groupNameFrom', function(groups, id) {

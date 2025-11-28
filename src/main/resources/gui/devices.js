@@ -309,7 +309,7 @@ function resizeImage(file, onResize, width = 64, height = 64) {
 
             function onViewUsageClicked(e) {
                 let instanceId = e.target.closest('.instance-details').dataset["instanceid"]
-                let instanceName = e.target.closest('.instance-details').querySelector('.instance-name span').textContent
+                let instanceName = e.target.closest('.fr-collapsible').querySelector('.fr-name-text').textContent
                 let date = document.querySelector("#datepicker").value
                 
                 // Find instance data to get histogram

@@ -81,7 +81,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
             btn.addEventListener('click', function(e) {
                 e.stopPropagation();
                 const groupId = this.dataset.groupId;
-                const currentName = this.closest('.app-group-item').querySelector('.app-group-name').textContent;
+                const currentName = this.closest('.fr-collapsible').querySelector('.fr-name-text').textContent;
                 const newName = prompt('Enter new name for the group:', currentName);
                 if (newName && newName.trim() !== '' && newName !== currentName) {
                     renameAppGroup(groupId, newName.trim());
