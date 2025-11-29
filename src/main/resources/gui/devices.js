@@ -141,7 +141,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
             }
 
             function onClientDeleteClicked(e) {
-                let instanceId = e.target.closest('.instance-details').dataset["instanceid"]
+                let instanceId = e.target.closest('.fr-collapsible').dataset["instanceid"]
                 if (confirm("Are you sure?")) {
                     ServerRequest.fetch(`/bff/delete-instance?instanceId=${instanceId}`, {
                         method: 'POST',
@@ -308,7 +308,7 @@ function resizeImage(file, onResize, width = 64, height = 64) {
             }
 
             function onViewUsageClicked(e) {
-                let instanceId = e.target.closest('.instance-details').dataset["instanceid"]
+                let instanceId = e.target.closest('.fr-collapsible').dataset["instanceid"]
                 let instanceName = e.target.closest('.fr-collapsible').querySelector('.fr-name-text').textContent
                 let date = document.querySelector("#datepicker").value
                 
@@ -438,7 +438,7 @@ function resizeImage(file, onResize, width = 64, height = 64) {
 
             function openModal(options) {
                 const { e, selector, templateUrl, detailsUrlBuilder } = options
-                let instanceId = e.target.closest('.instance-details').dataset["instanceid"]
+                let instanceId = e.target.closest('.fr-collapsible').dataset["instanceid"]
                 let div = document.querySelector(selector)
                 let content = div.querySelector(".modal-content")
                 content.dataset['instanceid'] = instanceId
@@ -495,7 +495,7 @@ function initializeAppGroupHandlers() {
             const appItem = this.closest('.app-usage-item');
             const appPath = appItem.dataset.appPath;
             const groupId = label.dataset.groupId;
-            const instanceId = appItem.closest('.instance-details').dataset.instanceid;
+            const instanceId = appItem.closest('.fr-collapsible').dataset.instanceid;
             
             removeAppFromGroup(instanceId, appPath, groupId);
         });
@@ -507,7 +507,7 @@ function initializeAppGroupHandlers() {
             e.stopPropagation();
             const appItem = this.closest('.app-usage-item');
             const appPath = appItem.dataset.appPath;
-            const instanceId = appItem.closest('.instance-details').dataset.instanceid;
+            const instanceId = appItem.closest('.fr-collapsible').dataset.instanceid;
             
             showAddGroupDropdown(appItem, instanceId, appPath);
         });
@@ -534,7 +534,7 @@ function removeAppFromGroup(instanceId, appPath, groupId) {
 
 function showAddGroupDropdown(appItem, instanceId, appPath) {
     // Get available app groups from the instance data
-    const instanceDetails = appItem.closest('.instance-details');
+    const instanceDetails = appItem.closest('.fr-collapsible');
     const instanceData = window.currentInstanceData?.find(inst => inst.instanceId === instanceId);
     
     if (!instanceData) {

@@ -1,4 +1,4 @@
-<li class="instance-details fr-collapsible" data-instanceid="{{instanceId}}">
+<li class="fr-collapsible" data-instanceid="{{instanceId}}">
     <div class="fr-header collapsible-header">
         <img class="fr-image-icon" src="{{#if icon.type}}data:{{icon.type}};base64,{{icon.data}}{{else}}default-icon.png{{/if}}" alt="Device" >
         <div class="fr-name-row instance-name">
@@ -25,8 +25,8 @@
             {{/if}}
         </div>
     </div>
-    <div class="collapsible-body">
-        <div class="instance-report">
+    <div class="fr-body collapsible-body">
+        <div class="fr-data-row instance-report">
             <ul class="collection">
                 {{#each appUsageSeconds}}
                     <li class="collection-item app-usage-item" data-app-path="{{path}}">
@@ -63,20 +63,20 @@
                 {{/each}}
             </ul>
         </div>
-        <div class="input-wrapper instance-buttons">
-            <a class="btn outlined right mb-2 mr-1 client-info hide-on-med-and-up">Client information</a>
-            <a class="btn text mb-2 client-info hide-on-small-only"><i class="material-icons">info</i></a>
-            <a class="btn outlined right mb-2 mr-1 client-edit hide-on-med-and-up">Edit</a>
-            <a class="btn text mb-2 client-edit hide-on-small-only"><i class="material-icons">edit</i></a>
-            <a class="btn outlined right mb-2 mr-1 client-delete hide-on-med-and-up">Delete</a>
-            <a class="btn text mb-2 client-delete hide-on-small-only"><i class="material-icons">delete</i></a>
-            <a class="btn outlined right mb-2 mr-1 change-state">Change device state</a>
-            <a class="btn outlined right mb-2 mr-1 edit-schedule">
+        <div class="fr-buttons-row instance-buttons">
+            <a class="fr-small btn client-info">Client information</a>
+            <a class="fr-large btn client-info"><i class="material-icons">info</i></a>
+            <a class="fr-small btn client-edit">Edit</a>
+            <a class="fr-large btn client-edit"><i class="material-icons">edit</i></a>
+            <a class="fr-small btn client-delete">Delete</a>
+            <a class="fr-large btn client-delete"><i class="material-icons">delete</i></a>
+            <a class="fr-small btn view-usage">Usage</a>
+            <a class="fr-large btn view-usage"><i class="material-icons">bar_chart</i></a>
+            <a class="btn outlined right change-state">Change device state</a>
+            <a class="btn outlined right edit-schedule">
                 <i class="material-icons hide-on-small-only">calendar_month</i>
                 <span class="hide-on-med-and-up">Edit schedule</span>
             </a>
-            <a class="btn outlined right mb-2 mr-1 view-usage hide-on-med-and-up">Usage</a>
-            <a class="btn text mb-2 view-usage hide-on-small-only"><i class="material-icons">bar_chart</i></a>
         </div>
     </div>
 </li>

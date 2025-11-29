@@ -2,7 +2,7 @@
     <div class="fr-header collapsible-header">
         <div class="fr-image-icon" style="background-color: {{textColor}}"></div>
         <div class="fr-name-row">
-            <span class="fr-name-text" style="color: {{textColor}};">{{name}}</span>
+            <span class="fr-name-text">{{name}}</span>
 
             <!-- badges -->
             <span class="new badge" style="width: 6rem" data-badge-caption="">{{#formatScreenTime}}{{totalScreenTime}}{{/formatScreenTime}}</span>
@@ -11,8 +11,8 @@
             {{/if}}
         </div>
     </div>
-    <div class="collapsible-body">
-        <div class="app-group-details">
+    <div class="fr-body collapsible-body">
+        <div class="fr-data-row app-group-details">
             <div class="app-group-info">
                 <div class="app-group-summary">
                     <p><strong>{{appsCount}} apps across {{devicesCount}} devices</strong></p>
@@ -57,19 +57,13 @@
                 {{/if}}
             </div>
         </div>
-        <div class="app-group-actions">
-            <button class="app-group-all-apps-btn btn outlined" data-group-id="{{id}}">
-                <i class="material-icons left">apps</i>
-                Select Apps
-            </button>
-            <button class="app-group-rename-btn btn outlined" data-group-id="{{id}}">
-                <i class="material-icons left">edit</i>
-                Rename Group
-            </button>
-            <button class="app-group-remove-btn btn outlined" data-group-id="{{id}}">
-                <i class="material-icons left">delete</i>
-                Delete Group
-            </button>
+        <div class="fr-buttons-row app-group-actions">
+            <a class="fr-large outlined btn app-group-all-apps-btn" data-group-id="{{id}}"><i class="material-icons left">apps</i>Select Apps</a>
+            <a class="fr-small btn app-group-all-apps-btn" data-group-id="{{id}}">Select Apps</a>
+            <a class="fr-small btn app-group-rename-btn" data-group-id="{{id}}">Rename</a>
+            <a class="fr-large btn app-group-rename-btn" data-group-id="{{id}}"><i class="material-icons left">edit</i></a>
+            <a class="fr-small btn app-group-remove-btn" data-group-id="{{id}}">Delete</a>
+            <a class="fr-large btn app-group-remove-btn" data-group-id="{{id}}"><i class="material-icons left">delete</i></a>
         </div>
     </div>
 </li>
