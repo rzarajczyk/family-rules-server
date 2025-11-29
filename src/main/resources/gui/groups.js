@@ -209,10 +209,10 @@ document.addEventListener("DOMContentLoaded", (event) => {
                                     <span class="modal-app-info">
                                         <img src="${app.iconBase64 ? 'data:image/png;base64,' + app.iconBase64 : 'default-icon.png'}" 
                                              alt="${app.name}" 
-                                             class="modal-app-icon circle">
+                                             class="modal-app-icon">
                                         <div class="modal-app-details">
                                             <span class="modal-app-name">${app.name}</span>
-                                            <!--<span class="modal-app-path">${app.packageName}</span>-->
+                                            <span class="modal-app-path">${app.packageName}</span>
                                         </div>
                                     </span>
                                 </label>
