@@ -13,6 +13,15 @@ document.addEventListener("DOMContentLoaded", (event) => {
     // Initialize modal
     const modal = document.getElementById('all-apps-modal');
     M.Modal.init(modal, {});
+    
+    const groupStatesModal = document.getElementById('group-states-modal');
+    M.Modal.init(groupStatesModal, {});
+    
+    const editStateModal = document.getElementById('edit-state-modal');
+    M.Modal.init(editStateModal, {});
+    
+    const applyGroupStateModal = document.getElementById('apply-group-state-modal');
+    M.Modal.init(applyGroupStateModal, {});
 
     function onDateChanged() {
         console.log('date changed')
@@ -37,33 +46,50 @@ document.addEventListener("DOMContentLoaded", (event) => {
             return;
         }
 
-        // Load the template
-        Handlebars.fetchTemplate('./app-group-collapsible.handlebars')
-            .then(([template]) => {
-                // Apps are already sorted by the server, so we can use them directly
-                const html = statisticsResponse.groups.map(group => template(group)).join('');
-                appGroupsContainer.innerHTML = html;
+        // Fetch group states count for each group
+        const statePromises = statisticsResponse.groups.map(group => 
+            ServerRequest.fetch(`/bff/app-groups/${group.id}/states`)
+                .then(response => response.json())
+                .then(data => {
+                    group.hasStates = data.states && data.states.length > 0;
+                    return group;
+                })
+                .catch(error => {
+                    console.error(`Error fetching states for group ${group.id}:`, error);
+                    group.hasStates = false;
+                    return group;
+                })
+        );
 
-                // Initialize Materialize collapsibles
-                try {
-                    M.Collapsible.init(appGroupsContainer, {});
-                } catch (collapsibleError) {
-                    console.error('Error initializing collapsibles:', collapsibleError);
-                }
+        Promise.all(statePromises).then(() => {
+            // Load the template
+            Handlebars.fetchTemplate('./app-group-collapsible.handlebars')
+                .then(([template]) => {
+                    // Apps are already sorted by the server, so we can use them directly
+                    const html = statisticsResponse.groups.map(group => template(group)).join('');
+                    appGroupsContainer.innerHTML = html;
 
-                // Initialize remove group button handlers
-                initializeAppGroupHandlers();
+                    // Initialize Materialize collapsibles
+                    try {
+                        M.Collapsible.init(appGroupsContainer, {});
+                    } catch (collapsibleError) {
+                        console.error('Error initializing collapsibles:', collapsibleError);
+                    }
 
-                // Initialize clickable app names
-                initializeClickableAppNames();
+                    // Initialize remove group button handlers
+                    initializeAppGroupHandlers();
 
-                // Show content after successful render
-                showContent();
-            })
-            .catch(templateError => {
-                console.error('Error loading template:', templateError);
-                showError('Failed to load app groups template. Please try again.');
-            });
+                    // Initialize clickable app names
+                    initializeClickableAppNames();
+
+                    // Show content after successful render
+                    showContent();
+                })
+                .catch(templateError => {
+                    console.error('Error loading template:', templateError);
+                    showError('Failed to load app groups template. Please try again.');
+                });
+        });
     }
 
     function initializeAppGroupHandlers() {
@@ -94,6 +120,22 @@ document.addEventListener("DOMContentLoaded", (event) => {
                 e.stopPropagation();
                 const groupId = this.dataset.groupId;
                 showAllAppsModal(groupId);
+            });
+        });
+        
+        document.querySelectorAll('.app-group-states-btn').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const groupId = this.dataset.groupId;
+                showGroupStatesModal(groupId);
+            });
+        });
+        
+        document.querySelectorAll('.change-group-state').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const groupId = this.dataset.groupId;
+                showApplyGroupStateModal(groupId);
             });
         });
     }
@@ -409,4 +451,305 @@ function toggleAppNameDisplay(element) {
         element.textContent = appPath;
         element.classList.add('showing-path');
     }
+}
+
+// Group States functionality
+let currentGroupIdForStates = null;
+let currentDevicesForStates = null;
+let currentStates = null;
+let currentEditingStateId = null;
+
+function showGroupStatesModal(groupId) {
+    currentGroupIdForStates = groupId;
+    
+    // Show loading state
+    document.getElementById('states-modal-loading').style.display = 'block';
+    document.getElementById('states-modal-content').style.display = 'none';
+    
+    // Open modal
+    const modalInstance = M.Modal.getInstance(document.getElementById('group-states-modal'));
+    modalInstance.open();
+    
+    // Load states and devices in parallel
+    Promise.all([
+        ServerRequest.fetch(`/bff/app-groups/${groupId}/states`).then(r => r.json()),
+        ServerRequest.fetch(`/bff/app-groups/${groupId}/devices-for-states`).then(r => r.json())
+    ])
+    .then(([statesData, devicesData]) => {
+        currentStates = statesData.states;
+        currentDevicesForStates = devicesData.devices;
+        renderGroupStatesModal(statesData.states, devicesData.devices);
+    })
+    .catch(error => {
+        console.error('Error loading group states:', error);
+        document.getElementById('states-modal-loading').style.display = 'none';
+        document.getElementById('states-modal-content').innerHTML = 
+            '<p class="no-states-message">Failed to load group states. Please try again.</p>';
+        document.getElementById('states-modal-content').style.display = 'block';
+    });
+}
+
+function renderGroupStatesModal(states, devices) {
+    const content = document.getElementById('states-modal-content');
+    let html = '';
+    
+    if (states.length === 0) {
+        html = '<p class="no-states-message">No group states defined yet. Click "Add New State" to create one.</p>';
+    } else {
+        states.forEach(state => {
+            html += `
+                <div class="group-state-item">
+                    <div class="group-state-info">
+                        <div class="group-state-name">${state.name}</div>
+                        <div class="group-state-devices">
+                            ${formatStateDevices(state, devices)}
+                        </div>
+                    </div>
+                    <div class="group-state-actions">
+                        <a class="btn-small" onclick="editGroupState('${state.id}')">
+                            <i class="material-icons">edit</i>
+                        </a>
+                        <a class="btn-small red" onclick="deleteGroupState('${state.id}')">
+                            <i class="material-icons">delete</i>
+                        </a>
+                    </div>
+                </div>
+            `;
+        });
+    }
+    
+    content.innerHTML = html;
+    document.getElementById('states-modal-loading').style.display = 'none';
+    content.style.display = 'block';
+    
+    // Setup add button handler
+    document.getElementById('states-add-btn').onclick = () => addNewGroupState();
+}
+
+function formatStateDevices(state, devices) {
+    const deviceEntries = Object.entries(state.deviceStates);
+    if (deviceEntries.length === 0) {
+        return '<em>No devices configured</em>';
+    }
+    
+    return deviceEntries.map(([deviceId, deviceState]) => {
+        const device = devices.find(d => d.deviceId === deviceId);
+        const deviceName = device ? device.deviceName : 'Unknown Device';
+        return `<span class="group-state-device"><strong>${deviceName}:</strong> ${deviceState.deviceState}</span>`;
+    }).join('');
+}
+
+function addNewGroupState() {
+    currentEditingStateId = null;
+    showEditStateModal('New Group State', '', {});
+}
+
+function editGroupState(stateId) {
+    currentEditingStateId = stateId;
+    const state = currentStates.find(s => s.id === stateId);
+    if (state) {
+        showEditStateModal('Edit Group State', state.name, state.deviceStates);
+    }
+}
+
+function showEditStateModal(title, stateName, deviceStates) {
+    document.getElementById('edit-state-modal-title').textContent = title;
+    const nameInput = document.getElementById('state-name-input');
+    nameInput.value = stateName;
+    
+    // Update label
+    const label = nameInput.nextElementSibling;
+    if (stateName) {
+        label.classList.add('active');
+    } else {
+        label.classList.remove('active');
+    }
+    
+    // Render device state selectors
+    renderDeviceStateSelectors(deviceStates);
+    
+    // Setup save button
+    document.getElementById('edit-state-save-btn').onclick = () => saveGroupState();
+    
+    // Open modal
+    const modalInstance = M.Modal.getInstance(document.getElementById('edit-state-modal'));
+    modalInstance.open();
+}
+
+function renderDeviceStateSelectors(deviceStates) {
+    const container = document.getElementById('device-states-list');
+    let html = '';
+    
+    if (!currentDevicesForStates || currentDevicesForStates.length === 0) {
+        html = '<p style="color: var(--md-sys-color-on-surface-variant);">No devices available</p>';
+    } else {
+        currentDevicesForStates.forEach(device => {
+            const currentState = deviceStates[device.deviceId];
+            const currentStateValue = currentState ? currentState.deviceState : '';
+            
+            html += `
+                <div class="device-state-selector">
+                    <h6>${device.deviceName}</h6>
+                    <select class="browser-default device-state-select" data-device-id="${device.deviceId}">
+                        <option value="">-- Not Set --</option>
+            `;
+            
+            device.availableStates.forEach(state => {
+                const selected = state.deviceState === currentStateValue ? 'selected' : '';
+                html += `<option value="${state.deviceState}" ${selected}>${state.title || state.deviceState}</option>`;
+            });
+            
+            html += `
+                    </select>
+                </div>
+            `;
+        });
+    }
+    
+    container.innerHTML = html;
+}
+
+function saveGroupState() {
+    const name = document.getElementById('state-name-input').value.trim();
+    if (!name) {
+        alert('Please enter a state name');
+        return;
+    }
+    
+    // Collect device states
+    const deviceStates = {};
+    document.querySelectorAll('.device-state-select').forEach(select => {
+        const deviceId = select.dataset.deviceId;
+        const stateValue = select.value;
+        if (stateValue) {
+            deviceStates[deviceId] = {
+                deviceState: stateValue,
+                extra: null
+            };
+        }
+    });
+    
+    const requestBody = {
+        name: name,
+        deviceStates: deviceStates
+    };
+    
+    let promise;
+    if (currentEditingStateId) {
+        // Update existing state
+        promise = ServerRequest.fetch(`/bff/app-groups/${currentGroupIdForStates}/states/${currentEditingStateId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestBody)
+        });
+    } else {
+        // Create new state
+        promise = ServerRequest.fetch(`/bff/app-groups/${currentGroupIdForStates}/states`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestBody)
+        });
+    }
+    
+    promise
+        .then(response => response.json())
+        .then(data => {
+            // Close edit modal
+            const editModalInstance = M.Modal.getInstance(document.getElementById('edit-state-modal'));
+            editModalInstance.close();
+            
+            // Refresh the states list
+            showGroupStatesModal(currentGroupIdForStates);
+        })
+        .catch(error => {
+            console.error('Error saving group state:', error);
+            alert('Failed to save group state');
+        });
+}
+
+function deleteGroupState(stateId) {
+    if (!confirm('Are you sure you want to delete this group state?')) {
+        return;
+    }
+    
+    ServerRequest.fetch(`/bff/app-groups/${currentGroupIdForStates}/states/${stateId}`, {
+        method: 'DELETE'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Refresh the states list
+            showGroupStatesModal(currentGroupIdForStates);
+        } else {
+            console.error('Failed to delete group state');
+            alert('Failed to delete group state');
+        }
+    })
+    .catch(error => {
+        console.error('Error deleting group state:', error);
+        alert('Error deleting group state');
+    });
+}
+
+function showApplyGroupStateModal(groupId) {
+    // Get group name from the DOM
+    const groupElement = document.querySelector(`[data-group-id="${groupId}"]`);
+    const groupName = groupElement ? groupElement.querySelector('.fr-name-text').textContent : 'App Group';
+    
+    // Fetch group states
+    ServerRequest.fetch(`/bff/app-groups/${groupId}/states`)
+        .then(response => response.json())
+        .then(data => {
+            // Load the template
+            return Handlebars.fetchTemplate('./apply-group-state.handlebars')
+                .then(([template]) => {
+                    const modalContent = document.querySelector('#apply-group-state-modal .modal-content');
+                    modalContent.innerHTML = template({
+                        groupId: groupId,
+                        groupName: groupName,
+                        states: data.states
+                    });
+                    
+                    // Setup click handlers for each state
+                    modalContent.querySelectorAll('a[data-state-id]').forEach(link => {
+                        link.addEventListener('click', (e) => {
+                            e.preventDefault();
+                            const stateId = link.dataset.stateId;
+                            const groupId = link.dataset.groupId;
+                            applyGroupState(groupId, stateId);
+                        });
+                    });
+                    
+                    // Open modal
+                    const modalInstance = M.Modal.getInstance(document.getElementById('apply-group-state-modal'));
+                    modalInstance.open();
+                });
+        })
+        .catch(error => {
+            console.error('Error loading group states:', error);
+            alert('Failed to load group states');
+        });
+}
+
+function applyGroupState(groupId, stateId) {
+    ServerRequest.fetch(`/bff/app-groups/${groupId}/apply-state/${stateId}`, {
+        method: 'POST'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            Toast.info(`Group state applied to ${data.appliedDevices} device(s)`);
+            // Close modal
+            const modalInstance = M.Modal.getInstance(document.getElementById('apply-group-state-modal'));
+            modalInstance.close();
+            // Optionally refresh the devices page or provide feedback
+        } else {
+            console.error('Failed to apply group state');
+            alert('Failed to apply group state');
+        }
+    })
+    .catch(error => {
+        console.error('Error applying group state:', error);
+        alert('Error applying group state');
+    });
 }

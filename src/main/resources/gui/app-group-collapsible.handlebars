@@ -60,10 +60,13 @@
         <div class="fr-buttons-row app-group-actions">
             <a class="fr-large outlined btn app-group-all-apps-btn" data-group-id="{{id}}"><i class="material-icons left">apps</i>Select Apps</a>
             <a class="fr-small btn app-group-all-apps-btn" data-group-id="{{id}}">Select Apps</a>
+            <a class="fr-large btn app-group-states-btn" data-group-id="{{id}}"><i class="material-icons left">settings</i></a>
+            <a class="fr-small btn app-group-states-btn" data-group-id="{{id}}">Define states</a>
             <a class="fr-small btn app-group-rename-btn" data-group-id="{{id}}">Rename</a>
             <a class="fr-large btn app-group-rename-btn" data-group-id="{{id}}"><i class="material-icons left">edit</i></a>
             <a class="fr-small btn app-group-remove-btn" data-group-id="{{id}}">Delete</a>
             <a class="fr-large btn app-group-remove-btn" data-group-id="{{id}}"><i class="material-icons left">delete</i></a>
+            <a class="btn outlined right change-group-state" data-group-id="{{id}}" {{#unless hasStates}}disabled{{/unless}}>Change group state</a>
         </div>
     </div>
 </li>

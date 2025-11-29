@@ -307,6 +307,107 @@
             opacity: 0.5;
             cursor: not-allowed;
         }
+        
+        /* Group States Modal Styles */
+        #group-states-modal {
+            max-height: 90%;
+            width: 60%;
+        }
+        
+        @media only screen and (max-width: 992px) {
+            #group-states-modal {
+                width: 80%;
+            }
+        }
+        
+        @media only screen and (max-width: 600px) {
+            #group-states-modal {
+                width: 95%;
+            }
+        }
+        
+        .group-state-item {
+            padding: 1rem;
+            margin: 0.5rem 0;
+            border: 1px solid var(--md-sys-color-outline-variant);
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background-color 0.2s;
+        }
+        
+        .group-state-item:hover {
+            background-color: rgba(0, 0, 0, 0.02);
+        }
+        
+        .group-state-info {
+            flex: 1;
+        }
+        
+        .group-state-name {
+            font-weight: 500;
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .group-state-devices {
+            color: var(--md-sys-color-on-surface-variant);
+            font-size: 0.9rem;
+        }
+        
+        .group-state-device {
+            display: inline-block;
+            margin-right: 1rem;
+            margin-bottom: 0.25rem;
+        }
+        
+        .group-state-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .no-states-message {
+            text-align: center;
+            padding: 2rem;
+            color: var(--md-sys-color-on-surface-variant);
+        }
+        
+        /* Edit State Modal Styles */
+        #edit-state-modal {
+            max-height: 90%;
+            width: 50%;
+        }
+        
+        @media only screen and (max-width: 992px) {
+            #edit-state-modal {
+                width: 70%;
+            }
+        }
+        
+        @media only screen and (max-width: 600px) {
+            #edit-state-modal {
+                width: 95%;
+            }
+        }
+        
+        .device-state-selector {
+            margin-bottom: 1.5rem;
+            padding: 1rem;
+            border: 1px solid var(--md-sys-color-outline-variant);
+            border-radius: 8px;
+        }
+        
+        .device-state-selector h6 {
+            margin-top: 0;
+            margin-bottom: 0.75rem;
+            color: var(--md-sys-color-on-surface);
+            font-size: 1rem;
+        }
+        
+        .device-state-selector select {
+            display: block;
+        }
     </style>
     <!--Let browser know website is optimized for mobile-->
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -360,6 +461,58 @@
     <div class="modal-footer">
         <a href="#!" class="modal-close waves-effect waves-light btn-flat">Cancel</a>
         <a href="#!" id="modal-save-btn" class="waves-effect waves-light btn">Save Changes</a>
+    </div>
+</div>
+
+<!-- Group States Modal -->
+<div id="group-states-modal" class="modal modal-fixed-footer">
+    <div class="modal-content">
+        <h4 id="states-modal-title">Define Group States</h4>
+        <div id="states-modal-loading" style="display: none;">
+            <div class="center-align" style="padding: 2rem;">
+                <div class="preloader-wrapper small active">
+                    <div class="spinner-layer spinner-blue-only">
+                        <div class="circle-clipper left"><div class="circle"></div></div>
+                        <div class="circle-clipper right"><div class="circle"></div></div>
+                    </div>
+                </div>
+                <p>Loading states...</p>
+            </div>
+        </div>
+        <div id="states-modal-content">
+            <!-- States will be loaded here -->
+        </div>
+    </div>
+    <div class="modal-footer">
+        <a href="#!" class="modal-close waves-effect waves-light btn-flat">Close</a>
+        <a href="#!" id="states-add-btn" class="waves-effect waves-light btn">Add New State</a>
+    </div>
+</div>
+
+<!-- Edit/Create Group State Modal -->
+<div id="edit-state-modal" class="modal modal-fixed-footer">
+    <div class="modal-content">
+        <h4 id="edit-state-modal-title">Edit Group State</h4>
+        <div class="input-field">
+            <input id="state-name-input" type="text" required>
+            <label for="state-name-input">State Name</label>
+        </div>
+        <h6>Device States</h6>
+        <div id="device-states-list">
+            <!-- Device state selections will be loaded here -->
+        </div>
+    </div>
+    <div class="modal-footer">
+        <a href="#!" class="modal-close waves-effect waves-light btn-flat">Cancel</a>
+        <a href="#!" id="edit-state-save-btn" class="waves-effect waves-light btn">Save</a>
+    </div>
+</div>
+
+<!-- Apply Group State Modal -->
+<div id="apply-group-state-modal" class="modal modal-fixed-footer">
+    <div class="modal-content"></div>
+    <div class="modal-footer">
+        <a href="#!" class="modal-close waves-effect btn-flat">Cancel</a>
     </div>
 </div>
 

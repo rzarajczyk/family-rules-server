@@ -111,6 +111,8 @@ class AppGroupService(private val devicesRepository: DevicesRepository, private 
 }
 
 interface AppGroup {
+    fun asRef(): AppGroupRef
+    
     fun fetchDetails(): AppGroupDetails
 
     fun delete()
@@ -130,6 +132,8 @@ data class RefBasedAppGroup(
     val appGroupRef: AppGroupRef,
     private val appGroupRepository: AppGroupRepository
 ) : AppGroup {
+    override fun asRef(): AppGroupRef = appGroupRef
+    
     override fun fetchDetails(): AppGroupDetails {
         return appGroupRepository.fetchDetails(appGroupRef).let {
             AppGroupDetails(it.id, it.name, it.color)
