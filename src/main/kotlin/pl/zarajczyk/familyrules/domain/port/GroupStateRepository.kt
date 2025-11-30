@@ -4,11 +4,11 @@ import pl.zarajczyk.familyrules.domain.DeviceId
 import java.util.*
 
 interface GroupStateRepository {
-    fun create(appGroupRef: AppGroupRef, stateId: String, name: String, deviceStates: Map<DeviceId, DeviceStateDto>): GroupStateRef
+    fun create(appGroupRef: AppGroupRef, stateId: String, name: String, deviceStates: Map<DeviceId, DeviceStateDto?>): GroupStateRef
     fun get(appGroupRef: AppGroupRef, stateId: String): GroupStateRef?
     fun getAll(appGroupRef: AppGroupRef): List<GroupStateRef>
     fun fetchDetails(groupStateRef: GroupStateRef): pl.zarajczyk.familyrules.domain.GroupStateDetails
-    fun update(groupStateRef: GroupStateRef, name: String, deviceStates: Map<DeviceId, DeviceStateDto>)
+    fun update(groupStateRef: GroupStateRef, name: String, deviceStates: Map<DeviceId, DeviceStateDto?>)
     fun delete(groupStateRef: GroupStateRef)
 }
 

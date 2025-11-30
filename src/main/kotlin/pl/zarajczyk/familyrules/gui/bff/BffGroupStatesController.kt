@@ -28,6 +28,8 @@ class BffGroupStatesController(
         val details = state.fetchDetails()
         
         // Apply each device state from the group state
+        // null means "Automatic" (set forcedDeviceState to null)
+        // missing from map means "Do not change" (skip the device)
         details.deviceStates.forEach { (deviceId, deviceState) ->
             val device = devicesService.get(deviceId)
             device.update(DeviceDetailsUpdateDto(
@@ -145,12 +147,12 @@ data class GetGroupStatesResponse(
 data class GroupStateDto(
     val id: String,
     val name: String,
-    val deviceStates: Map<String, DeviceStateDto>
+    val deviceStates: Map<String, DeviceStateDto?>
 )
 
 data class CreateGroupStateRequest(
     val name: String,
-    val deviceStates: Map<String, DeviceStateDto>
+    val deviceStates: Map<String, DeviceStateDto?>
 )
 
 data class CreateGroupStateResponse(
@@ -159,7 +161,7 @@ data class CreateGroupStateResponse(
 
 data class UpdateGroupStateRequest(
     val name: String,
-    val deviceStates: Map<String, DeviceStateDto>
+    val deviceStates: Map<String, DeviceStateDto?>
 )
 
 data class UpdateGroupStateResponse(

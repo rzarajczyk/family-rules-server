@@ -3,15 +3,11 @@
     <p>Select a group state to apply. This will set all devices in the group according to the selected state configuration.</p>
     <div class="collection">
         {{#each states}}
-            <a class="collection-item avatar" href="#!" data-state-id="{{id}}" data-group-id="{{../groupId}}">
+            <a class="collection-item avatar apply-state-item" href="#!" data-state-id="{{id}}" data-group-id="{{../groupId}}">
                 <i class="material-icons circle">settings</i>
                 <span class="title">{{name}}</span>
-                <p class="pt-1">
-                    {{#each deviceStates}}
-                        <span class="chip" style="margin: 2px 4px 2px 0;">
-                            <span style="font-size: 0.8rem;">{{@key}}: {{deviceState}}</span>
-                        </span>
-                    {{/each}}
+                <p class="pt-1 state-devices-container">
+                    <!-- Device states will be rendered by JavaScript -->
                 </p>
             </a>
         {{/each}}

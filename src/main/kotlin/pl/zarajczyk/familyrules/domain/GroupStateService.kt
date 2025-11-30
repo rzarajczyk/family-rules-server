@@ -8,7 +8,7 @@ import java.util.*
 class GroupStateService(
     private val groupStateRepository: GroupStateRepository
 ) {
-    fun createGroupState(appGroup: AppGroup, name: String, deviceStates: Map<DeviceId, DeviceStateDto>): GroupState {
+    fun createGroupState(appGroup: AppGroup, name: String, deviceStates: Map<DeviceId, DeviceStateDto?>): GroupState {
         val stateId = UUID.randomUUID().toString()
         val groupStateRef = groupStateRepository.create(appGroup.asRef(), stateId, name, deviceStates)
         return RefBasedGroupState(groupStateRef, groupStateRepository)
@@ -29,7 +29,7 @@ class GroupStateService(
 interface GroupState {
     fun asRef(): GroupStateRef
     fun fetchDetails(): GroupStateDetails
-    fun update(name: String, deviceStates: Map<DeviceId, DeviceStateDto>)
+    fun update(name: String, deviceStates: Map<DeviceId, DeviceStateDto?>)
     fun delete()
 }
 
@@ -43,7 +43,7 @@ data class RefBasedGroupState(
         return groupStateRepository.fetchDetails(groupStateRef)
     }
 
-    override fun update(name: String, deviceStates: Map<DeviceId, DeviceStateDto>) {
+    override fun update(name: String, deviceStates: Map<DeviceId, DeviceStateDto?>) {
         groupStateRepository.update(groupStateRef, name, deviceStates)
     }
 
@@ -55,7 +55,7 @@ data class RefBasedGroupState(
 data class GroupStateDetails(
     val id: String,
     val name: String,
-    val deviceStates: Map<DeviceId, DeviceStateDto>
+    val deviceStates: Map<DeviceId, DeviceStateDto?>
 )
 
 class GroupStateNotFoundException(stateId: String) : RuntimeException("GroupState with id $stateId not found")

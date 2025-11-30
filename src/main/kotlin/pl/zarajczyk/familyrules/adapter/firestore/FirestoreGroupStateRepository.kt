@@ -18,7 +18,7 @@ class FirestoreGroupStateRepository : GroupStateRepository {
         appGroupRef: AppGroupRef,
         stateId: String,
         name: String,
-        deviceStates: Map<DeviceId, DeviceStateDto>
+        deviceStates: Map<DeviceId, DeviceStateDto?>
     ): GroupStateRef {
         val stateData = mapOf(
             "id" to stateId,
@@ -68,7 +68,7 @@ class FirestoreGroupStateRepository : GroupStateRepository {
     override fun update(
         groupStateRef: GroupStateRef,
         name: String,
-        deviceStates: Map<DeviceId, DeviceStateDto>
+        deviceStates: Map<DeviceId, DeviceStateDto?>
     ) {
         val updateData = mapOf(
             "name" to name,
@@ -81,13 +81,13 @@ class FirestoreGroupStateRepository : GroupStateRepository {
         (groupStateRef as FirestoreGroupStateRef).ref.delete().get()
     }
 
-    private fun encodeDeviceStatesMap(deviceStates: Map<DeviceId, DeviceStateDto>): String {
+    private fun encodeDeviceStatesMap(deviceStates: Map<DeviceId, DeviceStateDto?>): String {
         val stringMap = deviceStates.mapKeys { it.key.toString() }
         return json.encodeToString(stringMap)
     }
 
-    private fun decodeDeviceStatesMap(encoded: String): Map<DeviceId, DeviceStateDto> {
-        val stringMap = json.decodeFromString<Map<String, DeviceStateDto>>(encoded)
+    private fun decodeDeviceStatesMap(encoded: String): Map<DeviceId, DeviceStateDto?> {
+        val stringMap = json.decodeFromString<Map<String, DeviceStateDto?>>(encoded)
         return stringMap.mapKeys { UUID.fromString(it.key) }
     }
 }

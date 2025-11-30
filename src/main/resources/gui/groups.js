@@ -535,7 +535,8 @@ function formatStateDevices(state, devices) {
     return deviceEntries.map(([deviceId, deviceState]) => {
         const device = devices.find(d => d.deviceId === deviceId);
         const deviceName = device ? device.deviceName : 'Unknown Device';
-        return `<span class="group-state-device"><strong>${deviceName}:</strong> ${deviceState.deviceState}</span>`;
+        const stateName = deviceState === null ? 'Automatic' : deviceState.deviceState;
+        return `<span class="group-state-device"><strong>${deviceName}:</strong> ${stateName}</span>`;
     }).join('');
 }
 
@@ -585,13 +586,23 @@ function renderDeviceStateSelectors(deviceStates) {
     } else {
         currentDevicesForStates.forEach(device => {
             const currentState = deviceStates[device.deviceId];
-            const currentStateValue = currentState ? currentState.deviceState : '';
+            let currentStateValue = '';
+            
+            // Check if device is in the map
+            if (device.deviceId in deviceStates) {
+                // Device is in map - check if it's null (Automatic) or has a value
+                currentStateValue = currentState === null ? '__AUTOMATIC__' : (currentState ? currentState.deviceState : '');
+            } else {
+                // Device is not in map - Do not change
+                currentStateValue = '';
+            }
             
             html += `
                 <div class="device-state-selector">
                     <h6>${device.deviceName}</h6>
                     <select class="browser-default device-state-select" data-device-id="${device.deviceId}">
-                        <option value="">-- Not Set --</option>
+                        <option value="">-- Do not change --</option>
+                        <option value="__AUTOMATIC__" ${currentStateValue === '__AUTOMATIC__' ? 'selected' : ''}>Automatic</option>
             `;
             
             device.availableStates.forEach(state => {
@@ -621,12 +632,18 @@ function saveGroupState() {
     document.querySelectorAll('.device-state-select').forEach(select => {
         const deviceId = select.dataset.deviceId;
         const stateValue = select.value;
-        if (stateValue) {
+        
+        if (stateValue === '__AUTOMATIC__') {
+            // Automatic - set to null
+            deviceStates[deviceId] = null;
+        } else if (stateValue !== '') {
+            // Specific state
             deviceStates[deviceId] = {
                 deviceState: stateValue,
                 extra: null
             };
         }
+        // Empty value means "Do not change" - don't add to map
     });
     
     const requestBody = {
@@ -696,39 +713,58 @@ function showApplyGroupStateModal(groupId) {
     const groupElement = document.querySelector(`[data-group-id="${groupId}"]`);
     const groupName = groupElement ? groupElement.querySelector('.fr-name-text').textContent : 'App Group';
     
-    // Fetch group states
-    ServerRequest.fetch(`/bff/app-groups/${groupId}/states`)
-        .then(response => response.json())
-        .then(data => {
-            // Load the template
-            return Handlebars.fetchTemplate('./apply-group-state.handlebars')
-                .then(([template]) => {
-                    const modalContent = document.querySelector('#apply-group-state-modal .modal-content');
-                    modalContent.innerHTML = template({
-                        groupId: groupId,
-                        groupName: groupName,
-                        states: data.states
-                    });
-                    
-                    // Setup click handlers for each state
-                    modalContent.querySelectorAll('a[data-state-id]').forEach(link => {
-                        link.addEventListener('click', (e) => {
-                            e.preventDefault();
-                            const stateId = link.dataset.stateId;
-                            const groupId = link.dataset.groupId;
-                            applyGroupState(groupId, stateId);
-                        });
-                    });
-                    
-                    // Open modal
-                    const modalInstance = M.Modal.getInstance(document.getElementById('apply-group-state-modal'));
-                    modalInstance.open();
+    // Fetch group states and devices in parallel
+    Promise.all([
+        ServerRequest.fetch(`/bff/app-groups/${groupId}/states`).then(r => r.json()),
+        ServerRequest.fetch(`/bff/app-groups/${groupId}/devices-for-states`).then(r => r.json())
+    ])
+    .then(([statesData, devicesData]) => {
+        // Load the template
+        return Handlebars.fetchTemplate('./apply-group-state.handlebars')
+            .then(([template]) => {
+                const modalContent = document.querySelector('#apply-group-state-modal .modal-content');
+                modalContent.innerHTML = template({
+                    groupId: groupId,
+                    groupName: groupName,
+                    states: statesData.states
                 });
-        })
-        .catch(error => {
-            console.error('Error loading group states:', error);
-            alert('Failed to load group states');
-        });
+                
+                // Render device states for each state item
+                modalContent.querySelectorAll('.apply-state-item').forEach((item, index) => {
+                    const state = statesData.states[index];
+                    const container = item.querySelector('.state-devices-container');
+                    if (state && state.deviceStates) {
+                        const deviceStatesHtml = Object.entries(state.deviceStates).map(([deviceId, deviceState]) => {
+                            const device = devicesData.devices.find(d => d.deviceId === deviceId);
+                            const deviceName = device ? device.deviceName : 'Unknown Device';
+                            const stateName = deviceState === null ? 'Automatic' : deviceState.deviceState;
+                            return `<span class="chip" style="margin: 2px 4px 2px 0;">
+                                <span style="font-size: 0.8rem;">${deviceName}: ${stateName}</span>
+                            </span>`;
+                        }).join('');
+                        container.innerHTML = deviceStatesHtml;
+                    }
+                });
+                
+                // Setup click handlers for each state
+                modalContent.querySelectorAll('a[data-state-id]').forEach(link => {
+                    link.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        const stateId = link.dataset.stateId;
+                        const groupId = link.dataset.groupId;
+                        applyGroupState(groupId, stateId);
+                    });
+                });
+                
+                // Open modal
+                const modalInstance = M.Modal.getInstance(document.getElementById('apply-group-state-modal'));
+                modalInstance.open();
+            });
+    })
+    .catch(error => {
+        console.error('Error loading group states:', error);
+        alert('Failed to load group states');
+    });
 }
 
 function applyGroupState(groupId, stateId) {
