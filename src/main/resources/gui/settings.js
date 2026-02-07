@@ -1,6 +1,4 @@
 document.addEventListener("DOMContentLoaded", (event) => {
-    M.AutoInit();
-
     // Password change form elements
     const passwordForm = document.getElementById('password-change-form');
     const successMessage = document.getElementById('success-message');
@@ -16,9 +14,17 @@ document.addEventListener("DOMContentLoaded", (event) => {
     const webhookErrorText = document.getElementById('webhook-error-text');
     const viewWebhookHistoryBtn = document.getElementById('view-webhook-history-btn');
 
-    // Initialize modal
+    // Initialize modal with options
     const webhookHistoryModalElem = document.getElementById('webhook-history-modal');
-    const webhookHistoryModal = M.Modal.init(webhookHistoryModalElem);
+    const webhookHistoryModal = M.Modal.init(webhookHistoryModalElem, {
+        dismissible: true,
+        onCloseEnd: function() {
+            // Modal closed
+        }
+    });
+
+    // Initialize other Materialize components
+    M.AutoInit();
 
     // Load webhook settings on page load
     loadWebhookSettings();
@@ -168,6 +174,13 @@ document.addEventListener("DOMContentLoaded", (event) => {
     viewWebhookHistoryBtn.addEventListener('click', async () => {
         webhookHistoryModal.open();
         await loadWebhookCallHistory();
+    });
+
+    // Webhook history close button click
+    const webhookHistoryCloseBtn = document.getElementById('webhook-history-close-btn');
+    webhookHistoryCloseBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        webhookHistoryModal.close();
     });
 
     async function loadWebhookCallHistory() {
