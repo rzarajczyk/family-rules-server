@@ -8,6 +8,7 @@ interface UsersRepository {
     fun getAll(): List<UserRef>
     fun fetchDetails(user: UserRef, includePasswordHash: Boolean = false): UserDetailsDto
     fun update(user: UserRef, newPasswordHash: String)
+    fun updateWebhookSettings(user: UserRef, webhookEnabled: Boolean, webhookUrl: String?)
     fun delete(user: UserRef)
 }
 
@@ -19,5 +20,7 @@ interface UserRef
 data class UserDetailsDto(
     val username: String,
     val passwordSha256: String,
-    val accessLevel: AccessLevel = AccessLevel.ADMIN
+    val accessLevel: AccessLevel = AccessLevel.ADMIN,
+    val webhookEnabled: Boolean = false,
+    val webhookUrl: String? = null
 )

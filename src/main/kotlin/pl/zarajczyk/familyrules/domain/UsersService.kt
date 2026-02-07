@@ -40,6 +40,8 @@ interface User {
     fun validatePassword(password: String)
 
     fun changePassword(newPassword: String)
+    
+    fun updateWebhookSettings(webhookEnabled: Boolean, webhookUrl: String?)
 }
 
 data class RefBasedUser(
@@ -50,7 +52,13 @@ data class RefBasedUser(
 
     override fun fetchDetails(): UserDetails {
         return usersRepository.fetchDetails(userRef).let {
-            UserDetails(it.username, it.passwordSha256, it.accessLevel)
+            UserDetails(
+                username = it.username,
+                passwordSha256 = it.passwordSha256,
+                accessLevel = it.accessLevel,
+                webhookEnabled = it.webhookEnabled,
+                webhookUrl = it.webhookUrl
+            )
         }
     }
 
@@ -67,6 +75,10 @@ data class RefBasedUser(
     override fun changePassword(newPassword: String) {
         usersRepository.update(userRef, newPassword.sha256())
     }
+    
+    override fun updateWebhookSettings(webhookEnabled: Boolean, webhookUrl: String?) {
+        usersRepository.updateWebhookSettings(userRef, webhookEnabled, webhookUrl)
+    }
 }
 
 class InvalidPassword : RuntimeException("Invalid password")
@@ -74,5 +86,7 @@ class InvalidPassword : RuntimeException("Invalid password")
 data class UserDetails(
     val username: String,
     val passwordSha256: String,
-    val accessLevel: AccessLevel = AccessLevel.ADMIN
+    val accessLevel: AccessLevel = AccessLevel.ADMIN,
+    val webhookEnabled: Boolean = false,
+    val webhookUrl: String? = null
 )

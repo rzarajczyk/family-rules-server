@@ -32,13 +32,24 @@ class FirestoreUsersRepository(
                 true -> doc.getStringOrThrow("passwordSha256")
                 false -> ""
             },
-            accessLevel = doc.getStringOrThrow("accessLevel").let { AccessLevel.valueOf(it) }
+            accessLevel = doc.getStringOrThrow("accessLevel").let { AccessLevel.valueOf(it) },
+            webhookEnabled = doc.getBoolean("webhookEnabled") ?: false,
+            webhookUrl = doc.getString("webhookUrl")
         )
     }
 
     override fun update(user: UserRef, newPasswordHash: String) {
         val userRef = (user as FirestoreUserRef).doc
         userRef.update("passwordSha256", newPasswordHash).get()
+    }
+
+    override fun updateWebhookSettings(user: UserRef, webhookEnabled: Boolean, webhookUrl: String?) {
+        val userRef = (user as FirestoreUserRef).doc
+        val updates = mutableMapOf<String, Any?>("webhookEnabled" to webhookEnabled)
+        if (webhookUrl != null) {
+            updates["webhookUrl"] = webhookUrl
+        }
+        userRef.update(updates).get()
     }
 
     override fun getAll(): List<UserRef> {

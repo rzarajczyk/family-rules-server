@@ -56,6 +56,35 @@
 
 <div class="settings-container">
     <div class="settings-section">
+        <h4>HomeAssistant Webhook Integration</h4>
+        <div class="password-form">
+            <form id="webhook-settings-form">
+                <p>
+                    <label>
+                        <input type="checkbox" id="webhook-enabled" />
+                        <span>Enable sending updates via webhook</span>
+                    </label>
+                </p>
+                <div class="input-field">
+                    <input id="webhook-url" type="url" class="validate">
+                    <label for="webhook-url">Webhook URL</label>
+                </div>
+                <button class="btn waves-effect waves-light" type="submit">
+                    Save Webhook Settings
+                </button>
+            </form>
+            <div class="success-message" id="webhook-success-message">
+                <i class="material-icons left">check_circle</i>
+                Webhook settings saved successfully!
+            </div>
+            <div class="error-message" id="webhook-error-message">
+                <i class="material-icons left">error</i>
+                <span id="webhook-error-text"></span>
+            </div>
+        </div>
+    </div>
+
+    <div class="settings-section">
         <h4>Change Password</h4>
         <div class="password-form">
             <form id="password-change-form">
