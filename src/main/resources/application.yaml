@@ -22,6 +22,9 @@ database-initialization:
   username: ${ADMIN_USER:admin}
   password: ${ADMIN_PASS:admin}
 
+webhook:
+  scheduler-interval-millis: ${WEBHOOK_SCHEDULER_INTERVAL_MILLIS:30000}
+
 management:
   endpoints:
     web:

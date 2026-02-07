@@ -3,6 +3,7 @@ package pl.zarajczyk.familyrules.adapter.firestore
 import com.google.cloud.firestore.DocumentReference
 import com.google.cloud.firestore.Firestore
 import com.google.cloud.Timestamp
+import kotlinx.datetime.Instant
 import org.springframework.stereotype.Service
 import pl.zarajczyk.familyrules.domain.AccessLevel
 import pl.zarajczyk.familyrules.domain.port.UserDetailsDto
@@ -62,6 +63,16 @@ class FirestoreUsersRepository(
 
     override fun getAll(): List<UserRef> {
         val snapshots = firestore.collection("users").get().get()
+        return snapshots.documents.map { FirestoreUserRef(it.reference) }
+    }
+
+    override fun getUsersWithRecentActivity(since: Instant): List<UserRef> {
+        val timestamp = Timestamp.ofTimeMicroseconds(since.toEpochMilliseconds() * 1000)
+        val snapshots = firestore.collection("users")
+            .whereEqualTo("webhookEnabled", true)
+            .whereGreaterThan("lastActivity", timestamp)
+            .get()
+            .get()
         return snapshots.documents.map { FirestoreUserRef(it.reference) }
     }
 

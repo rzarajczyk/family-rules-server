@@ -1,5 +1,6 @@
 package pl.zarajczyk.familyrules.domain.port
 
+import kotlinx.datetime.Instant
 import pl.zarajczyk.familyrules.domain.AccessLevel
 
 interface UsersRepository {
@@ -10,6 +11,7 @@ interface UsersRepository {
     fun update(user: UserRef, newPasswordHash: String)
     fun updateWebhookSettings(user: UserRef, webhookEnabled: Boolean, webhookUrl: String?)
     fun updateLastActivity(user: UserRef, lastActivityMillis: Long)
+    fun getUsersWithRecentActivity(since: Instant): List<UserRef>
     fun delete(user: UserRef)
 }
 
