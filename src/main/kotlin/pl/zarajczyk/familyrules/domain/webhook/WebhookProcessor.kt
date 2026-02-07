@@ -122,7 +122,7 @@ class WebhookProcessor(
             try {
                 webhookClient.sendWebhook(userDetails.webhookUrl, jsonPayload)
                 statusCode = 200
-                logger.info("Webhook sent successfully for user: {} - payload {}", username, jsonPayload)
+                logger.info("Webhook sent successfully for user: {}", username)
             } catch (e: HttpStatusCodeException) {
                 status = "error"
                 statusCode = e.statusCode.value()
