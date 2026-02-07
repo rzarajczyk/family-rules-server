@@ -3,7 +3,7 @@ HOST="http://localhost:8080"
 INSTANCE_NAME="test-instance"
 CLIENT_TYPE="TEST"
 USER="admin"
-PASS="admin"
+PASS="Kaloryfer456"
 
 curl --header "Content-Type: application/json" \
   --request POST \

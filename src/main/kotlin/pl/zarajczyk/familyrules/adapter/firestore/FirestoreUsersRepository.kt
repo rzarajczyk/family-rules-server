@@ -9,6 +9,7 @@ import pl.zarajczyk.familyrules.domain.AccessLevel
 import pl.zarajczyk.familyrules.domain.port.UserDetailsDto
 import pl.zarajczyk.familyrules.domain.port.UserRef
 import pl.zarajczyk.familyrules.domain.port.UsersRepository
+import pl.zarajczyk.familyrules.domain.port.WebhookCallHistoryEntry
 
 @Service
 class FirestoreUsersRepository(
@@ -67,6 +68,10 @@ class FirestoreUsersRepository(
     }
 
     override fun getUsersWithRecentActivity(since: Instant): List<UserRef> {
+        // REQUIRED FIRESTORE COMPOSITE INDEX:
+        // Collection: users
+        // Fields: webhookEnabled (Ascending), lastActivity (Descending)
+        // This index is defined in firestore.indexes.json
         val timestamp = Timestamp.ofTimeMicroseconds(since.toEpochMilliseconds() * 1000)
         val snapshots = firestore.collection("users")
             .whereEqualTo("webhookEnabled", true)
@@ -74,6 +79,48 @@ class FirestoreUsersRepository(
             .get()
             .get()
         return snapshots.documents.map { FirestoreUserRef(it.reference) }
+    }
+
+    override fun addWebhookCallHistory(user: UserRef, call: WebhookCallHistoryEntry) {
+        val userRef = (user as FirestoreUserRef).doc
+        val historyCollection = userRef.collection("webhookCallHistory")
+        
+        val callData = mapOf(
+            "timestamp" to call.timestamp,
+            "status" to call.status,
+            "statusCode" to call.statusCode,
+            "errorMessage" to call.errorMessage
+        )
+        
+        historyCollection.add(callData).get()
+        
+        // Keep only the last 120 entries
+        val allEntries = historyCollection.orderBy("timestamp", com.google.cloud.firestore.Query.Direction.DESCENDING).get().get()
+        if (allEntries.size() > 120) {
+            // Delete oldest entries
+            allEntries.documents.drop(120).forEach { doc ->
+                doc.reference.delete().get()
+            }
+        }
+    }
+
+    override fun getWebhookCallHistory(user: UserRef): List<WebhookCallHistoryEntry> {
+        val userRef = (user as FirestoreUserRef).doc
+        val historyCollection = userRef.collection("webhookCallHistory")
+        val snapshots = historyCollection
+            .orderBy("timestamp", com.google.cloud.firestore.Query.Direction.DESCENDING)
+            .limit(120)
+            .get()
+            .get()
+        
+        return snapshots.documents.map { doc ->
+            WebhookCallHistoryEntry(
+                timestamp = doc.getLong("timestamp")!!,
+                status = doc.getString("status")!!,
+                statusCode = doc.getLong("statusCode")?.toInt(),
+                errorMessage = doc.getString("errorMessage")
+            )
+        }
     }
 
     override fun delete(user: UserRef) {

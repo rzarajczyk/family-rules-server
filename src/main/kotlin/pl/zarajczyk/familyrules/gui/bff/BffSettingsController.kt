@@ -7,10 +7,12 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RestController
 import pl.zarajczyk.familyrules.domain.InvalidPassword
 import pl.zarajczyk.familyrules.domain.UsersService
+import pl.zarajczyk.familyrules.domain.port.UsersRepository
 
 @RestController
 class BffSettingsController(
-    private val usersService: UsersService
+    private val usersService: UsersService,
+    private val usersRepository: UsersRepository
 ) {
 
     @PostMapping("/bff/change-password")
@@ -62,6 +64,27 @@ class BffSettingsController(
             UpdateWebhookSettingsResponse(success = false, message = "Failed to update webhook settings")
         }
     }
+
+    @GetMapping("/bff/webhook-call-history")
+    fun getWebhookCallHistory(authentication: Authentication): WebhookCallHistoryResponse {
+        return try {
+            val user = usersService.get(authentication.name)
+            val history = usersRepository.getWebhookCallHistory(user.asRef())
+            
+            val calls = history.map { entry ->
+                WebhookCallHistoryItem(
+                    timestamp = entry.timestamp,
+                    status = entry.status,
+                    statusCode = entry.statusCode,
+                    errorMessage = entry.errorMessage
+                )
+            }
+            
+            WebhookCallHistoryResponse(success = true, calls = calls)
+        } catch (e: Exception) {
+            WebhookCallHistoryResponse(success = false, calls = emptyList())
+        }
+    }
 }
 
 data class ChangePasswordRequest(
@@ -88,4 +111,16 @@ data class UpdateWebhookSettingsRequest(
 data class UpdateWebhookSettingsResponse(
     val success: Boolean,
     val message: String
+)
+
+data class WebhookCallHistoryResponse(
+    val success: Boolean,
+    val calls: List<WebhookCallHistoryItem>
+)
+
+data class WebhookCallHistoryItem(
+    val timestamp: Long,
+    val status: String,
+    val statusCode: Int?,
+    val errorMessage: String?
 )

@@ -6,7 +6,10 @@ import jakarta.annotation.PreDestroy
 import kotlinx.datetime.LocalDate
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
+import org.springframework.web.client.HttpStatusCodeException
 import pl.zarajczyk.familyrules.domain.*
+import pl.zarajczyk.familyrules.domain.port.UsersRepository
+import pl.zarajczyk.familyrules.domain.port.WebhookCallHistoryEntry
 import pl.zarajczyk.familyrules.gui.bff.*
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -19,6 +22,7 @@ class WebhookProcessor(
     private val webhookQueue: WebhookQueue,
     private val webhookClient: WebhookClient,
     private val usersService: UsersService,
+    private val usersRepository: UsersRepository,
     private val devicesService: DevicesService,
     private val stateService: StateService,
     private val appGroupService: AppGroupService,
@@ -66,6 +70,10 @@ class WebhookProcessor(
     }
 
     private fun processWebhookForUser(username: String) {
+        var statusCode: Int? = null
+        var errorMessage: String? = null
+        var status = "success"
+        
         try {
             logger.debug("Processing webhook for user: {}", username)
             
@@ -81,12 +89,32 @@ class WebhookProcessor(
             val payload = computeWebhookPayload(user, today)
             val jsonPayload = objectMapper.writeValueAsString(payload)
             
-            webhookClient.sendWebhook(userDetails.webhookUrl, jsonPayload)
-            logger.info("Webhook sent successfully for user: {}", username)
+            try {
+                webhookClient.sendWebhook(userDetails.webhookUrl, jsonPayload)
+                statusCode = 200
+                logger.info("Webhook sent successfully for user: {}", username)
+            } catch (e: HttpStatusCodeException) {
+                status = "error"
+                statusCode = e.statusCode.value()
+                errorMessage = "HTTP ${e.statusCode.value()}: ${e.statusText}"
+                logger.error("HTTP error sending webhook for user: {}", username, e)
+            } catch (e: Exception) {
+                status = "error"
+                errorMessage = e.message ?: "Unknown error"
+                logger.error("Failed to send webhook for user: {}", username, e)
+            } finally {
+                // Record the call history
+                val historyEntry = WebhookCallHistoryEntry(
+                    timestamp = System.currentTimeMillis(),
+                    status = status,
+                    statusCode = statusCode,
+                    errorMessage = errorMessage
+                )
+                usersRepository.addWebhookCallHistory(user.asRef(), historyEntry)
+            }
             
         } catch (e: Exception) {
-            logger.error("Failed to send webhook for user: {}", username, e)
-            // Don't retry, just log and continue
+            logger.error("Failed to process webhook for user: {}", username, e)
         }
     }
 

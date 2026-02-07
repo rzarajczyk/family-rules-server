@@ -23,6 +23,14 @@
         { "fieldPath": "instanceName", "order": "ASCENDING" },
         { "fieldPath": "deleted", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "users",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "webhookEnabled", "order": "ASCENDING" },
+        { "fieldPath": "lastActivity", "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

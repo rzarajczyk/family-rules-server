@@ -35,6 +35,9 @@
         .btn {
             margin-top: 1rem;
         }
+        #view-webhook-history-btn {
+            margin-left: 1rem;
+        }
         .success-message {
             color: var(--md-sys-color-primary);
             margin-top: 1rem;
@@ -44,6 +47,25 @@
             color: var(--md-sys-color-error);
             margin-top: 1rem;
             display: none;
+        }
+        .webhook-history-table {
+            width: 100%;
+            margin-top: 1rem;
+        }
+        .webhook-history-table th {
+            text-align: left;
+            padding: 0.5rem;
+            background: var(--md-sys-color-surface-variant);
+        }
+        .webhook-history-table td {
+            padding: 0.5rem;
+            border-bottom: 1px solid var(--md-sys-color-outline-variant);
+        }
+        .status-success {
+            color: var(--md-sys-color-primary);
+        }
+        .status-error {
+            color: var(--md-sys-color-error);
         }
     </style>
     <!--Let browser know website is optimized for mobile-->
@@ -71,6 +93,10 @@
                 </div>
                 <button class="btn waves-effect waves-light" type="submit">
                     Save Webhook Settings
+                </button>
+                <button class="btn waves-effect waves-light blue" type="button" id="view-webhook-history-btn">
+                    <i class="material-icons left">history</i>
+                    Last Calls
                 </button>
             </form>
             <div class="success-message" id="webhook-success-message">
@@ -113,6 +139,22 @@
                 <span id="error-text"></span>
             </div>
         </div>
+    </div>
+</div>
+
+<!-- Webhook Call History Modal -->
+<div id="webhook-history-modal" class="modal">
+    <div class="modal-content">
+        <h4>Webhook Call History</h4>
+        <p>Last 120 webhook calls</p>
+        <div id="webhook-history-content">
+            <div class="progress">
+                <div class="indeterminate"></div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <a href="#!" class="modal-close waves-effect waves-light btn-flat">Close</a>
     </div>
 </div>
 

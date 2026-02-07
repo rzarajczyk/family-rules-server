@@ -59,7 +59,8 @@ data class RefBasedUser(
                 passwordSha256 = it.passwordSha256,
                 accessLevel = it.accessLevel,
                 webhookEnabled = it.webhookEnabled,
-                webhookUrl = it.webhookUrl
+                webhookUrl = it.webhookUrl,
+                lastActivity = it.lastActivity
             )
         }
     }
@@ -94,5 +95,6 @@ data class UserDetails(
     val passwordSha256: String,
     val accessLevel: AccessLevel = AccessLevel.ADMIN,
     val webhookEnabled: Boolean = false,
-    val webhookUrl: String? = null
+    val webhookUrl: String? = null,
+    val lastActivity: Long? = null
 )

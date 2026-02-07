@@ -14,6 +14,11 @@ document.addEventListener("DOMContentLoaded", (event) => {
     const webhookSuccessMessage = document.getElementById('webhook-success-message');
     const webhookErrorMessage = document.getElementById('webhook-error-message');
     const webhookErrorText = document.getElementById('webhook-error-text');
+    const viewWebhookHistoryBtn = document.getElementById('view-webhook-history-btn');
+
+    // Initialize modal
+    const webhookHistoryModalElem = document.getElementById('webhook-history-modal');
+    const webhookHistoryModal = M.Modal.init(webhookHistoryModalElem);
 
     // Load webhook settings on page load
     loadWebhookSettings();
@@ -158,4 +163,68 @@ document.addEventListener("DOMContentLoaded", (event) => {
             showError('An error occurred while changing password');
         }
     });
+
+    // Webhook history button click
+    viewWebhookHistoryBtn.addEventListener('click', async () => {
+        webhookHistoryModal.open();
+        await loadWebhookCallHistory();
+    });
+
+    async function loadWebhookCallHistory() {
+        const contentDiv = document.getElementById('webhook-history-content');
+        contentDiv.innerHTML = '<div class="progress"><div class="indeterminate"></div></div>';
+
+        try {
+            const response = await ServerRequest.fetch('/bff/webhook-call-history', {
+                method: 'GET'
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                if (data.success && data.calls.length > 0) {
+                    const table = document.createElement('table');
+                    table.className = 'webhook-history-table striped';
+                    
+                    // Table header
+                    const thead = document.createElement('thead');
+                    thead.innerHTML = `
+                        <tr>
+                            <th>Timestamp</th>
+                            <th>Status</th>
+                            <th>Status Code</th>
+                            <th>Error Message</th>
+                        </tr>
+                    `;
+                    table.appendChild(thead);
+                    
+                    // Table body
+                    const tbody = document.createElement('tbody');
+                    data.calls.forEach(call => {
+                        const tr = document.createElement('tr');
+                        const timestamp = new Date(call.timestamp);
+                        const statusClass = call.status === 'success' ? 'status-success' : 'status-error';
+                        
+                        tr.innerHTML = `
+                            <td>${timestamp.toLocaleString()}</td>
+                            <td class="${statusClass}">${call.status}</td>
+                            <td>${call.statusCode || '-'}</td>
+                            <td>${call.errorMessage || '-'}</td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                    table.appendChild(tbody);
+                    
+                    contentDiv.innerHTML = '';
+                    contentDiv.appendChild(table);
+                } else {
+                    contentDiv.innerHTML = '<p>No webhook call history found.</p>';
+                }
+            } else {
+                contentDiv.innerHTML = '<p class="red-text">Failed to load webhook call history.</p>';
+            }
+        } catch (error) {
+            console.error('Error loading webhook call history:', error);
+            contentDiv.innerHTML = '<p class="red-text">An error occurred while loading webhook call history.</p>';
+        }
+    }
 });
