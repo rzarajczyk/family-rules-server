@@ -5,12 +5,16 @@ import jakarta.annotation.PostConstruct
 import jakarta.annotation.PreDestroy
 import kotlinx.datetime.LocalDate
 import org.slf4j.LoggerFactory
+import org.springframework.boot.context.properties.EnableConfigurationProperties
+import org.springframework.context.annotation.Lazy
 import org.springframework.stereotype.Service
 import org.springframework.web.client.HttpStatusCodeException
+import pl.zarajczyk.familyrules.configuration.WebhookProperties
 import pl.zarajczyk.familyrules.domain.*
 import pl.zarajczyk.familyrules.domain.port.UsersRepository
 import pl.zarajczyk.familyrules.domain.port.WebhookCallHistoryEntry
 import pl.zarajczyk.familyrules.gui.bff.*
+import java.util.concurrent.*
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
@@ -18,6 +22,8 @@ import java.util.concurrent.atomic.AtomicBoolean
  * Computes combined status and sends webhook notifications for users.
  */
 @Service
+@Lazy(false)
+@EnableConfigurationProperties(WebhookProperties::class)
 class WebhookProcessor(
     private val webhookQueue: WebhookQueue,
     private val webhookClient: WebhookClient,
@@ -26,26 +32,50 @@ class WebhookProcessor(
     private val devicesService: DevicesService,
     private val stateService: StateService,
     private val appGroupService: AppGroupService,
-    private val objectMapper: ObjectMapper
+    private val objectMapper: ObjectMapper,
+    private val webhookProperties: WebhookProperties
 ) {
     private val logger = LoggerFactory.getLogger(WebhookProcessor::class.java)
     private val running = AtomicBoolean(false)
-    private var processorThread: Thread? = null
+    private var executorService: ExecutorService? = null
 
     @PostConstruct
     fun start() {
         running.set(true)
-        processorThread = Thread(::processQueue, "webhook-processor").apply {
-            isDaemon = true
-            start()
+        
+        // Create thread pool executor with configurable size
+        executorService = ThreadPoolExecutor(
+            webhookProperties.processorThreads,
+            webhookProperties.processorThreads,
+            0L,
+            TimeUnit.MILLISECONDS,
+            LinkedBlockingQueue(),
+            ThreadFactory { runnable ->
+                Thread(runnable, "webhook-processor-${System.nanoTime()}").apply {
+                    isDaemon = true
+                }
+            }
+        )
+        
+        // Submit worker tasks - each thread continuously processes the queue
+        repeat(webhookProperties.processorThreads) {
+            executorService?.submit(::processQueue)
         }
-        logger.info("WebhookProcessor started")
+        
+        logger.info("WebhookProcessor started with {} worker thread(s)", webhookProperties.processorThreads)
     }
 
     @PreDestroy
     fun stop() {
         running.set(false)
-        processorThread?.interrupt()
+        executorService?.shutdown()
+        try {
+            if (executorService?.awaitTermination(5, TimeUnit.SECONDS) == false) {
+                executorService?.shutdownNow()
+            }
+        } catch (e: InterruptedException) {
+            executorService?.shutdownNow()
+        }
         logger.info("WebhookProcessor stopped")
     }
 
@@ -57,10 +87,10 @@ class WebhookProcessor(
                     processWebhookForUser(username)
                 } else {
                     // Queue is empty, sleep for a bit
-                    Thread.sleep(1000)
+                    Thread.sleep(500)
                 }
             } catch (e: InterruptedException) {
-                logger.debug("WebhookProcessor interrupted")
+                logger.debug("WebhookProcessor worker thread interrupted")
                 break
             } catch (e: Exception) {
                 logger.error("Error processing webhook queue", e)
@@ -92,7 +122,7 @@ class WebhookProcessor(
             try {
                 webhookClient.sendWebhook(userDetails.webhookUrl, jsonPayload)
                 statusCode = 200
-                logger.info("Webhook sent successfully for user: {}", username)
+                logger.info("Webhook sent successfully for user: {} - payload {}", username, jsonPayload)
             } catch (e: HttpStatusCodeException) {
                 status = "error"
                 statusCode = e.statusCode.value()
