@@ -8,10 +8,12 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RestController
 import pl.zarajczyk.familyrules.domain.*
 import pl.zarajczyk.familyrules.domain.port.DeviceStateDto
-import pl.zarajczyk.familyrules.domain.port.DevicesRepository
 
 @Component
-class V2ReportController(private val devicesRepository: DevicesRepository, private val stateService: StateService, private val devicesService: DevicesService) {
+class V2ReportController(
+    private val stateService: StateService,
+    private val devicesService: DevicesService
+) {
 
     @RestController
     inner class ReportRestController {
@@ -27,6 +29,10 @@ class V2ReportController(private val devicesRepository: DevicesRepository, priva
                 screenTimeSeconds = report.screenTimeSeconds,
                 applicationsSeconds = report.applicationsSeconds,
             )
+            
+            // Update user's lastActivity timestamp
+            device.getOwner().updateLastActivity(System.currentTimeMillis())
+            
             val response = stateService.calculateCurrentDeviceState(device).finalState.toReportResponse()
             return response
         }

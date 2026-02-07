@@ -42,6 +42,8 @@ interface User {
     fun changePassword(newPassword: String)
     
     fun updateWebhookSettings(webhookEnabled: Boolean, webhookUrl: String?)
+    
+    fun updateLastActivity(lastActivityMillis: Long)
 }
 
 data class RefBasedUser(
@@ -78,6 +80,10 @@ data class RefBasedUser(
     
     override fun updateWebhookSettings(webhookEnabled: Boolean, webhookUrl: String?) {
         usersRepository.updateWebhookSettings(userRef, webhookEnabled, webhookUrl)
+    }
+    
+    override fun updateLastActivity(lastActivityMillis: Long) {
+        usersRepository.updateLastActivity(userRef, lastActivityMillis)
     }
 }
 

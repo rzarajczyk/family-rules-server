@@ -2,6 +2,7 @@ package pl.zarajczyk.familyrules.adapter.firestore
 
 import com.google.cloud.firestore.DocumentReference
 import com.google.cloud.firestore.Firestore
+import com.google.cloud.Timestamp
 import org.springframework.stereotype.Service
 import pl.zarajczyk.familyrules.domain.AccessLevel
 import pl.zarajczyk.familyrules.domain.port.UserDetailsDto
@@ -34,7 +35,8 @@ class FirestoreUsersRepository(
             },
             accessLevel = doc.getStringOrThrow("accessLevel").let { AccessLevel.valueOf(it) },
             webhookEnabled = doc.getBoolean("webhookEnabled") ?: false,
-            webhookUrl = doc.getString("webhookUrl")
+            webhookUrl = doc.getString("webhookUrl"),
+            lastActivity = doc.getTimestamp("lastActivity")?.toDate()?.time
         )
     }
 
@@ -50,6 +52,12 @@ class FirestoreUsersRepository(
             updates["webhookUrl"] = webhookUrl
         }
         userRef.update(updates).get()
+    }
+
+    override fun updateLastActivity(user: UserRef, lastActivityMillis: Long) {
+        val userRef = (user as FirestoreUserRef).doc
+        val timestamp = Timestamp.ofTimeMicroseconds(lastActivityMillis * 1000)
+        userRef.update("lastActivity", timestamp).get()
     }
 
     override fun getAll(): List<UserRef> {
