@@ -35,5 +35,6 @@ data class WebhookCallHistoryEntry(
     val timestamp: Long,
     val status: String,
     val statusCode: Int?,
-    val errorMessage: String?
+    val errorMessage: String?,
+    val payload: String?
 )

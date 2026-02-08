@@ -138,7 +138,8 @@ class WebhookProcessor(
                     timestamp = System.currentTimeMillis(),
                     status = status,
                     statusCode = statusCode,
-                    errorMessage = errorMessage
+                    errorMessage = errorMessage,
+                    payload = if (status == "success") jsonPayload else null
                 )
                 usersRepository.addWebhookCallHistory(user.asRef(), historyEntry)
             }

@@ -89,7 +89,8 @@ class FirestoreUsersRepository(
             "timestamp" to call.timestamp,
             "status" to call.status,
             "statusCode" to call.statusCode,
-            "errorMessage" to call.errorMessage
+            "errorMessage" to call.errorMessage,
+            "payload" to call.payload
         )
         
         historyCollection.add(callData).get()
@@ -118,7 +119,8 @@ class FirestoreUsersRepository(
                 timestamp = doc.getLong("timestamp")!!,
                 status = doc.getString("status")!!,
                 statusCode = doc.getLong("statusCode")?.toInt(),
-                errorMessage = doc.getString("errorMessage")
+                errorMessage = doc.getString("errorMessage"),
+                payload = doc.getString("payload")
             )
         }
     }

@@ -22,6 +22,12 @@ document.addEventListener("DOMContentLoaded", (event) => {
             // Modal closed
         }
     });
+    
+    // Initialize payload modal
+    const payloadModalElem = document.getElementById('payload-modal');
+    M.Modal.init(payloadModalElem, {
+        dismissible: true
+    });
 
     // Initialize other Materialize components
     M.AutoInit();
@@ -206,6 +212,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
                             <th>Status</th>
                             <th>Status Code</th>
                             <th>Error Message</th>
+                            <th>Payload</th>
                         </tr>
                     `;
                     table.appendChild(thead);
@@ -217,11 +224,16 @@ document.addEventListener("DOMContentLoaded", (event) => {
                         const timestamp = new Date(call.timestamp);
                         const statusClass = call.status === 'success' ? 'status-success' : 'status-error';
                         
+                        const payloadCell = call.payload 
+                            ? `<button class="btn-small waves-effect waves-light view-payload-btn" data-payload='${call.payload.replace(/'/g, "&apos;")}'>View</button>`
+                            : '-';
+                        
                         tr.innerHTML = `
                             <td>${timestamp.toLocaleString()}</td>
                             <td class="${statusClass}">${call.status}</td>
                             <td>${call.statusCode || '-'}</td>
                             <td>${call.errorMessage || '-'}</td>
+                            <td>${payloadCell}</td>
                         `;
                         tbody.appendChild(tr);
                     });
@@ -229,6 +241,15 @@ document.addEventListener("DOMContentLoaded", (event) => {
                     
                     contentDiv.innerHTML = '';
                     contentDiv.appendChild(table);
+                    
+                    // Add event listeners to view payload buttons
+                    document.querySelectorAll('.view-payload-btn').forEach(btn => {
+                        btn.addEventListener('click', (e) => {
+                            e.preventDefault();
+                            const payload = e.target.getAttribute('data-payload');
+                            showPayloadModal(payload);
+                        });
+                    });
                 } else {
                     contentDiv.innerHTML = '<p>No webhook call history found.</p>';
                 }
@@ -239,5 +260,20 @@ document.addEventListener("DOMContentLoaded", (event) => {
             console.error('Error loading webhook call history:', error);
             contentDiv.innerHTML = '<p class="red-text">An error occurred while loading webhook call history.</p>';
         }
+    }
+    
+    function showPayloadModal(payloadJson) {
+        const modal = M.Modal.getInstance(document.getElementById('payload-modal'));
+        const contentDiv = document.getElementById('payload-content');
+        
+        try {
+            const payload = JSON.parse(payloadJson);
+            const formatted = JSON.stringify(payload, null, 2);
+            contentDiv.textContent = formatted;
+        } catch (e) {
+            contentDiv.textContent = payloadJson;
+        }
+        
+        modal.open();
     }
 });

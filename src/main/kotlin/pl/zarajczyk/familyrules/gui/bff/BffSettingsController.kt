@@ -76,7 +76,8 @@ class BffSettingsController(
                     timestamp = entry.timestamp,
                     status = entry.status,
                     statusCode = entry.statusCode,
-                    errorMessage = entry.errorMessage
+                    errorMessage = entry.errorMessage,
+                    payload = entry.payload
                 )
             }
             
@@ -122,5 +123,6 @@ data class WebhookCallHistoryItem(
     val timestamp: Long,
     val status: String,
     val statusCode: Int?,
-    val errorMessage: String?
+    val errorMessage: String?,
+    val payload: String?
 )
