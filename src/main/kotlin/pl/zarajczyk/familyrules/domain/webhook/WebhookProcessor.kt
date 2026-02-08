@@ -30,6 +30,7 @@ class WebhookProcessor(
     private val usersService: UsersService,
     private val usersRepository: UsersRepository,
     private val appGroupService: AppGroupService,
+    private val groupStateService: GroupStateService,
     private val objectMapper: ObjectMapper,
     private val webhookProperties: WebhookProperties
 ) {
@@ -169,7 +170,21 @@ class WebhookProcessor(
         
         // Compute app group statistics similar to BffAppGroupsController.getAppGroupStatistics
         val appGroupReport = appGroupService.getReport(user, date)
+        val appGroups = appGroupService.listAllAppGroups(user)
+        
         val appGroupStatistics = appGroupReport.map { group ->
+            // Find the corresponding AppGroup to get available states
+            val appGroup = appGroups.find { it.fetchDetails().id == group.id }
+            val availableStates = appGroup?.let { ag ->
+                groupStateService.listAllGroupStates(ag).map { state ->
+                    val details = state.fetchDetails()
+                    GroupStateInfo(
+                        id = details.id,
+                        name = details.name
+                    )
+                }
+            } ?: emptyList()
+            
             AppGroupStatus(
                 id = group.id,
                 name = group.name,
@@ -177,7 +192,8 @@ class WebhookProcessor(
                 appsCount = group.appsCount,
                 devicesCount = group.devicesCount,
                 totalScreenTime = group.totalScreenTime,
-                online = group.online
+                online = group.online,
+                availableStates = availableStates
             )
         }
         
@@ -211,5 +227,11 @@ data class AppGroupStatus(
     val appsCount: Int,
     val devicesCount: Int,
     val totalScreenTime: Long,
-    val online: Boolean
+    val online: Boolean,
+    val availableStates: List<GroupStateInfo>
+)
+
+data class GroupStateInfo(
+    val id: String,
+    val name: String
 )
