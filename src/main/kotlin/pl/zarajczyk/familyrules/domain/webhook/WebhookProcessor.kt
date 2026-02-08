@@ -29,15 +29,13 @@ class WebhookProcessor(
     private val webhookClient: WebhookClient,
     private val usersService: UsersService,
     private val usersRepository: UsersRepository,
-    private val devicesService: DevicesService,
-    private val stateService: StateService,
     private val appGroupService: AppGroupService,
     private val objectMapper: ObjectMapper,
     private val webhookProperties: WebhookProperties
 ) {
     private val logger = LoggerFactory.getLogger(WebhookProcessor::class.java)
     private val running = AtomicBoolean(false)
-    private var executorService: ExecutorService? = null
+    private lateinit var executorService: ExecutorService
 
     @PostConstruct
     fun start() {
@@ -49,17 +47,16 @@ class WebhookProcessor(
             webhookProperties.processorThreads,
             0L,
             TimeUnit.MILLISECONDS,
-            LinkedBlockingQueue(),
-            ThreadFactory { runnable ->
-                Thread(runnable, "webhook-processor-${System.nanoTime()}").apply {
-                    isDaemon = true
-                }
+            LinkedBlockingQueue()
+        ) { runnable ->
+            Thread(runnable, "webhook-processor-${System.nanoTime()}").apply {
+                isDaemon = true
             }
-        )
-        
+        }
+
         // Submit worker tasks - each thread continuously processes the queue
         repeat(webhookProperties.processorThreads) {
-            executorService?.submit(::processQueue)
+            executorService.submit(::processQueue)
         }
         
         logger.info("WebhookProcessor started with {} worker thread(s)", webhookProperties.processorThreads)
@@ -68,13 +65,13 @@ class WebhookProcessor(
     @PreDestroy
     fun stop() {
         running.set(false)
-        executorService?.shutdown()
+        executorService.shutdown()
         try {
-            if (executorService?.awaitTermination(5, TimeUnit.SECONDS) == false) {
-                executorService?.shutdownNow()
+            if (!executorService.awaitTermination(5, TimeUnit.SECONDS)) {
+                executorService.shutdownNow()
             }
         } catch (e: InterruptedException) {
-            executorService?.shutdownNow()
+            executorService.shutdownNow()
         }
         logger.info("WebhookProcessor stopped")
     }
@@ -150,24 +147,25 @@ class WebhookProcessor(
     }
 
     private fun computeWebhookPayload(user: User, date: LocalDate): WebhookPayload {
-        val devices = devicesService.getAllDevices(user)
-        val appGroups = appGroupService.listAllAppGroups(user)
+//        val devices = devicesService.getAllDevices(user)
+//        val appGroups = appGroupService.listAllAppGroups(user)
         
         // Compute status similar to BffOverviewController.status
-        val deviceStatuses = devices.map { device ->
-            val screenTimeDto = device.getScreenTimeReport(date)
-            val state = stateService.calculateCurrentDeviceState(device)
-            val deviceDetails = device.fetchDetails()
-            
-            DeviceStatus(
-                deviceId = deviceDetails.deviceId.toString(),
-                deviceName = deviceDetails.deviceName,
-                screenTimeSeconds = screenTimeDto.screenTimeSeconds,
-                online = screenTimeDto.online,
-                forcedDeviceState = state.forcedState?.deviceState,
-                automaticDeviceState = state.automaticState.deviceState
-            )
-        }
+//        val deviceStatuses = devices.map { device ->
+//            val screenTimeDto = device.getScreenTimeReport(date)
+//            val state = stateService.calculateCurrentDeviceState(device)
+//            val deviceDetails = device.fetchDetails()
+//
+//            DeviceStatus(
+//                deviceId = deviceDetails.deviceId.toString(),
+//                deviceName = deviceDetails.deviceName,
+//                screenTimeSeconds = screenTimeDto.screenTimeSeconds,
+//                online = screenTimeDto.online,
+//                forcedDeviceState = state.forcedState?.deviceState,
+//                automaticDeviceState = state.automaticState.deviceState
+//            )
+//        }
+        val deviceStatuses = emptyList<DeviceStatus>() // not used currently!
         
         // Compute app group statistics similar to BffAppGroupsController.getAppGroupStatistics
         val appGroupReport = appGroupService.getReport(user, date)
