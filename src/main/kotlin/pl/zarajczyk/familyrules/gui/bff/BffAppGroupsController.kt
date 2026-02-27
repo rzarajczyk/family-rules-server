@@ -3,17 +3,17 @@ package pl.zarajczyk.familyrules.gui.bff
 import kotlinx.datetime.LocalDate
 import org.springframework.security.core.Authentication
 import org.springframework.web.bind.annotation.*
-import pl.zarajczyk.familyrules.domain.AppGroupDetails
-import pl.zarajczyk.familyrules.domain.AppGroupService
-import pl.zarajczyk.familyrules.domain.DevicesService
-import pl.zarajczyk.familyrules.domain.UsersService
+import pl.zarajczyk.familyrules.domain.*
+import pl.zarajczyk.familyrules.domain.port.DeviceStateDto
 import java.util.*
 
 @RestController
 class BffAppGroupsController(
     private val usersService: UsersService,
     private val appGroupService: AppGroupService,
-    private val devicesService: DevicesService
+    private val devicesService: DevicesService,
+    private val groupStateService: GroupStateService,
+    private val stateService: StateService
 ) {
 
     @PostMapping("/bff/app-groups")
@@ -93,23 +93,31 @@ class BffAppGroupsController(
         authentication: Authentication
     ): AppGroupStatisticsResponse {
         val day = LocalDate.parse(date)
+        val user = usersService.get(authentication.name)
 
-        val report = usersService.get(authentication.name).let { user ->
-            appGroupService.getReport(user, day)
+        val report = appGroupService.getReport(user, day)
+
+        val devices = devicesService.getAllDevices(user)
+        // Compute each device's current final state once (avoid repeated fetches)
+        val deviceFinalStates: Map<DeviceId, DeviceStateDto?> = devices.associate { device ->
+            device.fetchDetails().deviceId to stateService.calculateCurrentDeviceState(device).finalState
         }
 
         return AppGroupStatisticsResponse(
-            groups = report.map {
+            groups = report.map { groupReport ->
+                val appGroup = appGroupService.get(user, groupReport.id)
+                val currentGroupState = calculateCurrentGroupState(appGroup, deviceFinalStates)
                 AppGroupStatistics(
-                    id = it.id,
-                    name = it.name,
-                    color = it.color,
-                    textColor = it.textColor,
-                    appsCount = it.appsCount,
-                    devicesCount = it.devicesCount,
-                    totalScreenTime = it.totalScreenTime,
-                    online = it.online,
-                    apps = it.apps.map {
+                    id = groupReport.id,
+                    name = groupReport.name,
+                    color = groupReport.color,
+                    textColor = groupReport.textColor,
+                    appsCount = groupReport.appsCount,
+                    devicesCount = groupReport.devicesCount,
+                    totalScreenTime = groupReport.totalScreenTime,
+                    online = groupReport.online,
+                    currentGroupState = currentGroupState,
+                    apps = groupReport.apps.map {
                         AppGroupAppDetail(
                             name = it.name,
                             packageName = it.packageName,
@@ -124,6 +132,45 @@ class BffAppGroupsController(
                 )
             }
         )
+    }
+
+    private fun calculateCurrentGroupState(appGroup: AppGroup, deviceFinalStates: Map<DeviceId, DeviceStateDto?>): CurrentGroupState {
+        val groupStates = groupStateService.listAllGroupStates(appGroup)
+
+        // Collect the device IDs referenced across all defined group states
+        val groupDeviceIds = groupStates
+            .flatMap { it.fetchDetails().deviceStates.keys }
+            .toSet()
+
+        if (groupDeviceIds.isEmpty()) {
+            return CurrentGroupState(label = "Automatic", kind = "automatic")
+        }
+
+        // Try to match current device final states against a defined group state
+        val matchedStateName = groupStates
+            .map { it.fetchDetails() }
+            .firstOrNull { details ->
+                details.deviceStates.all { (deviceId, expectedState) ->
+                    deviceFinalStates[deviceId] == expectedState
+                }
+            }
+            ?.name
+
+        if (matchedStateName != null) {
+            return CurrentGroupState(label = matchedStateName, kind = "named")
+        }
+
+        // No named state matched — check if all referenced devices are running Automatic
+        val allDevicesAutomatic = groupDeviceIds.all { deviceId ->
+            val device = try { devicesService.get(deviceId) } catch (_: Exception) { return@all false }
+            stateService.calculateCurrentDeviceState(device).forcedState == null
+        }
+
+        return if (allDevicesAutomatic) {
+            CurrentGroupState(label = "Automatic", kind = "automatic")
+        } else {
+            CurrentGroupState(label = "Different", kind = "different")
+        }
     }
 
     @GetMapping("/bff/app-groups/{groupId}/all-apps")
@@ -247,7 +294,13 @@ data class AppGroupStatistics(
     val devicesCount: Int,
     val totalScreenTime: Long,
     val online: Boolean = false,
+    val currentGroupState: CurrentGroupState? = null,
     val apps: List<AppGroupAppDetail> = emptyList()
+)
+
+data class CurrentGroupState(
+    val label: String,
+    val kind: String, // "named" | "automatic" | "different"
 )
 
 data class AppGroupAppDetail(

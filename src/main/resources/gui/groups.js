@@ -774,11 +774,11 @@ function applyGroupState(groupId, stateId) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            Toast.info(`Group state applied to ${data.appliedDevices} device(s)`);
-            // Close modal
+            Toast.info(`Group state applied to ${data.appliedDevices} device(s)`)
+            // Close modal and refresh to update the current group state badge
             const modalInstance = M.Modal.getInstance(document.getElementById('apply-group-state-modal'));
             modalInstance.close();
-            // Optionally refresh the devices page or provide feedback
+            window.update();
         } else {
             console.error('Failed to apply group state');
             alert('Failed to apply group state');

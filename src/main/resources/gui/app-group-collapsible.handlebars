@@ -6,6 +6,26 @@
 
             <!-- badges -->
             <span class="new badge" style="width: 6rem" data-badge-caption="">{{#formatScreenTime}}{{totalScreenTime}}{{/formatScreenTime}}</span>
+            {{#if currentGroupState}}
+                {{#ifEquals currentGroupState.kind "named"}}
+                    <span class="new badge orange mr-2" data-badge-caption="">
+                        <i class="material-icons tiny">tune</i>
+                        {{currentGroupState.label}}
+                    </span>
+                {{/ifEquals}}
+                {{#ifEquals currentGroupState.kind "automatic"}}
+                    <span class="new badge green mr-2" data-badge-caption="">
+                        <i class="material-icons tiny">auto_awesome</i>
+                        Automatic
+                    </span>
+                {{/ifEquals}}
+                {{#ifEquals currentGroupState.kind "different"}}
+                    <span class="new badge grey mr-2" data-badge-caption="">
+                        <i class="material-icons tiny">device_unknown</i>
+                        Different
+                    </span>
+                {{/ifEquals}}
+            {{/if}}
             {{#if online}}
                 <span class="badge mr-2 is-online" data-badge-caption=""><i class="material-icons tiny">online_prediction</i></span>
             {{/if}}
