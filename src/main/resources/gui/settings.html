@@ -38,6 +38,33 @@
         #view-webhook-history-btn {
             margin-left: 1rem;
         }
+        .token-display {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin: 1rem 0;
+        }
+        .token-display input {
+            flex: 1;
+            font-family: monospace;
+            font-size: 0.85rem;
+            background: var(--md-sys-color-surface-variant);
+            border: 1px solid var(--md-sys-color-outline-variant);
+            border-radius: 4px;
+            padding: 0.5rem;
+            color: var(--md-sys-color-on-surface);
+        }
+        .token-actions {
+            margin-top: 0.75rem;
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+        .no-token-msg {
+            color: var(--md-sys-color-on-surface-variant);
+            font-style: italic;
+            margin: 0.75rem 0;
+        }
         .success-message {
             color: var(--md-sys-color-primary);
             margin-top: 1rem;
@@ -77,6 +104,40 @@
 <header data-source="./header.handlebars"></header>
 
 <div class="settings-container">
+    <div class="settings-section">
+        <h4>HomeAssistant Integration API</h4>
+        <div class="password-form">
+            <p>Generate a Bearer token to allow HomeAssistant to read and apply group states via <code>/integration-api/v1/</code>.</p>
+            <div id="integration-token-section">
+                <div id="integration-no-token" class="no-token-msg" style="display:none;">
+                    No token generated yet.
+                </div>
+                <div id="integration-token-display" class="token-display" style="display:none;">
+                    <input type="text" id="integration-token-value" readonly />
+                    <button class="btn-small waves-effect waves-light" id="copy-token-btn" type="button" title="Copy to clipboard">
+                        <i class="material-icons">content_copy</i>
+                    </button>
+                </div>
+            </div>
+            <div class="token-actions">
+                <button class="btn waves-effect waves-light" id="regenerate-token-btn" type="button">
+                    <i class="material-icons left">refresh</i>Generate / Regenerate Token
+                </button>
+                <button class="btn waves-effect waves-light red" id="revoke-token-btn" type="button" style="display:none;">
+                    <i class="material-icons left">delete</i>Revoke Token
+                </button>
+            </div>
+            <div class="success-message" id="integration-success-message">
+                <i class="material-icons left">check_circle</i>
+                <span id="integration-success-text"></span>
+            </div>
+            <div class="error-message" id="integration-error-message">
+                <i class="material-icons left">error</i>
+                <span id="integration-error-text"></span>
+            </div>
+        </div>
+    </div>
+
     <div class="settings-section">
         <h4>HomeAssistant Webhook Integration</h4>
         <div class="password-form">

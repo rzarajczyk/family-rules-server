@@ -12,6 +12,7 @@ import org.springframework.security.provisioning.UserDetailsManager
 import org.springframework.security.web.SecurityFilterChain
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter
 import pl.zarajczyk.familyrules.domain.DevicesService
+import pl.zarajczyk.familyrules.domain.UsersService
 
 @Configuration
 @EnableWebSecurity
@@ -62,9 +63,27 @@ class SecurityConfig {
         return http.build()
     }
 
-
     @Bean
     @Order(3)
+    fun integrationApiFilterChain(http: HttpSecurity, usersService: UsersService): SecurityFilterChain {
+        http
+            .securityMatcher("/integration-api/v1/**")
+            .csrf { it.disable() }
+            .addFilterBefore(
+                IntegrationApiKeyAuthFilter(usersService),
+                UsernamePasswordAuthenticationFilter::class.java
+            )
+            .sessionManagement { it.sessionCreationPolicy(SessionCreationPolicy.STATELESS) }
+            .authorizeHttpRequests { authorize ->
+                authorize.anyRequest().authenticated()
+            }
+
+        return http.build()
+    }
+
+
+    @Bean
+    @Order(4)
     fun guiFilterChain(
         http: HttpSecurity,
         userDetailsManager: UserDetailsManager,

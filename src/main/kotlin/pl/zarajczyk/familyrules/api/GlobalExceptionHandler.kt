@@ -10,6 +10,7 @@ import org.springframework.http.converter.HttpMessageNotReadableException
 import org.springframework.web.bind.annotation.ControllerAdvice
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.context.request.WebRequest
+import org.springframework.web.server.ResponseStatusException
 
 @ControllerAdvice
 class GlobalExceptionHandler {
@@ -69,6 +70,21 @@ class GlobalExceptionHandler {
             .body(ErrorResponse(
                 error = "BAD_REQUEST",
                 message = "JSON mapping error: ${ex.message}",
+                timestamp = System.currentTimeMillis()
+            ))
+    }
+
+    @ExceptionHandler(ResponseStatusException::class)
+    fun handleResponseStatusException(
+        ex: ResponseStatusException,
+        request: WebRequest
+    ): ResponseEntity<ErrorResponse> {
+        return ResponseEntity
+            .status(ex.statusCode)
+            .contentType(MediaType.APPLICATION_JSON)
+            .body(ErrorResponse(
+                error = ex.statusCode.toString(),
+                message = ex.reason ?: ex.message,
                 timestamp = System.currentTimeMillis()
             ))
     }

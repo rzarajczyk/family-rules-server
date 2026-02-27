@@ -10,6 +10,8 @@ interface UsersRepository {
     fun fetchDetails(user: UserRef, includePasswordHash: Boolean = false): UserDetailsDto
     fun update(user: UserRef, newPasswordHash: String)
     fun updateWebhookSettings(user: UserRef, webhookEnabled: Boolean, webhookUrl: String?)
+    fun updateIntegrationApiToken(user: UserRef, token: String?)
+    fun getByIntegrationApiToken(token: String): UserRef?
     fun updateLastActivity(user: UserRef, lastActivityMillis: Long)
     fun getUsersWithRecentActivity(since: Instant): List<UserRef>
     fun addWebhookCallHistory(user: UserRef, call: WebhookCallHistoryEntry)
@@ -28,6 +30,7 @@ data class UserDetailsDto(
     val accessLevel: AccessLevel = AccessLevel.ADMIN,
     val webhookEnabled: Boolean = false,
     val webhookUrl: String? = null,
+    val integrationApiToken: String? = null,
     val lastActivity: Long? = null
 )
 

@@ -182,7 +182,7 @@ class BffUserControllerIntegrationSpec : FunSpec() {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(createUserRequest)
                 )
-                    .andExpect(status().is5xxServerError) // Returns 500 when user already exists
+                    .andExpect(status().isBadRequest)
             }
 
             test("should redirect to login page for unauthenticated request") {
@@ -257,7 +257,7 @@ class BffUserControllerIntegrationSpec : FunSpec() {
                     delete("/bff/users/$adminUsername")
                         .with(SecurityMockMvcRequestPostProcessors.user(adminUsername))
                 )
-                    .andExpect(status().is5xxServerError) // Returns 500 when trying to delete own account
+                    .andExpect(status().isBadRequest)
             }
 
             test("should delete user successfully as admin") {
@@ -332,7 +332,7 @@ class BffUserControllerIntegrationSpec : FunSpec() {
                     get("/bff/users")
                         .with(SecurityMockMvcRequestPostProcessors.user(parentUsername))
                 )
-                    .andExpect(status().is5xxServerError) // Returns 500 when forbidden
+                    .andExpect(status().isForbidden)
             }
 
             test("PARENT user should be forbidden from creating new users") {
@@ -350,7 +350,7 @@ class BffUserControllerIntegrationSpec : FunSpec() {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(createUserRequest)
                 )
-                    .andExpect(status().is5xxServerError) // Returns 500 when forbidden
+                    .andExpect(status().isForbidden)
             }
 
             test("PARENT user should be forbidden from resetting passwords") {
@@ -366,7 +366,7 @@ class BffUserControllerIntegrationSpec : FunSpec() {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(resetPasswordRequest)
                 )
-                    .andExpect(status().is5xxServerError) // Returns 500 when forbidden
+                    .andExpect(status().isForbidden)
             }
 
             test("PARENT user should be forbidden from deleting users") {
@@ -374,7 +374,7 @@ class BffUserControllerIntegrationSpec : FunSpec() {
                     delete("/bff/users/$adminUsername")
                         .with(SecurityMockMvcRequestPostProcessors.user(parentUsername))
                 )
-                    .andExpect(status().is5xxServerError) // Returns 500 when forbidden
+                    .andExpect(status().isForbidden)
             }
 
             test("cleanup - delete PARENT user") {

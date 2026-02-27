@@ -38,6 +38,7 @@ class FirestoreUsersRepository(
             accessLevel = doc.getStringOrThrow("accessLevel").let { AccessLevel.valueOf(it) },
             webhookEnabled = doc.getBoolean("webhookEnabled") ?: false,
             webhookUrl = doc.getString("webhookUrl"),
+            integrationApiToken = doc.getString("integrationApiToken"),
             lastActivity = doc.getTimestamp("lastActivity")?.toDate()?.time
         )
     }
@@ -123,6 +124,24 @@ class FirestoreUsersRepository(
                 payload = doc.getString("payload")
             )
         }
+    }
+
+    override fun updateIntegrationApiToken(user: UserRef, token: String?) {
+        val userRef = (user as FirestoreUserRef).doc
+        if (token != null) {
+            userRef.update("integrationApiToken", token).get()
+        } else {
+            userRef.update("integrationApiToken", com.google.cloud.firestore.FieldValue.delete()).get()
+        }
+    }
+
+    override fun getByIntegrationApiToken(token: String): UserRef? {
+        val snapshots = firestore.collection("users")
+            .whereEqualTo("integrationApiToken", token)
+            .limit(1)
+            .get()
+            .get()
+        return snapshots.documents.firstOrNull()?.let { FirestoreUserRef(it.reference) }
     }
 
     override fun delete(user: UserRef) {

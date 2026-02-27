@@ -26,7 +26,9 @@ class UsersService(private val usersRepository: UsersRepository) {
             .createUser(username, password.sha256(), accessLevel)
             .let { RefBasedUser(it, usersRepository) }
 
-
+    fun getByIntegrationApiToken(token: String): User? =
+        usersRepository.getByIntegrationApiToken(token)
+            ?.let { RefBasedUser(it, usersRepository) }
 }
 
 interface User {
@@ -42,6 +44,8 @@ interface User {
     fun changePassword(newPassword: String)
     
     fun updateWebhookSettings(webhookEnabled: Boolean, webhookUrl: String?)
+
+    fun updateIntegrationApiToken(token: String?)
     
     fun updateLastActivity(lastActivityMillis: Long)
 }
@@ -60,6 +64,7 @@ data class RefBasedUser(
                 accessLevel = it.accessLevel,
                 webhookEnabled = it.webhookEnabled,
                 webhookUrl = it.webhookUrl,
+                integrationApiToken = it.integrationApiToken,
                 lastActivity = it.lastActivity
             )
         }
@@ -83,6 +88,10 @@ data class RefBasedUser(
         usersRepository.updateWebhookSettings(userRef, webhookEnabled, webhookUrl)
     }
     
+    override fun updateIntegrationApiToken(token: String?) {
+        usersRepository.updateIntegrationApiToken(userRef, token)
+    }
+
     override fun updateLastActivity(lastActivityMillis: Long) {
         usersRepository.updateLastActivity(userRef, lastActivityMillis)
     }
@@ -96,5 +105,6 @@ data class UserDetails(
     val accessLevel: AccessLevel = AccessLevel.ADMIN,
     val webhookEnabled: Boolean = false,
     val webhookUrl: String? = null,
+    val integrationApiToken: String? = null,
     val lastActivity: Long? = null
 )

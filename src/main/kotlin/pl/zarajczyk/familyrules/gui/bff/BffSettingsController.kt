@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.RestController
 import pl.zarajczyk.familyrules.domain.InvalidPassword
 import pl.zarajczyk.familyrules.domain.UsersService
 import pl.zarajczyk.familyrules.domain.port.UsersRepository
+import java.util.UUID
 
 @RestController
 class BffSettingsController(
@@ -86,6 +87,40 @@ class BffSettingsController(
             WebhookCallHistoryResponse(success = false, calls = emptyList())
         }
     }
+
+    @GetMapping("/bff/integration-api-settings")
+    fun getIntegrationApiSettings(authentication: Authentication): IntegrationApiSettingsResponse {
+        return try {
+            val user = usersService.get(authentication.name)
+            val details = user.fetchDetails()
+            IntegrationApiSettingsResponse(success = true, token = details.integrationApiToken)
+        } catch (_: Exception) {
+            IntegrationApiSettingsResponse(success = false, token = null)
+        }
+    }
+
+    @PostMapping("/bff/integration-api-settings/regenerate-token")
+    fun regenerateIntegrationApiToken(authentication: Authentication): IntegrationApiSettingsResponse {
+        return try {
+            val user = usersService.get(authentication.name)
+            val newToken = UUID.randomUUID().toString()
+            user.updateIntegrationApiToken(newToken)
+            IntegrationApiSettingsResponse(success = true, token = newToken)
+        } catch (_: Exception) {
+            IntegrationApiSettingsResponse(success = false, token = null)
+        }
+    }
+
+    @PostMapping("/bff/integration-api-settings/revoke-token")
+    fun revokeIntegrationApiToken(authentication: Authentication): IntegrationApiSettingsResponse {
+        return try {
+            val user = usersService.get(authentication.name)
+            user.updateIntegrationApiToken(null)
+            IntegrationApiSettingsResponse(success = true, token = null)
+        } catch (_: Exception) {
+            IntegrationApiSettingsResponse(success = false, token = null)
+        }
+    }
 }
 
 data class ChangePasswordRequest(
@@ -126,3 +161,9 @@ data class WebhookCallHistoryItem(
     val errorMessage: String?,
     val payload: String?
 )
+
+data class IntegrationApiSettingsResponse(
+    val success: Boolean,
+    val token: String?
+)
+
