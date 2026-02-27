@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service
 import org.springframework.web.client.HttpStatusCodeException
 import pl.zarajczyk.familyrules.configuration.WebhookProperties
 import pl.zarajczyk.familyrules.domain.*
+import pl.zarajczyk.familyrules.domain.port.DeviceStateDto
 import pl.zarajczyk.familyrules.domain.port.UsersRepository
 import pl.zarajczyk.familyrules.domain.port.WebhookCallHistoryEntry
 import pl.zarajczyk.familyrules.gui.bff.*
@@ -31,6 +32,8 @@ class WebhookProcessor(
     private val usersRepository: UsersRepository,
     private val appGroupService: AppGroupService,
     private val groupStateService: GroupStateService,
+    private val devicesService: DevicesService,
+    private val stateService: StateService,
     private val objectMapper: ObjectMapper,
     private val webhookProperties: WebhookProperties
 ) {
@@ -168,6 +171,13 @@ class WebhookProcessor(
 //        }
         val deviceStatuses = emptyList<DeviceStatus>() // not used currently!
         
+        // Compute device forced states for currentState calculation
+        val allDevices = devicesService.getAllDevices(user)
+        val deviceForcedStates: Map<DeviceId, DeviceStateDto?> =
+            allDevices.associate { device ->
+                device.fetchDetails().deviceId to stateService.calculateCurrentDeviceState(device).forcedState
+            }
+        
         // Compute app group statistics similar to BffAppGroupsController.getAppGroupStatistics
         val appGroupReport = appGroupService.getReport(user, date)
         val appGroups = appGroupService.listAllAppGroups(user)
@@ -175,15 +185,10 @@ class WebhookProcessor(
         val appGroupStatistics = appGroupReport.map { group ->
             // Find the corresponding AppGroup to get available states
             val appGroup = appGroups.find { it.fetchDetails().id == group.id }
-            val availableStates = appGroup?.let { ag ->
-                groupStateService.listAllGroupStates(ag).map { state ->
-                    val details = state.fetchDetails()
-                    GroupStateInfo(
-                        id = details.id,
-                        name = details.name
-                    )
-                }
-            } ?: emptyList()
+            val stateDetails = appGroup?.let { ag -> groupStateService.listAllGroupStates(ag).map { it.fetchDetails() } } ?: emptyList()
+            val availableStates = stateDetails.map { GroupStateInfo(id = it.id, name = it.name) }
+            val currentState = appGroup?.let { calculateCurrentGroupState(it, stateDetails, deviceForcedStates) }
+                ?: AppGroupCurrentState(kind = "automatic", label = "Automatic", stateId = null)
             
             AppGroupStatus(
                 id = group.id,
@@ -193,7 +198,8 @@ class WebhookProcessor(
                 devicesCount = group.devicesCount,
                 totalScreenTime = group.totalScreenTime,
                 online = group.online,
-                availableStates = availableStates
+                availableStates = availableStates,
+                currentState = currentState
             )
         }
         
@@ -202,6 +208,36 @@ class WebhookProcessor(
             devices = deviceStatuses,
             appGroups = appGroupStatistics
         )
+    }
+
+    private fun calculateCurrentGroupState(
+        appGroup: AppGroup,
+        stateDetails: List<GroupStateDetails>,
+        deviceForcedStates: Map<DeviceId, DeviceStateDto?>,
+    ): AppGroupCurrentState {
+        val groupDeviceIds = stateDetails.flatMap { it.deviceStates.keys }.toSet()
+
+        if (groupDeviceIds.isEmpty()) {
+            return AppGroupCurrentState(kind = "automatic", label = "Automatic", stateId = null)
+        }
+
+        val matched = stateDetails.firstOrNull { details ->
+            details.deviceStates.all { (deviceId, expectedState) ->
+                deviceForcedStates[deviceId] == expectedState
+            }
+        }
+
+        if (matched != null) {
+            return AppGroupCurrentState(kind = "named", label = matched.name, stateId = matched.id)
+        }
+
+        val allAutomatic = groupDeviceIds.all { deviceId -> deviceForcedStates[deviceId] == null }
+
+        return if (allAutomatic) {
+            AppGroupCurrentState(kind = "automatic", label = "Automatic", stateId = null)
+        } else {
+            AppGroupCurrentState(kind = "different", label = "Different", stateId = null)
+        }
     }
 }
 
@@ -228,7 +264,14 @@ data class AppGroupStatus(
     val devicesCount: Int,
     val totalScreenTime: Long,
     val online: Boolean,
-    val availableStates: List<GroupStateInfo>
+    val availableStates: List<GroupStateInfo>,
+    val currentState: AppGroupCurrentState,
+)
+
+data class AppGroupCurrentState(
+    val kind: String,   // "named" | "automatic" | "different"
+    val label: String,
+    val stateId: String?,
 )
 
 data class GroupStateInfo(

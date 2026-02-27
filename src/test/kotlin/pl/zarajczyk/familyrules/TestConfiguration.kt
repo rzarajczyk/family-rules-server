@@ -8,6 +8,8 @@ import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Primary
 import org.springframework.context.annotation.Profile
+import pl.zarajczyk.familyrules.domain.webhook.WebhookClient
+import java.util.concurrent.CopyOnWriteArrayList
 
 @TestConfiguration
 @Profile("test")
@@ -28,4 +30,21 @@ class TestConfiguration {
             .build()
             .service
     }
+
+    @Bean
+    @Primary
+    fun capturingWebhookClient(): CapturingWebhookClient = CapturingWebhookClient()
+}
+
+/**
+ * A WebhookClient that records all payloads sent during tests instead of making real HTTP calls.
+ */
+class CapturingWebhookClient : WebhookClient {
+    val capturedPayloads: MutableList<String> = CopyOnWriteArrayList()
+
+    override fun sendWebhook(url: String, payload: String) {
+        capturedPayloads.add(payload)
+    }
+
+    fun clear() = capturedPayloads.clear()
 }

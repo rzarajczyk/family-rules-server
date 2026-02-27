@@ -21,7 +21,11 @@ import org.testcontainers.gcloud.FirestoreEmulatorContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import pl.zarajczyk.familyrules.domain.*
+import pl.zarajczyk.familyrules.domain.port.DeviceDetailsUpdateDto
+import pl.zarajczyk.familyrules.domain.port.DeviceStateDto
 import pl.zarajczyk.familyrules.domain.port.UsersRepository
+import pl.zarajczyk.familyrules.domain.port.ValueUpdate.Companion.set
+import pl.zarajczyk.familyrules.domain.webhook.WebhookProcessor
 import pl.zarajczyk.familyrules.domain.webhook.WebhookQueue
 import pl.zarajczyk.familyrules.domain.webhook.WebhookScheduler
 import kotlin.time.Duration.Companion.seconds
@@ -48,10 +52,19 @@ class WebhookIntegrationSpec : FunSpec() {
     private lateinit var devicesService: DevicesService
 
     @Autowired
+    private lateinit var appGroupService: AppGroupService
+
+    @Autowired
+    private lateinit var groupStateService: GroupStateService
+
+    @Autowired
     private lateinit var webhookQueue: WebhookQueue
 
     @Autowired
     private lateinit var webhookScheduler: WebhookScheduler
+
+    @Autowired
+    private lateinit var capturingWebhookClient: CapturingWebhookClient
 
     companion object {
         @Container
@@ -257,6 +270,55 @@ class WebhookIntegrationSpec : FunSpec() {
                 usersRepository.fetchDetails(it).username 
             }
             usernames shouldContain testUsername1
+        }
+
+        test("webhook payload should include currentState for each app group") {
+            // Given
+            val testUsername = "webhook-payload-state-test-${System.currentTimeMillis()}"
+            usersRepository.createUser(testUsername, "pass".sha256(), AccessLevel.PARENT)
+            val user = usersService.get(testUsername)
+            user.updateWebhookSettings(webhookEnabled = true, webhookUrl = "https://example.com/webhook")
+            user.updateLastActivity(System.currentTimeMillis())
+
+            val device = devicesService.setupNewDevice(testUsername, "TestDevice", "android")
+            val deviceId = device.deviceId
+
+            val group = appGroupService.createAppGroup(user, "Games")
+            val groupObj = appGroupService.get(user, group.fetchDetails().id)
+
+            val lockedState = groupStateService.createGroupState(
+                groupObj, "Locked",
+                mapOf(deviceId to DeviceStateDto(deviceState = "LOCKED", extra = null))
+            )
+
+            // Set device to forced "LOCKED" state so it matches the named state
+            val deviceDomain = devicesService.get(deviceId)
+            deviceDomain.update(DeviceDetailsUpdateDto(forcedDeviceState = set(DeviceStateDto("LOCKED", null))))
+
+            capturingWebhookClient.clear()
+
+            // When — enqueue and wait for the processor to fire (max 5 s)
+            webhookQueue.enqueue(testUsername)
+            val deadline = System.currentTimeMillis() + 5_000
+            while (capturingWebhookClient.capturedPayloads.isEmpty() && System.currentTimeMillis() < deadline) {
+                Thread.sleep(100)
+            }
+
+            // Then
+            capturingWebhookClient.capturedPayloads.size shouldBe 1
+            val payload = objectMapper.readTree(capturingWebhookClient.capturedPayloads[0])
+            val appGroups = payload.get("appGroups")
+            appGroups.shouldNotBeNull()
+            appGroups.size() shouldBe 1
+
+            val gamesGroup = appGroups[0]
+            gamesGroup.get("name").asText() shouldBe "Games"
+
+            val currentState = gamesGroup.get("currentState")
+            currentState.shouldNotBeNull()
+            currentState.get("kind").asText() shouldBe "named"
+            currentState.get("label").asText() shouldBe "Locked"
+            currentState.get("stateId").asText() shouldBe lockedState.fetchDetails().id
         }
     }
 }

@@ -72,7 +72,12 @@ To verify it's working, click **Last Calls** to see a history of recent webhook 
       "availableStates": [
         { "id": "state-uuid-1", "name": "Locked" },
         { "id": "state-uuid-2", "name": "Allowed" }
-      ]
+      ],
+      "currentState": {
+        "kind": "named",
+        "label": "Locked",
+        "stateId": "state-uuid-1"
+      }
     }
   ]
 }
@@ -93,8 +98,10 @@ To verify it's working, click **Last Calls** to see a history of recent webhook 
 | `appGroups[].availableStates` | array | Named states defined for this group |
 | `appGroups[].availableStates[].id` | string (UUID) | Stable state identifier — use this in `apply-state` calls |
 | `appGroups[].availableStates[].name` | string | State label |
-
-> **Note:** The webhook payload does **not** include `currentState`. To know which named state is currently active after a push, call `GET /integration-api/v1/app-groups/{groupId}/state` (see Part 2).
+| `appGroups[].currentState` | object | The currently active state of the group |
+| `appGroups[].currentState.kind` | string | `"named"` / `"automatic"` / `"different"` (see [State kinds](#state-kinds)) |
+| `appGroups[].currentState.label` | string | Human-readable label (`"Locked"`, `"Automatic"`, `"Different"`) |
+| `appGroups[].currentState.stateId` | string \| null | UUID of the matched named state, or `null` for automatic/different |
 
 ### HA configuration example (webhook automation)
 
