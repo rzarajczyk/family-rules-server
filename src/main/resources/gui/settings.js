@@ -26,7 +26,10 @@ document.addEventListener("DOMContentLoaded", (event) => {
     const integrationErrorMessage = document.getElementById('integration-error-message');
     const integrationErrorText = document.getElementById('integration-error-text');
 
-    // Initialize modal with options
+    // Initialize other Materialize components
+    M.AutoInit();
+
+    // Initialize modals after AutoInit so custom options are not overwritten
     const webhookHistoryModalElem = document.getElementById('webhook-history-modal');
     const webhookHistoryModal = M.Modal.init(webhookHistoryModalElem, {
         dismissible: true,
@@ -34,15 +37,12 @@ document.addEventListener("DOMContentLoaded", (event) => {
             // Modal closed
         }
     });
-    
+
     // Initialize payload modal
     const payloadModalElem = document.getElementById('payload-modal');
     M.Modal.init(payloadModalElem, {
         dismissible: true
     });
-
-    // Initialize other Materialize components
-    M.AutoInit();
 
     // Load webhook settings on page load
     loadWebhookSettings();
