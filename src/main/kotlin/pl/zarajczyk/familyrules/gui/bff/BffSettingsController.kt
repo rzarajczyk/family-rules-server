@@ -72,7 +72,9 @@ class BffSettingsController(
             val user = usersService.get(authentication.name)
             val history = usersRepository.getWebhookCallHistory(user.asRef())
             
-            val calls = history.map { entry ->
+            val calls = history
+                .take(10) // temporarily only 10
+                .map { entry ->
                 WebhookCallHistoryItem(
                     timestamp = entry.timestamp,
                     status = entry.status,
