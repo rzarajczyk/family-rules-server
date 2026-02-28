@@ -50,8 +50,12 @@ class SecurityConfig {
             .securityMatcher("/api/v2/**")
             .csrf { it.disable() }
             .addFilterBefore(
-                ApiV2KeyAuthFilter(devicesService, excludedUris = setOf("/api/v2/register-instance")),
+                ApiRequestLoggingFilter(),
                 UsernamePasswordAuthenticationFilter::class.java
+            )
+            .addFilterAfter(
+                ApiV2KeyAuthFilter(devicesService, excludedUris = setOf("/api/v2/register-instance")),
+                ApiRequestLoggingFilter::class.java
             )
             .sessionManagement { it.sessionCreationPolicy(SessionCreationPolicy.STATELESS) }
             .authorizeHttpRequests { authorize ->
@@ -70,8 +74,12 @@ class SecurityConfig {
             .securityMatcher("/integration-api/v1/**")
             .csrf { it.disable() }
             .addFilterBefore(
-                IntegrationApiKeyAuthFilter(usersService),
+                ApiRequestLoggingFilter(),
                 UsernamePasswordAuthenticationFilter::class.java
+            )
+            .addFilterAfter(
+                IntegrationApiKeyAuthFilter(usersService),
+                ApiRequestLoggingFilter::class.java
             )
             .sessionManagement { it.sessionCreationPolicy(SessionCreationPolicy.STATELESS) }
             .authorizeHttpRequests { authorize ->
