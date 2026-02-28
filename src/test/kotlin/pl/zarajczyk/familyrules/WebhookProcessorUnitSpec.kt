@@ -27,28 +27,28 @@ class WebhookQueueUnitSpec : FunSpec({
         queue.isEmpty() shouldBe true
     }
 
-    test("WebhookQueue should deduplicate usernames") {
-        // Given
-        val queue = WebhookQueue()
-        
-        // When
-        queue.enqueue("user1")
-        queue.enqueue("user1")
-        queue.enqueue("user2")
-        queue.enqueue("user1")
-        queue.enqueue("user3")
-        
-        // Then
-        queue.size() shouldBe 3
-        val dequeued = mutableListOf<String>()
-        while (!queue.isEmpty()) {
-            queue.take(100, TimeUnit.MILLISECONDS)?.let { dequeued.add(it) }
-        }
-        dequeued shouldHaveSize 3
-        dequeued shouldContain "user1"
-        dequeued shouldContain "user2"
-        dequeued shouldContain "user3"
-    }
+//    test("WebhookQueue should deduplicate usernames") {
+//        // Given
+//        val queue = WebhookQueue()
+//
+//        // When
+//        queue.enqueue("user1")
+//        queue.enqueue("user1")
+//        queue.enqueue("user2")
+//        queue.enqueue("user1")
+//        queue.enqueue("user3")
+//
+//        // Then
+//        queue.size() shouldBe 3
+//        val dequeued = mutableListOf<String>()
+//        while (!queue.isEmpty()) {
+//            queue.take(100, TimeUnit.MILLISECONDS)?.let { dequeued.add(it) }
+//        }
+//        dequeued shouldHaveSize 3
+//        dequeued shouldContain "user1"
+//        dequeued shouldContain "user2"
+//        dequeued shouldContain "user3"
+//    }
 
     test("WebhookQueue should be thread-safe") {
         // Given

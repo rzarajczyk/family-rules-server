@@ -104,7 +104,7 @@ class WebhookProcessor(
         var status = "success"
         
         try {
-            logger.debug("Processing webhook for user: {}", username)
+            logger.info("Processing webhook for user: {}", username)
             
             val user = usersService.get(username)
             val userDetails = user.fetchDetails()

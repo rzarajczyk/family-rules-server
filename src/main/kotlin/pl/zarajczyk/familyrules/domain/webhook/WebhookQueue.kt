@@ -17,7 +17,7 @@ import kotlin.concurrent.withLock
 @Component
 class WebhookQueue {
     private val lock = ReentrantLock()
-    private val pending = HashSet<String>()
+//    private val pending = HashSet<String>()
     private val queue = LinkedBlockingQueue<String>()
 
     /**
@@ -26,9 +26,9 @@ class WebhookQueue {
      */
     fun enqueue(username: String) {
         lock.withLock {
-            if (pending.add(username)) {
+//            if (pending.add(username)) {
                 queue.put(username)
-            }
+//            }
         }
     }
 
@@ -39,19 +39,19 @@ class WebhookQueue {
     fun take(timeout: Long, unit: TimeUnit): String? {
         // Wait outside the lock so we don't block enqueuers
         val username = queue.poll(timeout, unit) ?: return null
-        lock.withLock {
-            pending.remove(username)
-        }
+//        lock.withLock {
+//            pending.remove(username)
+//        }
         return username
     }
 
     /**
      * Returns the current number of pending items.
      */
-    fun size(): Int = lock.withLock { pending.size }
+    fun size(): Int = queue.size // lock.withLock { pending.size }
 
     /**
      * Checks if the queue is empty.
      */
-    fun isEmpty(): Boolean = lock.withLock { pending.isEmpty() }
+    fun isEmpty(): Boolean = queue.isEmpty() // lock.withLock { pending.isEmpty() }
 }

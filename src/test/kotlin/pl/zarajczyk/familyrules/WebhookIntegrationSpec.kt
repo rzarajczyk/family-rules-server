@@ -100,26 +100,26 @@ class WebhookIntegrationSpec : FunSpec() {
             queue.isEmpty() shouldBe true
         }
 
-        test("WebhookQueue should deduplicate usernames") {
-            // Given
-            val queue = WebhookQueue()
-            
-            // When
-            queue.enqueue("user1")
-            queue.enqueue("user1")
-            queue.enqueue("user2")
-            queue.enqueue("user1")
-            
-            // Then
-            queue.size() shouldBe 2
-            val dequeued = mutableListOf<String>()
-            while (!queue.isEmpty()) {
-                queue.take(100, TimeUnit.MILLISECONDS)?.let { dequeued.add(it) }
-            }
-            dequeued shouldHaveSize 2
-            dequeued shouldContain "user1"
-            dequeued shouldContain "user2"
-        }
+//        test("WebhookQueue should deduplicate usernames") {
+//            // Given
+//            val queue = WebhookQueue()
+//
+//            // When
+//            queue.enqueue("user1")
+//            queue.enqueue("user1")
+//            queue.enqueue("user2")
+//            queue.enqueue("user1")
+//
+//            // Then
+//            queue.size() shouldBe 2
+//            val dequeued = mutableListOf<String>()
+//            while (!queue.isEmpty()) {
+//                queue.take(100, TimeUnit.MILLISECONDS)?.let { dequeued.add(it) }
+//            }
+//            dequeued shouldHaveSize 2
+//            dequeued shouldContain "user1"
+//            dequeued shouldContain "user2"
+//        }
 
         test("User lastActivity field should be updated when device reports") {
             // Given
