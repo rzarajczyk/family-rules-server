@@ -6,9 +6,7 @@ import org.springframework.security.core.Authentication
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.server.ResponseStatusException
 import pl.zarajczyk.familyrules.domain.*
-import pl.zarajczyk.familyrules.domain.port.DeviceDetailsUpdateDto
 import pl.zarajczyk.familyrules.domain.port.DeviceStateDto
-import pl.zarajczyk.familyrules.domain.port.ValueUpdate.Companion.set
 import pl.zarajczyk.familyrules.domain.webhook.WebhookQueue
 
 @RestController
@@ -21,6 +19,7 @@ class IntegrationAppGroupsController(
     private val stateService: StateService,
     private val webhookQueue: WebhookQueue,
 ) {
+    private val LOGGER = LoggerFactory.getLogger(javaClass)
 
     @GetMapping("/app-groups")
     fun listAppGroups(authentication: Authentication): IntegrationAppGroupsResponse {
@@ -96,15 +95,13 @@ class IntegrationAppGroupsController(
             throw ResponseStatusException(HttpStatus.NOT_FOUND, "Group state not found")
         }
 
-        val details = state.fetchDetails()
-        details.deviceStates.forEach { (deviceId, deviceState) ->
-            val device = devicesService.get(deviceId)
-            device.update(DeviceDetailsUpdateDto(forcedDeviceState = set(deviceState)))
-        }
+        groupStateService.apply(state)
 
         // Trigger a webhook push so HA receives the updated state promptly
         webhookQueue.enqueue(authentication.name)
 
+        val details = state.fetchDetails()
+        LOGGER.info("Applied group state ${details.name} to group $groupId")
         return IntegrationApplyStateResponse(
             success = true,
             appliedStateName = details.name,

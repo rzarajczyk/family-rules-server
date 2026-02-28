@@ -117,11 +117,12 @@ class WebhookProcessor(
             val today = today()
             val payload = computeWebhookPayload(user, today)
             val jsonPayload = objectMapper.writeValueAsString(payload)
-            
+
             try {
                 webhookClient.sendWebhook(userDetails.webhookUrl, jsonPayload)
+                val brief = payload.appGroups.joinToString(", ") { it.name + "=" + it.currentState.label }
                 statusCode = 200
-                logger.info("Webhook sent successfully for user: {}", username)
+                logger.info("Webhook sent successfully for user: {} - {}", username, brief)
             } catch (e: HttpStatusCodeException) {
                 status = "error"
                 statusCode = e.statusCode.value()

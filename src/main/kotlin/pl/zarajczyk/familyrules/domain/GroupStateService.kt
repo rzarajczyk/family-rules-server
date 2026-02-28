@@ -2,11 +2,13 @@ package pl.zarajczyk.familyrules.domain
 
 import org.springframework.stereotype.Service
 import pl.zarajczyk.familyrules.domain.port.*
+import pl.zarajczyk.familyrules.domain.port.ValueUpdate.Companion.set
 import java.util.*
 
 @Service
 class GroupStateService(
-    private val groupStateRepository: GroupStateRepository
+    private val groupStateRepository: GroupStateRepository,
+    private val devicesService: DevicesService,
 ) {
     fun createGroupState(appGroup: AppGroup, name: String, deviceStates: Map<DeviceId, DeviceStateDto?>): GroupState {
         val stateId = UUID.randomUUID().toString()
@@ -23,6 +25,13 @@ class GroupStateService(
     fun listAllGroupStates(appGroup: AppGroup): List<GroupState> {
         return groupStateRepository.getAll(appGroup.asRef())
             .map { RefBasedGroupState(it, groupStateRepository) }
+    }
+
+    fun apply(state: GroupState) {
+        val details = state.fetchDetails()
+        details.deviceStates.forEach { (deviceId, deviceState) ->
+            devicesService.get(deviceId).update(DeviceDetailsUpdateDto(forcedDeviceState = set(deviceState)))
+        }
     }
 }
 

@@ -3,9 +3,7 @@ package pl.zarajczyk.familyrules.gui.bff
 import org.springframework.security.core.Authentication
 import org.springframework.web.bind.annotation.*
 import pl.zarajczyk.familyrules.domain.*
-import pl.zarajczyk.familyrules.domain.port.DeviceDetailsUpdateDto
 import pl.zarajczyk.familyrules.domain.port.DeviceStateDto
-import pl.zarajczyk.familyrules.domain.port.ValueUpdate.Companion.set
 import java.util.*
 
 @RestController
@@ -14,9 +12,7 @@ class BffGroupStatesController(
     private val appGroupService: AppGroupService,
     private val groupStateService: GroupStateService,
     private val devicesService: DevicesService
-) {
-
-    @PostMapping("/bff/app-groups/{groupId}/apply-state/{stateId}")
+) {    @PostMapping("/bff/app-groups/{groupId}/apply-state/{stateId}")
     fun applyGroupState(
         @PathVariable groupId: String,
         @PathVariable stateId: String,
@@ -25,19 +21,8 @@ class BffGroupStatesController(
         val user = usersService.get(authentication.name)
         val appGroup = appGroupService.get(user, groupId)
         val state = groupStateService.getGroupState(appGroup, stateId)
-        val details = state.fetchDetails()
-        
-        // Apply each device state from the group state
-        // null means "Automatic" (set forcedDeviceState to null)
-        // missing from map means "Do not change" (skip the device)
-        details.deviceStates.forEach { (deviceId, deviceState) ->
-            val device = devicesService.get(deviceId)
-            device.update(DeviceDetailsUpdateDto(
-                forcedDeviceState = set(deviceState)
-            ))
-        }
-        
-        return ApplyGroupStateResponse(success = true, appliedDevices = details.deviceStates.size)
+        groupStateService.apply(state)
+        return ApplyGroupStateResponse(success = true, appliedDevices = state.fetchDetails().deviceStates.size)
     }
 
     @GetMapping("/bff/app-groups/{groupId}/states")
