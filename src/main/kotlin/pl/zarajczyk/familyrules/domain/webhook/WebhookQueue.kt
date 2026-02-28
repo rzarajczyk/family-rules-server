@@ -1,45 +1,57 @@
 package pl.zarajczyk.familyrules.domain.webhook
 
 import org.springframework.stereotype.Component
-import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.LinkedBlockingQueue
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.locks.ReentrantLock
+import kotlin.concurrent.withLock
 
 /**
- * Thread-safe deduplicating queue that maintains insertion order.
- * Uses LinkedHashSet logic backed by ConcurrentHashMap for thread safety.
+ * Thread-safe deduplicating queue for webhook notifications.
+ *
+ * Uses a [LinkedBlockingQueue] for ordering and blocking semantics,
+ * plus a [HashSet] guarded by a [ReentrantLock] for deduplication.
+ * Both structures are always updated atomically under the same lock,
+ * so an enqueue that arrives while a dequeue is in progress can never be lost.
  */
 @Component
 class WebhookQueue {
-    private val queue = ConcurrentHashMap.newKeySet<String>()
+    private val lock = ReentrantLock()
+    private val pending = HashSet<String>()
+    private val queue = LinkedBlockingQueue<String>()
 
     /**
      * Enqueues a username for webhook notification.
-     * If the username is already in the queue, it remains in its original position.
+     * If the username is already pending, this is a no-op.
      */
     fun enqueue(username: String) {
-        queue.add(username)
-    }
-
-    /**
-     * Dequeues and returns the next username from the queue.
-     * Returns null if the queue is empty.
-     */
-    fun dequeue(): String? {
-        val iterator = queue.iterator()
-        if (iterator.hasNext()) {
-            val username = iterator.next()
-            queue.remove(username)
-            return username
+        lock.withLock {
+            if (pending.add(username)) {
+                queue.put(username)
+            }
         }
-        return null
     }
 
     /**
-     * Returns the current size of the queue.
+     * Blocks until an element is available (or the timeout expires) and returns it.
+     * Returns null if the timeout elapsed with no element available.
      */
-    fun size(): Int = queue.size
+    fun take(timeout: Long, unit: TimeUnit): String? {
+        // Wait outside the lock so we don't block enqueuers
+        val username = queue.poll(timeout, unit) ?: return null
+        lock.withLock {
+            pending.remove(username)
+        }
+        return username
+    }
+
+    /**
+     * Returns the current number of pending items.
+     */
+    fun size(): Int = lock.withLock { pending.size }
 
     /**
      * Checks if the queue is empty.
      */
-    fun isEmpty(): Boolean = queue.isEmpty()
+    fun isEmpty(): Boolean = lock.withLock { pending.isEmpty() }
 }

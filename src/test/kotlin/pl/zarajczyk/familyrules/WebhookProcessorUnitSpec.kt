@@ -5,6 +5,7 @@ import io.kotest.matchers.collections.shouldContain
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
 import pl.zarajczyk.familyrules.domain.webhook.WebhookQueue
+import java.util.concurrent.TimeUnit
 
 class WebhookQueueUnitSpec : FunSpec({
 
@@ -19,10 +20,10 @@ class WebhookQueueUnitSpec : FunSpec({
         
         // Then
         queue.size() shouldBe 3
-        queue.dequeue() shouldBe "user1"
-        queue.dequeue() shouldBe "user2"
-        queue.dequeue() shouldBe "user3"
-        queue.dequeue() shouldBe null
+        queue.take(100, TimeUnit.MILLISECONDS) shouldBe "user1"
+        queue.take(100, TimeUnit.MILLISECONDS) shouldBe "user2"
+        queue.take(100, TimeUnit.MILLISECONDS) shouldBe "user3"
+        queue.take(100, TimeUnit.MILLISECONDS) shouldBe null
         queue.isEmpty() shouldBe true
     }
 
@@ -41,7 +42,7 @@ class WebhookQueueUnitSpec : FunSpec({
         queue.size() shouldBe 3
         val dequeued = mutableListOf<String>()
         while (!queue.isEmpty()) {
-            queue.dequeue()?.let { dequeued.add(it) }
+            queue.take(100, TimeUnit.MILLISECONDS)?.let { dequeued.add(it) }
         }
         dequeued shouldHaveSize 3
         dequeued shouldContain "user1"
@@ -73,7 +74,7 @@ class WebhookQueueUnitSpec : FunSpec({
         // Dequeue all items
         var count = 0
         while (!queue.isEmpty()) {
-            queue.dequeue()
+            queue.take(100, TimeUnit.MILLISECONDS)
             count++
         }
         count shouldBe (threads * itemsPerThread)
@@ -85,7 +86,7 @@ class WebhookQueueUnitSpec : FunSpec({
         
         // When & Then
         queue.isEmpty() shouldBe true
-        queue.dequeue() shouldBe null
+        queue.take(100, TimeUnit.MILLISECONDS) shouldBe null
         queue.size() shouldBe 0
     }
 })

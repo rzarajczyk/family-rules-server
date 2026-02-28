@@ -28,6 +28,7 @@ import pl.zarajczyk.familyrules.domain.port.ValueUpdate.Companion.set
 import pl.zarajczyk.familyrules.domain.webhook.WebhookProcessor
 import pl.zarajczyk.familyrules.domain.webhook.WebhookQueue
 import pl.zarajczyk.familyrules.domain.webhook.WebhookScheduler
+import java.util.concurrent.TimeUnit
 import kotlin.time.Duration.Companion.seconds
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -92,10 +93,10 @@ class WebhookIntegrationSpec : FunSpec() {
             
             // Then
             queue.size() shouldBe 3
-            queue.dequeue() shouldBe "user1"
-            queue.dequeue() shouldBe "user2"
-            queue.dequeue() shouldBe "user3"
-            queue.dequeue() shouldBe null
+            queue.take(100, TimeUnit.MILLISECONDS) shouldBe "user1"
+            queue.take(100, TimeUnit.MILLISECONDS) shouldBe "user2"
+            queue.take(100, TimeUnit.MILLISECONDS) shouldBe "user3"
+            queue.take(100, TimeUnit.MILLISECONDS) shouldBe null
             queue.isEmpty() shouldBe true
         }
 
@@ -113,7 +114,7 @@ class WebhookIntegrationSpec : FunSpec() {
             queue.size() shouldBe 2
             val dequeued = mutableListOf<String>()
             while (!queue.isEmpty()) {
-                queue.dequeue()?.let { dequeued.add(it) }
+                queue.take(100, TimeUnit.MILLISECONDS)?.let { dequeued.add(it) }
             }
             dequeued shouldHaveSize 2
             dequeued shouldContain "user1"
@@ -165,18 +166,22 @@ class WebhookIntegrationSpec : FunSpec() {
             // Update lastActivity to now
             user.updateLastActivity(System.currentTimeMillis())
             
-            // Clear the queue
+            // Clear the queue and captured payloads
             while (!webhookQueue.isEmpty()) {
-                webhookQueue.dequeue()
+                webhookQueue.take(100, TimeUnit.MILLISECONDS)
             }
+            capturingWebhookClient.clear()
             
             // When
             webhookScheduler.scheduleWebhookNotifications()
             
-            // Then
-            webhookQueue.isEmpty() shouldBe false
-            val dequeuedUser = webhookQueue.dequeue()
-            dequeuedUser shouldBe testUsername
+            // Then — the processor may consume the item before we can check the queue,
+            // so wait briefly and verify it was processed (webhook was sent)
+            val deadline = System.currentTimeMillis() + 5_000
+            while (capturingWebhookClient.capturedPayloads.isEmpty() && System.currentTimeMillis() < deadline) {
+                Thread.sleep(100)
+            }
+            capturingWebhookClient.capturedPayloads.size shouldBe 1
         }
 
         test("WebhookScheduler should NOT enqueue users with webhook disabled") {
@@ -193,7 +198,7 @@ class WebhookIntegrationSpec : FunSpec() {
             
             // Clear the queue
             while (!webhookQueue.isEmpty()) {
-                webhookQueue.dequeue()
+                webhookQueue.take(100, TimeUnit.MILLISECONDS)
             }
             
             // When
@@ -202,7 +207,7 @@ class WebhookIntegrationSpec : FunSpec() {
             // Then - the user with webhook disabled should NOT be enqueued
             val dequeuedUsers = mutableListOf<String>()
             while (!webhookQueue.isEmpty()) {
-                webhookQueue.dequeue()?.let { dequeuedUsers.add(it) }
+                webhookQueue.take(100, TimeUnit.MILLISECONDS)?.let { dequeuedUsers.add(it) }
             }
             dequeuedUsers shouldNotContain testUsername
         }
@@ -225,7 +230,7 @@ class WebhookIntegrationSpec : FunSpec() {
             
             // Clear the queue
             while (!webhookQueue.isEmpty()) {
-                webhookQueue.dequeue()
+                webhookQueue.take(100, TimeUnit.MILLISECONDS)
             }
             
             // When
@@ -234,7 +239,7 @@ class WebhookIntegrationSpec : FunSpec() {
             // Then - the user with old activity should NOT be enqueued
             val dequeuedUsers = mutableListOf<String>()
             while (!webhookQueue.isEmpty()) {
-                webhookQueue.dequeue()?.let { dequeuedUsers.add(it) }
+                webhookQueue.take(100, TimeUnit.MILLISECONDS)?.let { dequeuedUsers.add(it) }
             }
             dequeuedUsers shouldNotContain testUsername
         }

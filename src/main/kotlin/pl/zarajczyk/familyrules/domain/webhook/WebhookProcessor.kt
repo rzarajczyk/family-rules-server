@@ -17,6 +17,7 @@ import pl.zarajczyk.familyrules.domain.port.WebhookCallHistoryEntry
 import pl.zarajczyk.familyrules.gui.bff.*
 import java.util.concurrent.*
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.TimeUnit
 
 /**
  * Processes webhook notifications from the queue continuously.
@@ -83,12 +84,9 @@ class WebhookProcessor(
     private fun processQueue() {
         while (running.get()) {
             try {
-                val username = webhookQueue.dequeue()
+                val username = webhookQueue.take(500, TimeUnit.MILLISECONDS)
                 if (username != null) {
                     processWebhookForUser(username)
-                } else {
-                    // Queue is empty, sleep for a bit
-                    Thread.sleep(500)
                 }
             } catch (e: InterruptedException) {
                 logger.debug("WebhookProcessor worker thread interrupted")
