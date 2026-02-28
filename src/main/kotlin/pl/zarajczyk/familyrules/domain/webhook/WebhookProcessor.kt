@@ -150,40 +150,26 @@ class WebhookProcessor(
     }
 
     private fun computeWebhookPayload(user: User, date: LocalDate): WebhookPayload {
-//        val devices = devicesService.getAllDevices(user)
-//        val appGroups = appGroupService.listAllAppGroups(user)
-        
-        // Compute status similar to BffOverviewController.status
-//        val deviceStatuses = devices.map { device ->
-//            val screenTimeDto = device.getScreenTimeReport(date)
-//            val state = stateService.calculateCurrentDeviceState(device)
-//            val deviceDetails = device.fetchDetails()
-//
-//            DeviceStatus(
-//                deviceId = deviceDetails.deviceId.toString(),
-//                deviceName = deviceDetails.deviceName,
-//                screenTimeSeconds = screenTimeDto.screenTimeSeconds,
-//                online = screenTimeDto.online,
-//                forcedDeviceState = state.forcedState?.deviceState,
-//                automaticDeviceState = state.automaticState.deviceState
-//            )
-//        }
         val deviceStatuses = emptyList<DeviceStatus>() // not used currently!
         
-        // Compute device forced states for currentState calculation
+        // Fetch devices and app groups once; pass them into getReport to avoid redundant Firestore reads
         val allDevices = devicesService.getAllDevices(user)
+        val allAppGroups = appGroupService.listAllAppGroups(user)
+
+        // Pre-build map for O(1) lookup: group.id → AppGroup (avoids G² fetchDetails() calls)
+        val appGroupById: Map<String, AppGroup> = allAppGroups.associateBy { it.fetchDetails().id }
+
+        // Compute device forced states for currentState calculation
         val deviceForcedStates: Map<DeviceId, DeviceStateDto?> =
             allDevices.associate { device ->
                 device.fetchDetails().deviceId to stateService.calculateCurrentDeviceState(device).forcedState
             }
         
-        // Compute app group statistics similar to BffAppGroupsController.getAppGroupStatistics
-        val appGroupReport = appGroupService.getReport(user, date)
-        val appGroups = appGroupService.listAllAppGroups(user)
+        // Compute app group report, reusing already-fetched devices and app groups
+        val appGroupReport = appGroupService.getReport(user, date, devicesOverride = allDevices, appGroupsOverride = allAppGroups)
         
         val appGroupStatistics = appGroupReport.map { group ->
-            // Find the corresponding AppGroup to get available states
-            val appGroup = appGroups.find { it.fetchDetails().id == group.id }
+            val appGroup = appGroupById[group.id]
             val stateDetails = appGroup?.let { ag -> groupStateService.listAllGroupStates(ag).map { it.fetchDetails() } } ?: emptyList()
             val availableStates = stateDetails.map { GroupStateInfo(id = it.id, name = it.name) }
             val currentState = appGroup?.let { calculateCurrentGroupState(it, stateDetails, deviceForcedStates) }

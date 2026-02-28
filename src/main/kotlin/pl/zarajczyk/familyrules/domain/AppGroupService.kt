@@ -31,10 +31,18 @@ class AppGroupService(private val devicesRepository: DevicesRepository, private 
 
     fun getReport(
         user: User,
-        day: LocalDate
+        day: LocalDate,
+        devicesOverride: List<Device>? = null,
+        appGroupsOverride: List<AppGroup>? = null
     ): List<AppGroupReport> {
-        val devices = devicesService.getAllDevices(user)
-        val appGroups = appGroupRepository.getAll(user.asRef())
+        val devices = devicesOverride ?: devicesService.getAllDevices(user)
+        val appGroups = appGroupsOverride?.map { it.asRef() } ?: appGroupRepository.getAll(user.asRef())
+
+        // Pre-fetch screen time reports once per device (D reads) instead of once per (group × device) (G×D reads)
+        val deviceDetails = devices.map { it.fetchDetails() }
+        val screenTimeByDeviceId: Map<DeviceId, ScreenReport> = devices.zip(deviceDetails).associate { (device, details) ->
+            details.deviceId to device.getScreenTimeReport(day)
+        }
 
         val groupStats = appGroups.map { appGroupRef ->
             // Calculate statistics across all instances
@@ -43,9 +51,9 @@ class AppGroupService(private val devicesRepository: DevicesRepository, private 
             val deviceCount = mutableSetOf<String>()
             val appDetails = mutableListOf<AppGroupAppReport>()
 
-            devices.forEach { device ->
-                val instance = device.fetchDetails()
-                val screenTimeDto = device.getScreenTimeReport(day)
+            devices.forEachIndexed { index, device ->
+                val instance = deviceDetails[index]
+                val screenTimeDto = screenTimeByDeviceId.getValue(instance.deviceId)
                 val appTechnicalIds = appGroupRepository.getMembers(appGroupRef, device.asRef())
 
                 if (appTechnicalIds.isNotEmpty()) {
