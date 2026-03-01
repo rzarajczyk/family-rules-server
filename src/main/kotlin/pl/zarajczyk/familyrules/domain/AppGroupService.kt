@@ -6,7 +6,7 @@ import pl.zarajczyk.familyrules.domain.port.*
 import java.util.*
 
 @Service
-class AppGroupService(private val devicesRepository: DevicesRepository, private val appGroupRepository: AppGroupRepository, private val devicesService: DevicesService) {
+class AppGroupService(private val appGroupRepository: AppGroupRepository, private val devicesService: DevicesService) {
     fun get(user: User, groupId: String): AppGroup {
         val ref = appGroupRepository.get(user.asRef(), groupId) ?: throw AppGroupNotFoundException(groupId)
         return RefBasedAppGroup(ref, appGroupRepository)
