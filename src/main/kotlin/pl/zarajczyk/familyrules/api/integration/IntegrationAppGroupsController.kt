@@ -29,7 +29,8 @@ class IntegrationAppGroupsController(
         val allDevices = devicesService.getAllDevices(user)
         val deviceForcedStates: Map<DeviceId, DeviceStateDto?> =
             allDevices.associate { device ->
-                device.fetchDetails().deviceId to stateService.calculateCurrentDeviceState(device).forcedState
+                val details = device.fetchDetails()
+                details.deviceId to stateService.calculateCurrentDeviceState(details).forcedState
             }
 
         return IntegrationAppGroupsResponse(
@@ -64,7 +65,8 @@ class IntegrationAppGroupsController(
         val allDevices = devicesService.getAllDevices(user)
         val deviceForcedStates: Map<DeviceId, DeviceStateDto?> =
             allDevices.associate { device ->
-                device.fetchDetails().deviceId to stateService.calculateCurrentDeviceState(device).forcedState
+                val details = device.fetchDetails()
+                details.deviceId to stateService.calculateCurrentDeviceState(details).forcedState
             }
 
         val stateDetails = groupStateService.listAllGroupStates(appGroup).map { it.fetchDetails() }

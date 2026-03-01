@@ -39,8 +39,8 @@ class BffOverviewController(
         val devices = devicesService.getAllDevices(user)
         StatusResponse(devices.map { device ->
             val screenTimeDto = device.getScreenTimeReport(day)
-            val state = stateService.calculateCurrentDeviceState(device)
             val deviceDetails = device.fetchDetails()
+            val state = stateService.calculateCurrentDeviceState(deviceDetails)
             val availableStates = deviceDetails.availableDeviceStates
             val appGroups = appGroupService.listAllAppGroups(user)
 

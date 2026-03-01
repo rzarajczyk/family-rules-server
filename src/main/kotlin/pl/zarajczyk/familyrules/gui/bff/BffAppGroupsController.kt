@@ -102,7 +102,8 @@ class BffAppGroupsController(
         val devices = devicesService.getAllDevices(user)
         // Compute each device's current final state once (avoid repeated fetches)
         val deviceFinalStates: Map<DeviceId, DeviceStateDto?> = devices.associate { device ->
-            device.fetchDetails().deviceId to stateService.calculateCurrentDeviceState(device).finalState
+            val details = device.fetchDetails()
+            details.deviceId to stateService.calculateCurrentDeviceState(details).finalState
         }
 
         return AppGroupStatisticsResponse(

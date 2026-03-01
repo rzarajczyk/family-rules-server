@@ -32,13 +32,12 @@ class AppGroupService(private val devicesRepository: DevicesRepository, private 
     fun getSimplifiedReport(
         user: User,
         day: LocalDate,
+        devices: Map<Device, DeviceDetailsDto>
     ): List<AppGroupSimplifiedReport> {
-        val devices = devicesService.getAllDevices(user)
         val appGroupRefs = appGroupRepository.getAll(user.asRef())
 
         // Pre-fetch screen time reports once per device (D reads)
-        val deviceDetails = devices.map { it.fetchDetails() }
-        val screenTimeByDeviceId: Map<DeviceId, ScreenReport> = devices.zip(deviceDetails).associate { (device, details) ->
+        val screenTimeByDeviceId: Map<DeviceId, ScreenReport> = devices.entries.associate { (device, details) ->
             details.deviceId to device.getScreenTimeReport(day)
         }
 
@@ -48,7 +47,7 @@ class AppGroupService(private val devicesRepository: DevicesRepository, private 
             var totalScreenTimeSeconds = 0L
             var isOnline = false
 
-            deviceDetails.forEach { instance ->
+            devices.values.forEach { instance ->
                 val screenTimeDto = screenTimeByDeviceId.getValue(instance.deviceId)
                 val appTechnicalIds = groupDto.members[instance.deviceId.toString()] ?: emptySet()
 
