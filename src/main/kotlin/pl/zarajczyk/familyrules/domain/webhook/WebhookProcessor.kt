@@ -11,10 +11,10 @@ import org.springframework.stereotype.Service
 import org.springframework.web.client.HttpStatusCodeException
 import pl.zarajczyk.familyrules.configuration.WebhookProperties
 import pl.zarajczyk.familyrules.domain.*
+import pl.zarajczyk.familyrules.domain.port.AppGroupDto
 import pl.zarajczyk.familyrules.domain.port.DeviceStateDto
 import pl.zarajczyk.familyrules.domain.port.UsersRepository
 import pl.zarajczyk.familyrules.domain.port.WebhookCallHistoryEntry
-import pl.zarajczyk.familyrules.gui.bff.*
 import java.util.concurrent.*
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.TimeUnit
@@ -32,7 +32,6 @@ class WebhookProcessor(
     private val usersService: UsersService,
     private val usersRepository: UsersRepository,
     private val appGroupService: AppGroupService,
-    private val groupStateService: GroupStateService,
     private val devicesService: DevicesService,
     private val stateService: StateService,
     private val objectMapper: ObjectMapper,
@@ -150,56 +149,37 @@ class WebhookProcessor(
     }
 
     private fun computeWebhookPayload(user: User, date: LocalDate): WebhookPayload {
-        val deviceStatuses = emptyList<DeviceStatus>() // not used currently!
-        
-        // Fetch devices and app groups once; pass them into getReport to avoid redundant Firestore reads
+        val simplifiedReport = appGroupService.getSimplifiedReport(user, date)
+
+        // Compute device forced states once for currentState calculation (D reads)
         val allDevices = devicesService.getAllDevices(user)
-        val allAppGroups = appGroupService.listAllAppGroups(user)
-
-        // Pre-build map for O(1) lookup: group.id → AppGroup (avoids G² fetchDetails() calls)
-        val appGroupById: Map<String, AppGroup> = allAppGroups.associateBy { it.fetchDetails().id }
-
-        // Compute device forced states for currentState calculation
         val deviceForcedStates: Map<DeviceId, DeviceStateDto?> =
             allDevices.associate { device ->
                 device.fetchDetails().deviceId to stateService.calculateCurrentDeviceState(device).forcedState
             }
-        
-        // Compute app group report, reusing already-fetched devices and app groups
-        val appGroupReport = appGroupService.getReport(user, date, devicesOverride = allDevices, appGroupsOverride = allAppGroups)
-        
-        val appGroupStatistics = appGroupReport.map { group ->
-            val appGroup = appGroupById[group.id]
-            val stateDetails = appGroup?.let { ag -> groupStateService.listAllGroupStates(ag).map { it.fetchDetails() } } ?: emptyList()
-            val availableStates = stateDetails.map { GroupStateInfo(id = it.id, name = it.name) }
-            val currentState = appGroup?.let { calculateCurrentGroupState(it, stateDetails, deviceForcedStates) }
-                ?: AppGroupCurrentState(kind = "automatic", label = "Automatic", stateId = null)
-            
+
+        val appGroupStatistics = simplifiedReport.map { report ->
+            val currentState = calculateCurrentGroupState(report.groupDto, deviceForcedStates)
             AppGroupStatus(
-                id = group.id,
-                name = group.name,
-                color = group.color,
-                appsCount = group.appsCount,
-                devicesCount = group.devicesCount,
-                totalScreenTime = group.totalScreenTime,
-                online = group.online,
-                availableStates = availableStates,
-                currentState = currentState
+                id = report.id,
+                name = report.name,
+                online = report.online,
+                totalScreenTime = report.totalScreenTimeSeconds,
+                currentState = currentState,
             )
         }
-        
+
         return WebhookPayload(
             date = date.toString(),
-            devices = deviceStatuses,
-            appGroups = appGroupStatistics
+            appGroups = appGroupStatistics,
         )
     }
 
     private fun calculateCurrentGroupState(
-        appGroup: AppGroup,
-        stateDetails: List<GroupStateDetails>,
+        groupDto: AppGroupDto,
         deviceForcedStates: Map<DeviceId, DeviceStateDto?>,
     ): AppGroupCurrentState {
+        val stateDetails = groupDto.states.values.toList()
         val groupDeviceIds = stateDetails.flatMap { it.deviceStates.keys }.toSet()
 
         if (groupDeviceIds.isEmpty()) {
@@ -228,28 +208,14 @@ class WebhookProcessor(
 
 data class WebhookPayload(
     val date: String,
-    val devices: List<DeviceStatus>,
     val appGroups: List<AppGroupStatus>
-)
-
-data class DeviceStatus(
-    val deviceId: String,
-    val deviceName: String,
-    val screenTimeSeconds: Long,
-    val online: Boolean,
-    val forcedDeviceState: String?,
-    val automaticDeviceState: String
 )
 
 data class AppGroupStatus(
     val id: String,
     val name: String,
-    val color: String,
-    val appsCount: Int,
-    val devicesCount: Int,
-    val totalScreenTime: Long,
     val online: Boolean,
-    val availableStates: List<GroupStateInfo>,
+    val totalScreenTime: Long,
     val currentState: AppGroupCurrentState,
 )
 
@@ -257,9 +223,4 @@ data class AppGroupCurrentState(
     val kind: String,   // "named" | "automatic" | "different"
     val label: String,
     val stateId: String?,
-)
-
-data class GroupStateInfo(
-    val id: String,
-    val name: String
 )

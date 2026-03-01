@@ -29,6 +29,47 @@ class AppGroupService(private val devicesRepository: DevicesRepository, private 
             .map { RefBasedAppGroup(it, appGroupRepository) }
     }
 
+    fun getSimplifiedReport(
+        user: User,
+        day: LocalDate,
+    ): List<AppGroupSimplifiedReport> {
+        val devices = devicesService.getAllDevices(user)
+        val appGroupRefs = appGroupRepository.getAll(user.asRef())
+
+        // Pre-fetch screen time reports once per device (D reads)
+        val deviceDetails = devices.map { it.fetchDetails() }
+        val screenTimeByDeviceId: Map<DeviceId, ScreenReport> = devices.zip(deviceDetails).associate { (device, details) ->
+            details.deviceId to device.getScreenTimeReport(day)
+        }
+
+        return appGroupRefs.map { appGroupRef ->
+            val groupDto = appGroupRepository.fetchDetails(appGroupRef)
+
+            var totalScreenTimeSeconds = 0L
+            var isOnline = false
+
+            deviceDetails.forEach { instance ->
+                val screenTimeDto = screenTimeByDeviceId.getValue(instance.deviceId)
+                val appTechnicalIds = groupDto.members[instance.deviceId.toString()] ?: emptySet()
+
+                appTechnicalIds.forEach { appTechnicalId ->
+                    totalScreenTimeSeconds += screenTimeDto.applicationsSeconds[appTechnicalId] ?: 0L
+                    if (!isOnline && appTechnicalId in screenTimeDto.onlineApps) {
+                        isOnline = true
+                    }
+                }
+            }
+
+            AppGroupSimplifiedReport(
+                id = groupDto.id,
+                name = groupDto.name,
+                online = isOnline,
+                totalScreenTimeSeconds = totalScreenTimeSeconds,
+                groupDto = groupDto,
+            )
+        }
+    }
+
     fun getReport(
         user: User,
         day: LocalDate,
@@ -194,6 +235,15 @@ data class AppGroupReport(
     val totalScreenTime: Long,
     val apps: List<AppGroupAppReport> = emptyList(),
     val online: Boolean = false
+)
+
+data class AppGroupSimplifiedReport(
+    val id: String,
+    val name: String,
+    val online: Boolean,
+    val totalScreenTimeSeconds: Long,
+    /** Embedded group DTO — carries members + states, used by callers for currentState computation. Not serialized. */
+    val groupDto: AppGroupDto,
 )
 
 data class AppGroupAppReport(
