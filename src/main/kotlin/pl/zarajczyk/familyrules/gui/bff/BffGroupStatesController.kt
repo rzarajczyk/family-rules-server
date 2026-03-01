@@ -4,6 +4,7 @@ import org.springframework.security.core.Authentication
 import org.springframework.web.bind.annotation.*
 import pl.zarajczyk.familyrules.domain.*
 import pl.zarajczyk.familyrules.domain.port.DeviceStateDto
+import pl.zarajczyk.familyrules.domain.webhook.WebhookQueue
 import java.util.*
 
 @RestController
@@ -11,8 +12,10 @@ class BffGroupStatesController(
     private val usersService: UsersService,
     private val appGroupService: AppGroupService,
     private val groupStateService: GroupStateService,
-    private val devicesService: DevicesService
-) {    @PostMapping("/bff/app-groups/{groupId}/apply-state/{stateId}")
+    private val devicesService: DevicesService,
+    private val webhookQueue: WebhookQueue
+) {
+    @PostMapping("/bff/app-groups/{groupId}/apply-state/{stateId}")
     fun applyGroupState(
         @PathVariable groupId: String,
         @PathVariable stateId: String,
@@ -22,6 +25,7 @@ class BffGroupStatesController(
         val appGroup = appGroupService.get(user, groupId)
         val state = groupStateService.getGroupState(appGroup, stateId)
         groupStateService.apply(state)
+        webhookQueue.enqueue(authentication.name)
         return ApplyGroupStateResponse(success = true, appliedDevices = state.fetchDetails().deviceStates.size)
     }
 
