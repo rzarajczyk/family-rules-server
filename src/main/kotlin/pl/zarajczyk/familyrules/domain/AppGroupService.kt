@@ -45,6 +45,9 @@ class AppGroupService(private val devicesRepository: DevicesRepository, private 
         }
 
         val groupStats = appGroups.map { appGroupRef ->
+            // Fetch all group data in a single read (includes embedded members + states)
+            val groupDto = appGroupRepository.fetchDetails(appGroupRef)
+
             // Calculate statistics across all instances
             var totalApps = 0
             var totalScreenTimeSeconds = 0L
@@ -54,7 +57,8 @@ class AppGroupService(private val devicesRepository: DevicesRepository, private 
             devices.forEachIndexed { index, device ->
                 val instance = deviceDetails[index]
                 val screenTimeDto = screenTimeByDeviceId.getValue(instance.deviceId)
-                val appTechnicalIds = appGroupRepository.getMembers(appGroupRef, device.asRef())
+                // Use embedded members map — no extra Firestore read
+                val appTechnicalIds = groupDto.members[instance.deviceId.toString()] ?: emptySet()
 
                 if (appTechnicalIds.isNotEmpty()) {
                     deviceCount.add(instance.deviceId.toString())
@@ -98,13 +102,12 @@ class AppGroupService(private val devicesRepository: DevicesRepository, private 
                 appDetails
             }.sortedByDescending { it.screenTime }
 
-            val group = appGroupRepository.fetchDetails(appGroupRef)
-            val colorInfo = AppGroupColorPalette.getColorInfo(group.color)
+            val colorInfo = AppGroupColorPalette.getColorInfo(groupDto.color)
             val isGroupOnline = appsWithPercentages.any { it.online }
             AppGroupReport(
-                id = group.id,
-                name = group.name,
-                color = group.color,
+                id = groupDto.id,
+                name = groupDto.name,
+                color = groupDto.color,
                 textColor = colorInfo?.text ?: "#000000",
                 appsCount = totalApps,
                 devicesCount = deviceCount.size,
@@ -165,11 +168,13 @@ data class RefBasedAppGroup(
     }
 
     override fun addMember(device: Device, appTechnicalId: AppTechnicalId) {
-        appGroupRepository.addMember(appGroupRef, device.asRef(), appTechnicalId)
+        val current = appGroupRepository.getMembers(appGroupRef, device.asRef())
+        appGroupRepository.setMembers(appGroupRef, device.asRef(), current + appTechnicalId)
     }
 
     override fun removeMember(device: Device, appTechnicalId: AppTechnicalId) {
-        appGroupRepository.removeMember(appGroupRef, device.asRef(), appTechnicalId)
+        val current = appGroupRepository.getMembers(appGroupRef, device.asRef())
+        appGroupRepository.setMembers(appGroupRef, device.asRef(), current - appTechnicalId)
     }
 }
 

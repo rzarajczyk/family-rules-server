@@ -4,6 +4,7 @@ import kotlinx.datetime.LocalDate
 import org.springframework.security.core.Authentication
 import org.springframework.web.bind.annotation.*
 import pl.zarajczyk.familyrules.domain.*
+import pl.zarajczyk.familyrules.domain.port.AppGroupRepository
 import pl.zarajczyk.familyrules.domain.port.DeviceStateDto
 import java.util.*
 
@@ -13,7 +14,8 @@ class BffAppGroupsController(
     private val appGroupService: AppGroupService,
     private val devicesService: DevicesService,
     private val groupStateService: GroupStateService,
-    private val stateService: StateService
+    private val stateService: StateService,
+    private val appGroupRepository: AppGroupRepository
 ) {
 
     @PostMapping("/bff/app-groups")
@@ -217,22 +219,13 @@ class BffAppGroupsController(
         val user = usersService.get(authentication.name)
         val appGroup = appGroupService.get(user, groupId)
 
-        // Process each device's app changes
+        // Process each device's app changes in one read + one write per device
         request.devices.forEach { deviceUpdate ->
             val device = devicesService.get(UUID.fromString(deviceUpdate.deviceId))
-            
-            // Add new apps
-            deviceUpdate.appsToAdd.forEach { appPath ->
-                if (!appGroup.containsMember(device, appPath)) {
-                    appGroup.addMember(device, appPath)
-                }
-            }
-            
-            // Remove apps
-            deviceUpdate.appsToRemove.forEach { appPath ->
-                if (appGroup.containsMember(device, appPath)) {
-                    appGroup.removeMember(device, appPath)
-                }
+            val current = appGroup.getMembers(device)
+            val updated = (current + deviceUpdate.appsToAdd) - deviceUpdate.appsToRemove.toSet()
+            if (updated != current) {
+                appGroupRepository.setMembers(appGroup.asRef(), device.asRef(), updated)
             }
         }
 

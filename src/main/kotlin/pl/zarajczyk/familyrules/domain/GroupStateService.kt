@@ -7,24 +7,24 @@ import java.util.*
 
 @Service
 class GroupStateService(
-    private val groupStateRepository: GroupStateRepository,
+    private val appGroupRepository: AppGroupRepository,
     private val devicesService: DevicesService,
 ) {
     fun createGroupState(appGroup: AppGroup, name: String, deviceStates: Map<DeviceId, DeviceStateDto?>): GroupState {
         val stateId = UUID.randomUUID().toString()
-        val groupStateRef = groupStateRepository.create(appGroup.asRef(), stateId, name, deviceStates)
-        return RefBasedGroupState(groupStateRef, groupStateRepository)
+        val groupStateRef = appGroupRepository.createGroupState(appGroup.asRef(), stateId, name, deviceStates)
+        return RefBasedGroupState(groupStateRef, appGroupRepository)
     }
 
     fun getGroupState(appGroup: AppGroup, stateId: String): GroupState {
-        val groupStateRef = groupStateRepository.get(appGroup.asRef(), stateId) 
+        val groupStateRef = appGroupRepository.getGroupState(appGroup.asRef(), stateId)
             ?: throw GroupStateNotFoundException(stateId)
-        return RefBasedGroupState(groupStateRef, groupStateRepository)
+        return RefBasedGroupState(groupStateRef, appGroupRepository)
     }
 
     fun listAllGroupStates(appGroup: AppGroup): List<GroupState> {
-        return groupStateRepository.getAll(appGroup.asRef())
-            .map { RefBasedGroupState(it, groupStateRepository) }
+        return appGroupRepository.getAllGroupStates(appGroup.asRef())
+            .map { RefBasedGroupState(it, appGroupRepository) }
     }
 
     fun apply(state: GroupState) {
@@ -44,20 +44,20 @@ interface GroupState {
 
 data class RefBasedGroupState(
     val groupStateRef: GroupStateRef,
-    private val groupStateRepository: GroupStateRepository
+    private val appGroupRepository: AppGroupRepository
 ) : GroupState {
     override fun asRef(): GroupStateRef = groupStateRef
 
     override fun fetchDetails(): GroupStateDetails {
-        return groupStateRepository.fetchDetails(groupStateRef)
+        return appGroupRepository.fetchGroupStateDetails(groupStateRef)
     }
 
     override fun update(name: String, deviceStates: Map<DeviceId, DeviceStateDto?>) {
-        groupStateRepository.update(groupStateRef, name, deviceStates)
+        appGroupRepository.updateGroupState(groupStateRef.appGroupRef, groupStateRef.stateId, name, deviceStates)
     }
 
     override fun delete() {
-        groupStateRepository.delete(groupStateRef)
+        appGroupRepository.deleteGroupState(groupStateRef.appGroupRef, groupStateRef.stateId)
     }
 }
 

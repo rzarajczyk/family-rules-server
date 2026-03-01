@@ -78,4 +78,31 @@ tasks {
     bootJar {
         archiveFileName.set("app.jar")
     }
+
+    /**
+     * Run database migrations against production Firestore.
+     *
+     * Required environment variables:
+     *   FIRESTORE_PROJECT_ID          – GCP project ID
+     *   GOOGLE_APPLICATION_CREDENTIALS – path to service-account JSON key file
+     *
+     * The task will first write a local backup file (firestore-backup-<timestamp>.json)
+     * in the project root directory, then run all pending migrations.
+     *
+     * Usage:
+     *   ./gradlew migrate
+     */
+    register<JavaExec>("migrate") {
+        group = "database"
+        description = "Backup Firestore to a local JSON file and run all pending data migrations"
+        classpath = sourceSets["main"].runtimeClasspath
+        mainClass.set("pl.zarajczyk.familyrules.migrations.MigrationKt")
+        environment(
+            mapOf(
+                "FIRESTORE_PROJECT_ID" to (System.getenv("FIRESTORE_PROJECT_ID") ?: ""),
+                "GOOGLE_APPLICATION_CREDENTIALS" to (System.getenv("GOOGLE_APPLICATION_CREDENTIALS") ?: ""),
+            )
+        )
+        dependsOn("classes")
+    }
 }
