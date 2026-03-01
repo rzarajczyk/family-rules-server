@@ -270,4 +270,6 @@ class FirestoreKnownApp(
     val iconBase64: String?
 )
 
-class FirestoreDeviceRef(val document: QueryDocumentSnapshot) : DeviceRef
+class FirestoreDeviceRef(val document: QueryDocumentSnapshot) : DeviceRef {
+    override fun getDeviceId(): DeviceId = UUID.fromString(document.getString("instanceId"))
+}

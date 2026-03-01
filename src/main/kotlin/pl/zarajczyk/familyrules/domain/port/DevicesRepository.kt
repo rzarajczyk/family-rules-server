@@ -21,7 +21,9 @@ interface DevicesRepository {
     fun getScreenReport(device: DeviceRef, day: LocalDate): ScreenReportDto?
 }
 
-interface DeviceRef
+interface DeviceRef {
+    fun getDeviceId(): DeviceId
+}
 
 data class DeviceDetailsDto(
     val deviceId: DeviceId,

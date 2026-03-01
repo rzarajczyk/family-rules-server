@@ -1,16 +1,13 @@
 package pl.zarajczyk.familyrules.domain
 
+import kotlinx.datetime.*
+import kotlinx.datetime.TimeZone
+import org.springframework.stereotype.Service
 import pl.zarajczyk.familyrules.domain.port.DeviceDetailsDto
 import pl.zarajczyk.familyrules.domain.port.DeviceDetailsUpdateDto
 import pl.zarajczyk.familyrules.domain.port.DeviceRef
 import pl.zarajczyk.familyrules.domain.port.DevicesRepository
 import java.util.*
-import kotlinx.datetime.Clock
-import kotlinx.datetime.Instant
-import kotlinx.datetime.LocalDate
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
-import org.springframework.stereotype.Service
 
 @Service
 class DevicesService(
@@ -19,13 +16,17 @@ class DevicesService(
 ) {
     fun get(deviceId: DeviceId): Device {
         val ref = devicesRepository.get(deviceId) ?: throw DeviceNotFoundException(deviceId)
-        return RefBasedDevice(ref, devicesRepository, usersService)
+        val details = devicesRepository.fetchDetails(ref)
+        return RefBasedDevice(ref, details, devicesRepository, usersService)
     }
 
     fun getAllDevices(user: User): List<Device> {
         return devicesRepository
             .getAll(user.asRef())
-            .map { RefBasedDevice(it, devicesRepository, usersService) }
+            .map {
+                val details = devicesRepository.fetchDetails(it)
+                RefBasedDevice(it, details, devicesRepository, usersService)
+            }
     }
 
     @Throws(IllegalInstanceName::class, InstanceAlreadyExists::class)
@@ -78,6 +79,8 @@ interface Device {
 
     fun asRef(): DeviceRef
 
+    fun getId(): DeviceId
+
     fun validateToken(token: String): Boolean
 
     fun update(update: DeviceDetailsUpdateDto)
@@ -95,6 +98,7 @@ interface Device {
 
 data class RefBasedDevice(
     val deviceRef: DeviceRef,
+    private val deviceDetails: DeviceDetailsDto,
     private val devicesRepository: DevicesRepository,
     private val usersService: UsersService
 ) : Device {
@@ -102,6 +106,8 @@ data class RefBasedDevice(
     override fun asRef(): DeviceRef {
         return deviceRef
     }
+
+    override fun getId(): DeviceId = deviceRef.getDeviceId()
 
     override fun validateToken(token: String): Boolean {
         return devicesRepository.fetchDetails(deviceRef, includePasswordHash = true).hashedToken == token.sha256()
@@ -120,12 +126,14 @@ data class RefBasedDevice(
     }
 
     override fun fetchDetails(): DeviceDetailsDto {
-        return devicesRepository.fetchDetails(deviceRef)
+        return deviceDetails
     }
 
     override fun getScreenTimeReport(day: LocalDate): ScreenReport {
         val reportIntervalSeconds = fetchDetails().reportIntervalSeconds
-        return ( devicesRepository.getScreenReport(deviceRef, day) ?: ScreenReportDto.empty() ).toDomain(reportIntervalSeconds)
+        return (devicesRepository.getScreenReport(deviceRef, day) ?: ScreenReportDto.empty()).toDomain(
+            reportIntervalSeconds
+        )
     }
 
     private fun ScreenReportDto.toDomain(reportIntervalSeconds: Long): ScreenReport {
