@@ -110,9 +110,8 @@ class BffSettingsControllerIntegrationSpec : FunSpec() {
             test("should verify password was changed in database") {
                 val userRef = usersRepository.get(testUsername)
                 userRef shouldNotBe null
-                val user = usersRepository.fetchDetails(userRef!!, includePasswordHash = true)
-                user.passwordSha256 shouldBe newPassword.sha256()
-                user.passwordSha256 shouldNotBe testPassword.sha256()
+                userRef!!.passwordSha256 shouldBe newPassword.sha256()
+                userRef.passwordSha256 shouldNotBe testPassword.sha256()
             }
 
             test("should return error when current password is incorrect") {
@@ -143,7 +142,7 @@ class BffSettingsControllerIntegrationSpec : FunSpec() {
                 val userRef = usersRepository.get(testUsername)
                 userRef shouldNotBe null
                 // Password should still be the new password from successful change
-                usersRepository.fetchDetails(userRef!!, includePasswordHash = true).passwordSha256 shouldBe newPassword.sha256()
+                userRef!!.passwordSha256 shouldBe newPassword.sha256()
             }
 
             test("should change password again successfully with new current password") {
@@ -167,7 +166,7 @@ class BffSettingsControllerIntegrationSpec : FunSpec() {
 
                 val userRef = usersRepository.get(testUsername)
                 userRef shouldNotBe null
-                usersRepository.fetchDetails(userRef!!, includePasswordHash = true).passwordSha256 shouldBe anotherNewPassword.sha256()
+                userRef!!.passwordSha256 shouldBe anotherNewPassword.sha256()
             }
 
             test("should redirect to login page for unauthenticated request") {
@@ -208,7 +207,7 @@ class BffSettingsControllerIntegrationSpec : FunSpec() {
 
                 val adminRef = usersRepository.get(adminUsername)
                 adminRef shouldNotBe null
-                usersRepository.fetchDetails(adminRef!!, includePasswordHash = true).passwordSha256 shouldBe adminNewPassword.sha256()
+                adminRef!!.passwordSha256 shouldBe adminNewPassword.sha256()
             }
 
             test("should restore admin password for cleanup") {
@@ -302,7 +301,7 @@ class BffSettingsControllerIntegrationSpec : FunSpec() {
                 // Verify empty password was actually set (though not recommended in production)
                 val edgeRef = usersRepository.get(edgeTestUsername)
                 edgeRef shouldNotBe null
-                usersRepository.fetchDetails(edgeRef!!, includePasswordHash = true).passwordSha256 shouldBe "".sha256()
+                edgeRef!!.passwordSha256 shouldBe "".sha256()
             }
 
             test("should reset password back to test password for further tests") {
@@ -343,7 +342,7 @@ class BffSettingsControllerIntegrationSpec : FunSpec() {
 
                 val edgeRef2 = usersRepository.get(edgeTestUsername)
                 edgeRef2 shouldNotBe null
-                usersRepository.fetchDetails(edgeRef2!!, includePasswordHash = true).passwordSha256 shouldBe longPassword.sha256()
+                edgeRef2!!.passwordSha256 shouldBe longPassword.sha256()
             }
 
             test("should handle special characters in password") {
@@ -367,7 +366,7 @@ class BffSettingsControllerIntegrationSpec : FunSpec() {
 
                 val edgeRef3 = usersRepository.get(edgeTestUsername)
                 edgeRef3 shouldNotBe null
-                usersRepository.fetchDetails(edgeRef3!!, includePasswordHash = true).passwordSha256 shouldBe specialPassword.sha256()
+                edgeRef3!!.passwordSha256 shouldBe specialPassword.sha256()
             }
 
             test("should handle unicode characters in password") {
@@ -391,7 +390,7 @@ class BffSettingsControllerIntegrationSpec : FunSpec() {
 
                 val edgeRef4 = usersRepository.get(edgeTestUsername)
                 edgeRef4 shouldNotBe null
-                usersRepository.fetchDetails(edgeRef4!!, includePasswordHash = true).passwordSha256 shouldBe unicodePassword.sha256()
+                edgeRef4!!.passwordSha256 shouldBe unicodePassword.sha256()
             }
 
             test("should handle changing to same password") {
@@ -479,7 +478,7 @@ class BffSettingsControllerIntegrationSpec : FunSpec() {
             test("user1 password change should not affect user2") {
                 val user2Ref = usersRepository.get(user2Username)
                 user2Ref shouldNotBe null
-                usersRepository.fetchDetails(user2Ref!!, includePasswordHash = true).passwordSha256 shouldBe user2Password.sha256()
+                user2Ref!!.passwordSha256 shouldBe user2Password.sha256()
             }
 
             test("user2 should still be able to use their original password") {
@@ -506,8 +505,8 @@ class BffSettingsControllerIntegrationSpec : FunSpec() {
                 user1Ref shouldNotBe null
                 user2Ref shouldNotBe null
 
-                val user1Hash = usersRepository.fetchDetails(user1Ref!!, includePasswordHash = true).passwordSha256
-                val user2Hash = usersRepository.fetchDetails(user2Ref!!, includePasswordHash = true).passwordSha256
+                val user1Hash = user1Ref!!.passwordSha256
+                val user2Hash = user2Ref!!.passwordSha256
 
                 user1Hash shouldNotBe user2Hash
                 user1Hash shouldBe "user1newpass".sha256()

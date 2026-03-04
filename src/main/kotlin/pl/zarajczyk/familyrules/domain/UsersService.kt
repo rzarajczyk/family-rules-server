@@ -57,10 +57,10 @@ data class RefBasedUser(
     override fun asRef(): UserRef = userRef
 
     override fun fetchDetails(): UserDetails {
-        return usersRepository.fetchDetails(userRef).let {
+        return userRef.details.let {
             UserDetails(
                 username = it.username,
-                passwordSha256 = it.passwordSha256,
+                passwordSha256 = userRef.passwordSha256,
                 accessLevel = it.accessLevel,
                 webhookEnabled = it.webhookEnabled,
                 webhookUrl = it.webhookUrl,
@@ -75,8 +75,7 @@ data class RefBasedUser(
     }
 
     override fun validatePassword(password: String) {
-        val user = usersRepository.fetchDetails(userRef, includePasswordHash = true)
-        if (user.passwordSha256 != password.sha256())
+        if (userRef.passwordSha256 != password.sha256())
             throw InvalidPassword()
     }
 

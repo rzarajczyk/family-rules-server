@@ -135,10 +135,9 @@ class BffUserControllerIntegrationSpec : FunSpec() {
             test("should verify new user exists in database") {
                 val userRef = usersRepository.get(testUsername)
                 userRef shouldNotBe null
-                val user = usersRepository.fetchDetails(userRef!!)
-                user.username shouldBe testUsername
-                user.passwordSha256 shouldNotBe null
-                user.accessLevel.name shouldBe "PARENT"
+                userRef!!.details.username shouldBe testUsername
+                userRef.passwordSha256 shouldNotBe null
+                userRef.details.accessLevel.name shouldBe "PARENT"
             }
 
             test("should verify new user can authenticate") {

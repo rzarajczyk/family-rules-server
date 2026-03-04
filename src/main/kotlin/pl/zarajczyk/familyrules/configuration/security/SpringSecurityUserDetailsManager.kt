@@ -6,7 +6,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException
 import org.springframework.security.provisioning.UserDetailsManager
 import org.springframework.stereotype.Service
 import pl.zarajczyk.familyrules.domain.AccessLevel
-import pl.zarajczyk.familyrules.domain.port.UserDetailsDto
+import pl.zarajczyk.familyrules.domain.port.UserRef
 import pl.zarajczyk.familyrules.domain.port.UsersRepository
 
 @Service
@@ -38,20 +38,19 @@ class SpringSecurityUserDetailsManager(private val usersRepository: UsersReposit
 
     override fun loadUserByUsername(username: String): UserDetails {
         return usersRepository.get(username)
-            ?.let { usersRepository.fetchDetails(it, includePasswordHash = true) }
-            ?.let { dto -> DtoBasedUserDetails(dto) }
+            ?.let { UserDetailsForSpringSecurity(it) }
             ?: throw UsernameNotFoundException("User ≪$username≫ not found")
     }
 }
 
-data class DtoBasedUserDetails(private val dto: UserDetailsDto) : UserDetails {
+data class UserDetailsForSpringSecurity(private val dto: UserRef) : UserDetails {
     override fun getAuthorities(): Collection<GrantedAuthority> = listOf(
-        AccessLevelAuthority(dto.accessLevel)
+        AccessLevelAuthority(dto.details.accessLevel)
     )
 
     override fun getPassword(): String = dto.passwordSha256
 
-    override fun getUsername(): String = dto.username
+    override fun getUsername(): String = dto.details.username
 
 }
 

@@ -272,7 +272,7 @@ class WebhookIntegrationSpec : FunSpec() {
             
             // Then
             val usernames = usersWithRecentActivity.map { 
-                usersRepository.fetchDetails(it).username 
+                it.details.username 
             }
             usernames shouldContain testUsername1
         }

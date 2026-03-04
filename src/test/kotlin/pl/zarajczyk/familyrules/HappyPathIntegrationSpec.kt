@@ -81,9 +81,8 @@ class HappyPathIntegrationSpec : FunSpec() {
         test("step 1 - should verify default user exists in database") {
             val userRef = usersRepository.get(username)
             userRef shouldNotBe null
-            val user = usersRepository.fetchDetails(userRef!!)
-            user.username shouldBe username
-            user.passwordSha256 shouldNotBe null
+            userRef!!.details.username shouldBe username
+            userRef.passwordSha256 shouldNotBe null
         }
 
         test("step 2 - should register instance successfully") {

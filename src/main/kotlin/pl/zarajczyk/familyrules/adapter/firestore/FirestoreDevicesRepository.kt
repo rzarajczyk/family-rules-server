@@ -259,8 +259,8 @@ class FirestoreDevicesRepository(
             .reference
             .parent
             .parent
-            ?: throw UserNotFoundException("owner for device")
-        return FirestoreUserRef(doc)
+            ?: throw UserNotFoundException("parent is null")
+        return FirestoreUsersRepository.fetch(doc) ?: throw UserNotFoundException("owner for device not found")
     }
 }
 

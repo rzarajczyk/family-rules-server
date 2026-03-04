@@ -50,7 +50,7 @@ class WebhookScheduler(
             val usersWithRecentActivity = usersRepository.getUsersWithRecentActivity(activityWindow)
             
             usersWithRecentActivity.forEach { userRef ->
-                val userDetails = usersRepository.fetchDetails(userRef)
+                val userDetails = userRef.details
                 logger.debug("Enqueueing user {} for {} notification", userDetails.username, notificationType)
                 webhookQueue.enqueue(userDetails.username)
             }

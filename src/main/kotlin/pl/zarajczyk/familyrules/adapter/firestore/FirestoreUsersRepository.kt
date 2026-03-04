@@ -1,8 +1,9 @@
 package pl.zarajczyk.familyrules.adapter.firestore
 
-import com.google.cloud.firestore.DocumentReference
-import com.google.cloud.firestore.Firestore
 import com.google.cloud.Timestamp
+import com.google.cloud.firestore.DocumentReference
+import com.google.cloud.firestore.DocumentSnapshot
+import com.google.cloud.firestore.Firestore
 import kotlinx.datetime.Instant
 import org.springframework.stereotype.Service
 import pl.zarajczyk.familyrules.domain.AccessLevel
@@ -19,29 +20,33 @@ class FirestoreUsersRepository(
         return firestore
             .collection("users")
             .document(username)
-            .let {
-                if (it.get().get().exists())
-                    FirestoreUserRef(it)
-                else
-                    null
-            }
+            .let { fetch(it) }
     }
 
-    override fun fetchDetails(user: UserRef, includePasswordHash: Boolean): UserDetailsDto {
-        val doc = (user as FirestoreUserRef).doc.get().get()
-        return UserDetailsDto(
-            username = doc.getStringOrThrow("username"),
-            passwordSha256 = when (includePasswordHash) {
-                true -> doc.getStringOrThrow("passwordSha256")
-                false -> ""
-            },
-            accessLevel = doc.getStringOrThrow("accessLevel").let { AccessLevel.valueOf(it) },
-            webhookEnabled = doc.getBoolean("webhookEnabled") ?: false,
-            webhookUrl = doc.getString("webhookUrl"),
-            integrationApiToken = doc.getString("integrationApiToken"),
-            lastActivity = doc.getTimestamp("lastActivity")?.toDate()?.time
-        )
+    companion object {
+        fun fetch(reference: DocumentReference): UserRef? =
+            fetch(reference.get().get(), reference)
+
+        fun fetch(snapshot: DocumentSnapshot): UserRef? =
+            fetch(snapshot, snapshot.reference)
+
+        private fun fetch(snapshot: DocumentSnapshot, reference: DocumentReference): UserRef? {
+            if (!snapshot.exists()) return null
+            return FirestoreUserRef(
+                doc = reference,
+                details = UserDetailsDto(
+                    username = snapshot.getStringOrThrow("username"),
+                    accessLevel = snapshot.getStringOrThrow("accessLevel").let { AccessLevel.valueOf(it) },
+                    webhookEnabled = snapshot.getBoolean("webhookEnabled") ?: false,
+                    webhookUrl = snapshot.getString("webhookUrl"),
+                    integrationApiToken = snapshot.getString("integrationApiToken"),
+                    lastActivity = snapshot.getTimestamp("lastActivity")?.toDate()?.time
+                ),
+                passwordSha256 = snapshot.getStringOrThrow("passwordSha256")
+            )
+        }
     }
+
 
     override fun update(user: UserRef, newPasswordHash: String) {
         val userRef = (user as FirestoreUserRef).doc
@@ -65,8 +70,9 @@ class FirestoreUsersRepository(
 
     override fun getAll(): List<UserRef> {
         val snapshots = firestore.collection("users").get().get()
-        return snapshots.documents.map { FirestoreUserRef(it.reference) }
+        return snapshots.documents.mapNotNull { fetch(it) }
     }
+
 
     override fun getUsersWithRecentActivity(since: Instant): List<UserRef> {
         // REQUIRED FIRESTORE COMPOSITE INDEX:
@@ -79,13 +85,13 @@ class FirestoreUsersRepository(
             .whereGreaterThan("lastActivity", timestamp)
             .get()
             .get()
-        return snapshots.documents.map { FirestoreUserRef(it.reference) }
+        return snapshots.documents.mapNotNull { fetch(it) }
     }
 
     override fun addWebhookCallHistory(user: UserRef, call: WebhookCallHistoryEntry) {
         val userRef = (user as FirestoreUserRef).doc
         val historyCollection = userRef.collection("webhookCallHistory")
-        
+
         val callData = mapOf(
             "timestamp" to call.timestamp,
             "status" to call.status,
@@ -93,11 +99,12 @@ class FirestoreUsersRepository(
             "errorMessage" to call.errorMessage,
             "payload" to call.payload
         )
-        
+
         historyCollection.add(callData).get()
-        
+
         // Keep only the last 120 entries
-        val allEntries = historyCollection.orderBy("timestamp", com.google.cloud.firestore.Query.Direction.DESCENDING).get().get()
+        val allEntries =
+            historyCollection.orderBy("timestamp", com.google.cloud.firestore.Query.Direction.DESCENDING).get().get()
         if (allEntries.size() > 120) {
             // Delete oldest entries
             allEntries.documents.drop(120).forEach { doc ->
@@ -114,7 +121,7 @@ class FirestoreUsersRepository(
             .limit(120)
             .get()
             .get()
-        
+
         return snapshots.documents.map { doc ->
             WebhookCallHistoryEntry(
                 timestamp = doc.getLong("timestamp")!!,
@@ -141,7 +148,7 @@ class FirestoreUsersRepository(
             .limit(1)
             .get()
             .get()
-        return snapshots.documents.firstOrNull()?.let { FirestoreUserRef(it.reference) }
+        return snapshots.documents.firstOrNull()?.let { fetch(it) }
     }
 
     override fun delete(user: UserRef) {
@@ -157,10 +164,12 @@ class FirestoreUsersRepository(
 
         val doc = firestore.collection("users").document(username)
         doc.set(userData).get()
-        return FirestoreUserRef(doc)
+        return fetch(doc) ?: throw RuntimeException("Created user with name $username not found")
     }
 }
 
 data class FirestoreUserRef(
-    val doc: DocumentReference
+    val doc: DocumentReference,
+    override val details: UserDetailsDto,
+    override val passwordSha256: String
 ) : UserRef
