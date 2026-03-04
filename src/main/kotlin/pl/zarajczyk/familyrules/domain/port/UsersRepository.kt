@@ -15,6 +15,8 @@ interface UsersRepository {
     fun getUsersWithRecentActivity(since: Instant): List<UserRef>
     fun addWebhookCallHistory(user: UserRef, call: WebhookCallHistoryEntry)
     fun getWebhookCallHistory(user: UserRef): List<WebhookCallHistoryEntry>
+    fun updateWebhookHistoryUntil(user: UserRef, until: Long?)
+    fun deleteWebhookCallHistory(user: UserRef)
     fun delete(user: UserRef)
 }
 
@@ -32,7 +34,8 @@ data class UserDetailsDto(
     val webhookEnabled: Boolean = false,
     val webhookUrl: String? = null,
     val integrationApiToken: String? = null,
-    val lastActivity: Long? = null
+    val lastActivity: Long? = null,
+    val webhookHistoryUntil: Long? = null
 )
 
 data class WebhookCallHistoryEntry(

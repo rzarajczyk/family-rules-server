@@ -38,6 +38,9 @@
         #view-webhook-history-btn {
             margin-left: 1rem;
         }
+        .webhook-history-controls {
+            margin-top: 1rem;
+        }
         .token-display {
             display: flex;
             align-items: center;
@@ -155,11 +158,22 @@
                 <button class="btn waves-effect waves-light" type="submit">
                     Save Webhook Settings
                 </button>
-                <button class="btn waves-effect waves-light blue" type="button" id="view-webhook-history-btn">
-                    <i class="material-icons left">history</i>
-                    Last Calls
-                </button>
             </form>
+            <div class="webhook-history-controls">
+                <div id="webhook-history-inactive">
+                    <button class="btn waves-effect waves-light blue" type="button" id="enable-webhook-history-btn">
+                        <i class="material-icons left">history</i>
+                        Enable webhook history for 30 mins
+                    </button>
+                </div>
+                <div id="webhook-history-active" style="display:none;">
+                    <span id="webhook-history-status-text" style="margin-right: 1rem;"></span>
+                    <button class="btn waves-effect waves-light blue" type="button" id="view-webhook-history-btn">
+                        <i class="material-icons left">history</i>
+                        View History
+                    </button>
+                </div>
+            </div>
             <div class="success-message" id="webhook-success-message">
                 <i class="material-icons left">check_circle</i>
                 Webhook settings saved successfully!
@@ -207,7 +221,7 @@
 <div id="webhook-history-modal" class="modal">
     <div class="modal-content">
         <h4>Webhook Call History</h4>
-        <p>Last 120 webhook calls</p>
+        <p>Webhook calls recorded during the active window</p>
         <div id="webhook-history-content">
             <div class="progress">
                 <div class="indeterminate"></div>

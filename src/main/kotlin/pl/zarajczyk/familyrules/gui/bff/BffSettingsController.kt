@@ -44,10 +44,11 @@ class BffSettingsController(
             WebhookSettingsResponse(
                 success = true,
                 webhookEnabled = details.webhookEnabled,
-                webhookUrl = details.webhookUrl
+                webhookUrl = details.webhookUrl,
+                webhookHistoryUntil = details.webhookHistoryUntil
             )
         } catch (_: Exception) {
-            WebhookSettingsResponse(success = false, webhookEnabled = false, webhookUrl = null)
+            WebhookSettingsResponse(success = false, webhookEnabled = false, webhookUrl = null, webhookHistoryUntil = null)
         }
     }
 
@@ -71,10 +72,9 @@ class BffSettingsController(
         return try {
             val user = usersService.get(authentication.name)
             val history = usersRepository.getWebhookCallHistory(user.asRef())
+            val webhookHistoryUntil = user.fetchDetails().webhookHistoryUntil
             
-            val calls = history
-                .take(10) // temporarily only 10
-                .map { entry ->
+            val calls = history.map { entry ->
                 WebhookCallHistoryItem(
                     timestamp = entry.timestamp,
                     status = entry.status,
@@ -84,9 +84,22 @@ class BffSettingsController(
                 )
             }
             
-            WebhookCallHistoryResponse(success = true, calls = calls)
+            WebhookCallHistoryResponse(success = true, calls = calls, webhookHistoryUntil = webhookHistoryUntil)
         } catch (e: Exception) {
-            WebhookCallHistoryResponse(success = false, calls = emptyList())
+            WebhookCallHistoryResponse(success = false, calls = emptyList(), webhookHistoryUntil = null)
+        }
+    }
+
+    @PostMapping("/bff/webhook-history/enable")
+    fun enableWebhookHistory(authentication: Authentication): EnableWebhookHistoryResponse {
+        return try {
+            val user = usersService.get(authentication.name)
+            usersRepository.deleteWebhookCallHistory(user.asRef())
+            val until = System.currentTimeMillis() + 30 * 60 * 1000L
+            usersRepository.updateWebhookHistoryUntil(user.asRef(), until)
+            EnableWebhookHistoryResponse(success = true, webhookHistoryUntil = until)
+        } catch (_: Exception) {
+            EnableWebhookHistoryResponse(success = false, webhookHistoryUntil = null)
         }
     }
 
@@ -138,7 +151,8 @@ data class ChangePasswordResponse(
 data class WebhookSettingsResponse(
     val success: Boolean,
     val webhookEnabled: Boolean,
-    val webhookUrl: String?
+    val webhookUrl: String?,
+    val webhookHistoryUntil: Long?
 )
 
 data class UpdateWebhookSettingsRequest(
@@ -153,7 +167,8 @@ data class UpdateWebhookSettingsResponse(
 
 data class WebhookCallHistoryResponse(
     val success: Boolean,
-    val calls: List<WebhookCallHistoryItem>
+    val calls: List<WebhookCallHistoryItem>,
+    val webhookHistoryUntil: Long?
 )
 
 data class WebhookCallHistoryItem(
@@ -167,5 +182,10 @@ data class WebhookCallHistoryItem(
 data class IntegrationApiSettingsResponse(
     val success: Boolean,
     val token: String?
+)
+
+data class EnableWebhookHistoryResponse(
+    val success: Boolean,
+    val webhookHistoryUntil: Long?
 )
 

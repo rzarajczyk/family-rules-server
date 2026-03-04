@@ -132,15 +132,18 @@ class WebhookProcessor(
                 errorMessage = e.message ?: "Unknown error"
                 logger.error("Failed to send webhook for user: {}", username, e)
             } finally {
-                // Record the call history
-                val historyEntry = WebhookCallHistoryEntry(
-                    timestamp = System.currentTimeMillis(),
-                    status = status,
-                    statusCode = statusCode,
-                    errorMessage = errorMessage,
-                    payload = if (status == "success") jsonPayload else null
-                )
-                usersRepository.addWebhookCallHistory(user.asRef(), historyEntry)
+                // Record the call history only if history is currently enabled
+                val historyUntil = userDetails.webhookHistoryUntil
+                if (historyUntil != null && System.currentTimeMillis() <= historyUntil) {
+                    val historyEntry = WebhookCallHistoryEntry(
+                        timestamp = System.currentTimeMillis(),
+                        status = status,
+                        statusCode = statusCode,
+                        errorMessage = errorMessage,
+                        payload = if (status == "success") jsonPayload else null
+                    )
+                    usersRepository.addWebhookCallHistory(user.asRef(), historyEntry)
+                }
             }
             
         } catch (e: Exception) {

@@ -65,7 +65,8 @@ data class RefBasedUser(
                 webhookEnabled = it.webhookEnabled,
                 webhookUrl = it.webhookUrl,
                 integrationApiToken = it.integrationApiToken,
-                lastActivity = it.lastActivity
+                lastActivity = it.lastActivity,
+                webhookHistoryUntil = it.webhookHistoryUntil
             )
         }
     }
@@ -105,5 +106,6 @@ data class UserDetails(
     val webhookEnabled: Boolean = false,
     val webhookUrl: String? = null,
     val integrationApiToken: String? = null,
-    val lastActivity: Long? = null
+    val lastActivity: Long? = null,
+    val webhookHistoryUntil: Long? = null
 )

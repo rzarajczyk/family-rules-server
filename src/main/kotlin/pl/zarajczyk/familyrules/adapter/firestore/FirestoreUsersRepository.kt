@@ -40,7 +40,8 @@ class FirestoreUsersRepository(
                     webhookEnabled = snapshot.getBoolean("webhookEnabled") ?: false,
                     webhookUrl = snapshot.getString("webhookUrl"),
                     integrationApiToken = snapshot.getString("integrationApiToken"),
-                    lastActivity = snapshot.getTimestamp("lastActivity")?.toDate()?.time
+                    lastActivity = snapshot.getTimestamp("lastActivity")?.toDate()?.time,
+                    webhookHistoryUntil = snapshot.getLong("webhookHistoryUntil")
                 ),
                 passwordSha256 = snapshot.getStringOrThrow("passwordSha256")
             )
@@ -101,16 +102,6 @@ class FirestoreUsersRepository(
         )
 
         historyCollection.add(callData).get()
-
-        // Keep only the last 120 entries
-        val allEntries =
-            historyCollection.orderBy("timestamp", com.google.cloud.firestore.Query.Direction.DESCENDING).get().get()
-        if (allEntries.size() > 120) {
-            // Delete oldest entries
-            allEntries.documents.drop(120).forEach { doc ->
-                doc.reference.delete().get()
-            }
-        }
     }
 
     override fun getWebhookCallHistory(user: UserRef): List<WebhookCallHistoryEntry> {
@@ -118,7 +109,6 @@ class FirestoreUsersRepository(
         val historyCollection = userRef.collection("webhookCallHistory")
         val snapshots = historyCollection
             .orderBy("timestamp", com.google.cloud.firestore.Query.Direction.DESCENDING)
-            .limit(120)
             .get()
             .get()
 
@@ -149,6 +139,25 @@ class FirestoreUsersRepository(
             .get()
             .get()
         return snapshots.documents.firstOrNull()?.let { fetch(it) }
+    }
+
+    override fun updateWebhookHistoryUntil(user: UserRef, until: Long?) {
+        val userRef = (user as FirestoreUserRef).doc
+        if (until != null) {
+            userRef.update("webhookHistoryUntil", until).get()
+        } else {
+            userRef.update("webhookHistoryUntil", com.google.cloud.firestore.FieldValue.delete()).get()
+        }
+    }
+
+    override fun deleteWebhookCallHistory(user: UserRef) {
+        val userRef = (user as FirestoreUserRef).doc
+        val historyCollection = userRef.collection("webhookCallHistory")
+        val batch = firestore.batch()
+        historyCollection.get().get().documents.forEach { doc ->
+            batch.delete(doc.reference)
+        }
+        batch.commit().get()
     }
 
     override fun delete(user: UserRef) {

@@ -12,7 +12,11 @@ document.addEventListener("DOMContentLoaded", (event) => {
     const webhookSuccessMessage = document.getElementById('webhook-success-message');
     const webhookErrorMessage = document.getElementById('webhook-error-message');
     const webhookErrorText = document.getElementById('webhook-error-text');
+    const enableWebhookHistoryBtn = document.getElementById('enable-webhook-history-btn');
     const viewWebhookHistoryBtn = document.getElementById('view-webhook-history-btn');
+    const webhookHistoryInactive = document.getElementById('webhook-history-inactive');
+    const webhookHistoryActive = document.getElementById('webhook-history-active');
+    const webhookHistoryStatusText = document.getElementById('webhook-history-status-text');
 
     // Integration API token elements
     const integrationNoToken = document.getElementById('integration-no-token');
@@ -66,10 +70,27 @@ document.addEventListener("DOMContentLoaded", (event) => {
                             label.classList.add('active');
                         }
                     }
+                    renderWebhookHistoryState(data.webhookHistoryUntil);
                 }
             }
         } catch (error) {
             console.error('Error loading webhook settings:', error);
+        }
+    }
+
+    function renderWebhookHistoryState(webhookHistoryUntil) {
+        const now = Date.now();
+        if (webhookHistoryUntil != null && now <= webhookHistoryUntil) {
+            // Active
+            webhookHistoryInactive.style.display = 'none';
+            webhookHistoryActive.style.display = 'block';
+            const untilDate = new Date(webhookHistoryUntil);
+            const timeStr = untilDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            webhookHistoryStatusText.textContent = `Webhook history active until ${timeStr}`;
+        } else {
+            // Inactive
+            webhookHistoryInactive.style.display = 'block';
+            webhookHistoryActive.style.display = 'none';
         }
     }
 
@@ -285,6 +306,24 @@ document.addEventListener("DOMContentLoaded", (event) => {
         } catch (error) {
             console.error('Error changing password:', error);
             showError('An error occurred while changing password');
+        }
+    });
+
+    // Enable webhook history button click
+    enableWebhookHistoryBtn.addEventListener('click', async () => {
+        enableWebhookHistoryBtn.disabled = true;
+        try {
+            const response = await ServerRequest.fetch('/bff/webhook-history/enable', { method: 'POST' });
+            if (response.ok) {
+                const data = await response.json();
+                if (data.success) {
+                    renderWebhookHistoryState(data.webhookHistoryUntil);
+                }
+            }
+        } catch (error) {
+            console.error('Error enabling webhook history:', error);
+        } finally {
+            enableWebhookHistoryBtn.disabled = false;
         }
     });
 
