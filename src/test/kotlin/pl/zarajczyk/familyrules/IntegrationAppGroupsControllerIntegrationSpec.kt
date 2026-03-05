@@ -83,7 +83,7 @@ class IntegrationAppGroupsControllerIntegrationSpec : FunSpec() {
 
             // Create an app group
             val group = appGroupService.createAppGroup(user, "Games")
-            groupId = group.fetchDetails().id
+            groupId = group.getDetails().id
 
             // Create two named states referencing the device
             val locked = groupStateService.createGroupState(

@@ -287,7 +287,7 @@ class WebhookIntegrationSpec : FunSpec() {
             val deviceId = device.deviceId
 
             val group = appGroupService.createAppGroup(user, "Games")
-            val groupObj = appGroupService.get(user, group.fetchDetails().id)
+            val groupObj = appGroupService.get(user, group.getDetails().id)
 
             val lockedState = groupStateService.createGroupState(
                 groupObj, "Locked",

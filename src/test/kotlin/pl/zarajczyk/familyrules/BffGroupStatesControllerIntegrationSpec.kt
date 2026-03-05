@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import io.kotest.core.extensions.Extension
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.extensions.spring.SpringExtension
-import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
@@ -24,7 +23,6 @@ import org.testcontainers.junit.jupiter.Testcontainers
 import pl.zarajczyk.familyrules.domain.*
 import pl.zarajczyk.familyrules.domain.port.DevicesRepository
 import pl.zarajczyk.familyrules.domain.port.UsersRepository
-import java.util.Base64
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc
@@ -85,7 +83,7 @@ class BffGroupStatesControllerIntegrationSpec : FunSpec() {
             // Create app group
             val user = usersService.get(username)
             val group = appGroupService.createAppGroup(user, "Test Group")
-            groupId = group.fetchDetails().id
+            groupId = group.getDetails().id
         }
 
         afterSpec {

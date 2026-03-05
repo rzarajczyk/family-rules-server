@@ -153,13 +153,12 @@ class WebhookProcessor(
 
     private fun computeWebhookPayload(user: User, date: LocalDate): WebhookPayload {
         val allDevices = devicesService.getAllDevices(user)
-        val allDeviceDetails = allDevices.associateWith { it.getDetails() }
 
-        val simplifiedReport = appGroupService.getSimplifiedReport(user, date, allDeviceDetails)
+        val simplifiedReport = appGroupService.getSimplifiedReport(user, date, allDevices)
 
         val deviceForcedStates: Map<DeviceId, DeviceStateDto?> =
-            allDeviceDetails.values.associate {
-                it.deviceId to stateService.calculateCurrentDeviceState(it).forcedState
+            allDevices.associate {
+                it.getId() to stateService.calculateCurrentDeviceState(it).forcedState
             }
 
         val appGroupStatistics = simplifiedReport.map { report ->

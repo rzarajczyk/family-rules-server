@@ -35,7 +35,7 @@ class IntegrationAppGroupsController(
 
         return IntegrationAppGroupsResponse(
             appGroups = groups.map { appGroup ->
-                val details = appGroup.fetchDetails()
+                val details = appGroup.getDetails()
                 val states = groupStateService.listAllGroupStates(appGroup)
                 val stateDetails = states.map { it.fetchDetails() }
                 val currentState = calculateCurrentGroupState(appGroup, stateDetails, deviceForcedStates)

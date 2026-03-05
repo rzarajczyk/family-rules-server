@@ -25,14 +25,14 @@ class BffAppGroupsController(
     ): CreateAppGroupResponse {
         val user = usersService.get(authentication.name)
         val group = appGroupService.createAppGroup(user, request.name)
-        return CreateAppGroupResponse(group.fetchDetails())
+        return CreateAppGroupResponse(group.getDetails())
     }
 
 
     @GetMapping("/bff/app-groups")
     fun getAppGroups(authentication: Authentication): GetAppGroupsResponse {
         val user = usersService.get(authentication.name)
-        val groups = appGroupService.listAllAppGroups(user).map { it.fetchDetails() }
+        val groups = appGroupService.listAllAppGroups(user).map { it.getDetails() }
         return GetAppGroupsResponse(groups)
     }
 

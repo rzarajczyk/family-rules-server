@@ -42,7 +42,7 @@ class BffOverviewController(
             val availableStates = deviceDetails.availableDeviceStates
             val appGroups = appGroupService.listAllAppGroups(user)
 
-            val appGroupsDetails = appGroups.associateWith { it.fetchDetails() }
+            val appGroupsDetails = appGroups.associateWith { it.getDetails() }
 
             Instance(
                 instanceId = deviceDetails.deviceId,
@@ -124,7 +124,7 @@ class BffOverviewController(
         val device = devicesService.get(deviceId)
         val details = device.getDetails()
         val user = usersService.get(authentication.name)
-        val appGroups = appGroupService.listAllAppGroups(user).map { it.fetchDetails() }
+        val appGroups = appGroupService.listAllAppGroups(user).map { it.getDetails() }
         return InstanceEditInfo(
             instanceName = details.deviceName,
             icon = details.getIcon(),
@@ -162,7 +162,7 @@ class BffOverviewController(
     ): InstanceStateResponse {
         val device = devicesService.get(deviceId)
         val appGroups = usersService.get(authentication.name).let { user ->
-            appGroupService.listAllAppGroups(user).map { it.fetchDetails() }
+            appGroupService.listAllAppGroups(user).map { it.getDetails() }
         }
         val deviceDetails = device.getDetails()
         return InstanceStateResponse(

@@ -32,24 +32,24 @@ class AppGroupService(private val appGroupRepository: AppGroupRepository, privat
     fun getSimplifiedReport(
         user: User,
         day: LocalDate,
-        devices: Map<Device, DeviceDetailsDto>
+        devices: List<Device>
     ): List<AppGroupSimplifiedReport> {
-        val appGroupRefs = appGroupRepository.getAll(user.asRef())
+        val appGroups = listAllAppGroups(user)
 
         // Pre-fetch screen time reports once per device (D reads)
-        val screenTimeByDeviceId: Map<DeviceId, ScreenReport> = devices.entries.associate { (device, details) ->
-            details.deviceId to device.getScreenTimeReport(day)
+        val screenTimeByDeviceId: Map<DeviceId, ScreenReport> = devices.associate { device ->
+            device.getId() to device.getScreenTimeReport(day)
         }
 
-        return appGroupRefs.map { appGroupRef ->
-            val groupDto = appGroupRef.details
+        return appGroups.map { appGroup ->
+            val groupDto = appGroup.getDetails()
 
             var totalScreenTimeSeconds = 0L
             var isOnline = false
 
-            devices.values.forEach { instance ->
-                val screenTimeDto = screenTimeByDeviceId.getValue(instance.deviceId)
-                val appTechnicalIds = groupDto.members[instance.deviceId.toString()] ?: emptySet()
+            devices.forEach { device ->
+                val screenTimeDto = screenTimeByDeviceId.getValue(device.getId())
+                val appTechnicalIds = appGroup.getMembers(device)
 
                 appTechnicalIds.forEach { appTechnicalId ->
                     totalScreenTimeSeconds += screenTimeDto.applicationsSeconds[appTechnicalId] ?: 0L
@@ -64,7 +64,7 @@ class AppGroupService(private val appGroupRepository: AppGroupRepository, privat
                 name = groupDto.name,
                 online = isOnline,
                 totalScreenTimeSeconds = totalScreenTimeSeconds,
-                groupDto = groupDto,
+                groupDto = appGroup.asRef().details,
             )
         }
     }
@@ -164,7 +164,7 @@ class AppGroupService(private val appGroupRepository: AppGroupRepository, privat
 interface AppGroup {
     fun asRef(): AppGroupRef
     
-    fun fetchDetails(): AppGroupDetails
+    fun getDetails(): AppGroupDetails
 
     fun delete()
 
@@ -185,7 +185,7 @@ data class RefBasedAppGroup(
 ) : AppGroup {
     override fun asRef(): AppGroupRef = appGroupRef
     
-    override fun fetchDetails(): AppGroupDetails {
+    override fun getDetails(): AppGroupDetails {
         return AppGroupDetails(appGroupRef.details.id, appGroupRef.details.name, appGroupRef.details.color)
     }
 

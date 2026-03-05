@@ -7,7 +7,6 @@ import io.kotest.matchers.collections.shouldContainAll
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldNotBeBlank
-import org.hamcrest.Matchers
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
@@ -123,7 +122,7 @@ class V2AppGroupControllerIntegrationSpec : FunSpec() {
             // Create an app group and add members (membership is per-device)
             val user = usersService.get(username)
             val group = appGroupService.createAppGroup(user, "Test Group")
-            groupId = group.fetchDetails().id
+            groupId = group.getDetails().id
 
             val deviceRef = devicesService.get(deviceId)
             group.addMember(deviceRef, appKnown1)
@@ -221,7 +220,7 @@ class V2AppGroupControllerIntegrationSpec : FunSpec() {
                 var emptyGroupId = ""
                 val user = usersService.get(username)
                 val group = appGroupService.createAppGroup(user, "Empty Group")
-                emptyGroupId = group.fetchDetails().id
+                emptyGroupId = group.getDetails().id
                 
                 // Configure device to show both groups
                 val deviceRef = devicesService.get(deviceId)
@@ -362,7 +361,7 @@ class V2AppGroupControllerIntegrationSpec : FunSpec() {
                 // Create a second app group with different apps
                 val user = usersService.get(username)
                 val group2 = appGroupService.createAppGroup(user, "Test Group 2")
-                val group2Id = group2.fetchDetails().id
+                val group2Id = group2.getDetails().id
 
                 val deviceRef = devicesService.get(deviceId)
                 val appExtra1 = "com.example.extra1"
