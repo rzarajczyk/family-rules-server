@@ -8,12 +8,10 @@ import org.springframework.web.server.ResponseStatusException
 import pl.zarajczyk.familyrules.domain.*
 import pl.zarajczyk.familyrules.domain.port.*
 import pl.zarajczyk.familyrules.domain.port.ValueUpdate.Companion.set
-import java.time.DayOfWeek
 
 @RestController
 class BffOverviewController(
     private val devicesService: DevicesService,
-    private val scheduleUpdater: ScheduleUpdater,
     private val stateService: StateService,
     private val deviceStateService: DeviceStateService,
     private val appGroupService: AppGroupService,
@@ -157,96 +155,6 @@ class BffOverviewController(
         val availableAppGroups: List<AppGroupDetails> = emptyList()
     )
 
-    @GetMapping("/bff/instance-schedule")
-    fun getInstanceSchedule(
-        @RequestParam("instanceId") deviceId: DeviceId,
-        authentication: Authentication,
-    ): ScheduleResponse {
-        val device = devicesService.get(deviceId)
-        val instance = device.fetchDetails()
-        val availableStates = instance.availableDeviceStates
-        val appGroups = usersService.get(authentication.name).let { user ->
-            appGroupService.listAllAppGroups(user).map { it.fetchDetails() }
-        }
-        return ScheduleResponse(
-            schedules = instance.schedule.schedule
-                .mapKeys { (day, _) -> day.toDay() }
-                .mapValues { (_, periods) ->
-                    DailySchedule(periods = periods.periods.map { period ->
-                        Period(
-                            from = period.fromSeconds.toRoundedTimeOfDay(zeroMeansStepBack = false),
-                            to = period.toSeconds.toRoundedTimeOfDay(zeroMeansStepBack = true),
-                            state = availableStates
-                                .flatMap { it.toDeviceStateDescriptions(appGroups) }
-                                .firstOrNull { it.isEqualTo(period.deviceState) }
-                        )
-                    })
-                },
-            availableStates = availableStates.flatMap { it.toDeviceStateDescriptions(appGroups) }
-        )
-    }
-
-    private fun Day.toDayOfWeek() = when (this) {
-        Day.MON -> DayOfWeek.MONDAY
-        Day.TUE -> DayOfWeek.TUESDAY
-        Day.WED -> DayOfWeek.WEDNESDAY
-        Day.THU -> DayOfWeek.THURSDAY
-        Day.FRI -> DayOfWeek.FRIDAY
-        Day.SAT -> DayOfWeek.SATURDAY
-        Day.SUN -> DayOfWeek.SUNDAY
-    }
-
-
-    private fun DayOfWeek.toDay() = when (this) {
-        DayOfWeek.MONDAY -> Day.MON
-        DayOfWeek.TUESDAY -> Day.TUE
-        DayOfWeek.WEDNESDAY -> Day.WED
-        DayOfWeek.THURSDAY -> Day.THU
-        DayOfWeek.FRIDAY -> Day.FRI
-        DayOfWeek.SATURDAY -> Day.SAT
-        DayOfWeek.SUNDAY -> Day.SUN
-    }
-
-
-    @PostMapping("/bff/instance-schedule/add-period")
-    fun addInstanceSchedulePeriod(
-        @RequestParam("instanceId") deviceId: DeviceId,
-        @RequestBody data: AddPeriodRequest
-    ) {
-        val device = devicesService.get(deviceId)
-        val deviceDetails = device.fetchDetails()
-        val schedule = deviceDetails.schedule
-        val period = PeriodDto(
-            fromSeconds = (data.from.hour * 3600 + data.from.minute * 60).toLong(),
-            toSeconds = (data.to.hour * 3600 + data.to.minute * 60).toLong(),
-            deviceState = data.state
-        )
-        val updatedSchedule = data.days.fold(schedule) { currentSchedule, day ->
-            scheduleUpdater.addPeriod(currentSchedule, day.toDayOfWeek(), period)
-        }
-
-        device.update(DeviceDetailsUpdateDto(
-            schedule = set(updatedSchedule)
-        ))
-    }
-
-    data class AddPeriodRequest(
-        val days: List<Day>,
-        val from: TimeOfDay,
-        val to: TimeOfDay,
-        val state: DeviceStateDto,
-    )
-
-    private fun Long.toRoundedTimeOfDay(roundToMinutes: Int = 15, zeroMeansStepBack: Boolean): TimeOfDay {
-        val SECONDS_IN_MINUTE = 60
-        val SECONDS_IN_HOUR = 60 * SECONDS_IN_MINUTE
-
-        val hour = (this / SECONDS_IN_HOUR).toInt()
-        val minute = ((this % SECONDS_IN_HOUR) / SECONDS_IN_MINUTE).toInt()
-        val roundedMinute = (minute / roundToMinutes) * roundToMinutes
-        return TimeOfDay(hour, roundedMinute)
-    }
-
     @GetMapping("/bff/instance-state")
     fun getInstanceState(
         @RequestParam("instanceId") deviceId: DeviceId,
@@ -366,27 +274,3 @@ data class ForcedInstanceState(
     val forcedDeviceState: String?,
     val extra: String?
 )
-
-data class ScheduleResponse(
-    val schedules: Map<Day, DailySchedule>,
-    val availableStates: List<DeviceStateDescriptionResponse>
-)
-
-data class DailySchedule(
-    val periods: List<Period>
-)
-
-data class Period(
-    val from: TimeOfDay,
-    val to: TimeOfDay,
-    val state: DeviceStateDescriptionResponse?,
-)
-
-data class TimeOfDay(
-    val hour: Int,
-    val minute: Int
-)
-
-enum class Day {
-    MON, TUE, WED, THU, FRI, SAT, SUN
-}

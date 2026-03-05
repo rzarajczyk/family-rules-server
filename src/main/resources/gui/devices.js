@@ -39,9 +39,6 @@ document.addEventListener("DOMContentLoaded", (event) => {
                 document.querySelectorAll("#instance-edit-save").forEach(it => {
                     it.addEventListener('click', onClientEditSaveClicked)
                 })
-                instances.querySelectorAll("a.edit-schedule").forEach(it => {
-                    it.addEventListener('click', onEditScheduleClicked)
-                })
                 instances.querySelectorAll("a.view-usage").forEach(it => {
                     it.addEventListener('click', onViewUsageClicked)
                 })
@@ -83,7 +80,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
                             title: "Automatic",
                             deviceState: null,
                             icon: "<path d=\"m354-287 126-76 126 77-33-144 111-96-146-13-58-136-58 135-146 13 111 97-33 143ZM233-120l65-281L80-590l288-25 112-265 112 265 288 25-218 189 65 281-247-149-247 149Zm247-350Z\"/>",
-                            description: "Based on schedule."
+                            description: null
                         })
                         content.innerHTML = setStateTemplate(data)
                         content.querySelectorAll('a').forEach(it => {
@@ -292,20 +289,6 @@ function resizeImage(file, onResize, width = 64, height = 64) {
     }
     reader.readAsDataURL(file);
 }
-
-            function onEditScheduleClicked(e) {
-                openModal({
-                    e: e,
-                    selector: "#instance-schedule-modal",
-                    templateUrl: "./index-schedule.handlebars",
-                    detailsUrlBuilder: instanceId => `/bff/instance-schedule?instanceId=${instanceId}`
-                })
-                    .then(([tpl, data]) => {
-                        let content = document.querySelector("#instance-schedule-modal .modal-content")
-                        renderTimetable(tpl, content)
-                        renderSchedule(data, content)
-                    })
-            }
 
             function onViewUsageClicked(e) {
                 let instanceId = e.target.closest('.fr-collapsible').dataset["instanceid"]

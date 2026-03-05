@@ -29,67 +29,6 @@
             border-radius: 0;
         }
 
-        #instance-schedule-modal {
-            width: 75%;
-        }
-
-        #schedule th {
-            width: 1%;
-            min-width: 4em;
-        }
-
-        #schedule tbody tr {
-            border-bottom: none;
-        }
-
-        #schedule td[data-day="Mon"],
-        #schedule td[data-day="Wed"],
-        #schedule td[data-day="Fri"]
-        {
-            background-color: #00000014;
-        }
-
-        #schedule td[data-day="Sat"]
-        {
-            background-color: #f5eedc;
-        }
-
-        #schedule td[data-day="Sun"]
-        {
-            background-color: #fff0db;
-        }
-
-        #schedule td.add-period {
-            background-color: #dd4a48;
-        }
-
-       #schedule tbody tr:nth-child(4n) {
-            border-bottom: 1px solid var(--md-sys-color-outline-variant);
-        }
-
-        #schedule tbody td {
-            height: 0.5em;
-            padding-top: 0;
-            padding-bottom: 0;
-            border-top: none;
-            border-bottom: none;
-            cursor: pointer;
-        }
-
-        .add-period-modal-state>label {
-            display: block;
-            position: relative;
-        }
-
-        .period {
-            position: absolute;
-            padding: 0.5rem;
-            background-color: var(--md-ref-palette-primary80);
-            border-radius: 10px;
-            text-align: center;
-            cursor: pointer;
-        }
-
         .explanation {
             margin-top: 4rem;
             font-style: italic;
@@ -182,38 +121,6 @@
     </div>
 </div>
 
-<div id="instance-schedule-modal" class="modal modal-fixed-footer">
-    <div class="modal-content"></div>
-    <div class="modal-footer">
-        <a href="#!" class="modal-close waves-effect btn-flat">Close</a>
-    </div>
-</div>
-
-<div id="add-period-modal" class="modal modal-fixed-footer">
-    <div class="modal-content">
-        <div class="input-field">
-            <select type="text" id="add-period-modal-day" class="no-autoinit" multiple>
-                <option value="0">-</option>
-            </select>
-            <label for="add-period-modal-day">Day of week</label>
-        </div>
-        <div class="input-field">
-            <input type="text" id="add-period-modal-start" class="timepicker no-autoinit" value="00:00">
-            <label for="add-period-modal-start">Start time</label>
-        </div>
-        <div class="input-field">
-            <input type="text" id="add-period-modal-end" class="timepicker no-autoinit" value="24:00">
-            <label for="add-period-modal-end">End time</label>
-        </div>
-        <div class="explanation">Note: periods with the state ACTIVE are not visible on the timetable (it's the default state)</div>
-        <div class="input-field add-period-modal-state" id="add-period-modal-states"></div>
-    </div>
-    <div class="modal-footer">
-        <a href="#!" class="modal-close waves-effect btn-flat">Cancel</a>
-        <a href="#!" class="waves-effect btn-flat" id="add-period-modal-ok">Add period</a>
-    </div>
-</div>
-
 <div id="usage-histogram-modal" class="modal modal-fixed-footer">
     <div class="modal-content">
         <h4 id="usage-histogram-title">Screen Time Usage</h4>
@@ -234,7 +141,6 @@
 <script src="https://cdn.jsdelivr.net/npm/handlebars@latest/dist/handlebars.js"></script>
 <script src="components.js"></script>
 <script src="common.js"></script>
-<script src="index-schedule.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="devices.js"></script>
 

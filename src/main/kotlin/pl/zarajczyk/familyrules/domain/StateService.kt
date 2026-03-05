@@ -1,8 +1,5 @@
 package pl.zarajczyk.familyrules.domain
 
-import kotlinx.datetime.Clock
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
 import org.springframework.stereotype.Service
 import pl.zarajczyk.familyrules.domain.port.DeviceDetailsDto
 import pl.zarajczyk.familyrules.domain.port.DeviceStateDto
@@ -16,27 +13,13 @@ class StateService {
     }
 
     fun calculateCurrentDeviceState(deviceDetails: DeviceDetailsDto): CurrentDeviceState {
-        val automaticState = deviceDetails.schedule.getCurrentDeviceState()
+        val automaticState = DeviceStateDto.default()
         val finalState = deviceDetails.forcedDeviceState ?: automaticState
         return CurrentDeviceState(
             forcedState = deviceDetails.forcedDeviceState,
             automaticState = automaticState,
             finalState = finalState
         )
-    }
-
-    private fun WeeklyScheduleDto.getCurrentDeviceState(): DeviceStateDto {
-        val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
-        val day = now.dayOfWeek
-        val currentSecondOfDay = now.time.toSecondOfDay()
-
-        val dailySchedule = schedule[day] ?: throw RuntimeException("Schedule is missing day $day")
-
-        val currentPeriod = dailySchedule.periods.find { period ->
-            currentSecondOfDay in period.fromSeconds..period.toSeconds - 1
-        } ?: throw RuntimeException("Schedule is missing period for $now")
-
-        return currentPeriod.deviceState
     }
 
 }

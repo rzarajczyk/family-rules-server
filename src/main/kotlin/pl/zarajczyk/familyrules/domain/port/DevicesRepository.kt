@@ -2,7 +2,10 @@ package pl.zarajczyk.familyrules.domain.port
 
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.Serializable
-import pl.zarajczyk.familyrules.domain.*
+import pl.zarajczyk.familyrules.domain.AppDto
+import pl.zarajczyk.familyrules.domain.DeviceId
+import pl.zarajczyk.familyrules.domain.DeviceStateTypeDto
+import pl.zarajczyk.familyrules.domain.ScreenReportDto
 import pl.zarajczyk.familyrules.domain.port.ValueUpdate.Companion.leaveUnchanged
 import java.util.concurrent.atomic.AtomicReference
 
@@ -32,7 +35,6 @@ data class DeviceDetailsDto(
     val forcedDeviceState: DeviceStateDto?,
     val clientType: String,
     val clientVersion: String,
-    val schedule: WeeklyScheduleDto,
     val clientTimezoneOffsetSeconds: Long,
     val iconData: String?,
     val iconType: String?,
@@ -49,7 +51,6 @@ data class DeviceDetailsUpdateDto(
     val hashedToken: ValueUpdate<String> = leaveUnchanged(),
     val clientType: ValueUpdate<String> = leaveUnchanged(),
     val clientVersion: ValueUpdate<String> = leaveUnchanged(),
-    val schedule: ValueUpdate<WeeklyScheduleDto> = leaveUnchanged(),
     val clientTimezoneOffsetSeconds: ValueUpdate<Long> = leaveUnchanged(),
     val iconData: ValueUpdate<String?> = leaveUnchanged(),
     val iconType: ValueUpdate<String?> = leaveUnchanged(),

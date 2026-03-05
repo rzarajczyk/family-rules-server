@@ -16,7 +16,6 @@ import java.util.*
 @Service
 class FirestoreDevicesRepository(
     private val firestore: Firestore,
-    private val schedulePacker: SchedulePacker
 ) : DevicesRepository {
 
     private val json = Json { ignoreUnknownKeys = true }
@@ -42,7 +41,6 @@ class FirestoreDevicesRepository(
             "clientType" to details.clientType,
             "clientVersion" to details.clientVersion,
             "clientTimezoneOffsetSeconds" to details.clientTimezoneOffsetSeconds,
-            "schedule" to WeeklyScheduleDto.empty().encodeSchedule(),
             "iconData" to details.iconData,
             "iconType" to details.iconType,
             "knownApps" to details.knownApps.encodeKnownApps(),
@@ -59,9 +57,6 @@ class FirestoreDevicesRepository(
 
         return get(details.deviceId) ?: throw DeviceNotFoundException(details.deviceId)
     }
-
-    private fun WeeklyScheduleDto.encodeSchedule(): String =
-        json.encodeToString(schedulePacker.pack(this))
 
     private fun List<DeviceStateTypeDto>.encodeDeviceStates(): String =
         json.encodeToString(this)
@@ -104,7 +99,6 @@ class FirestoreDevicesRepository(
             forcedDeviceState = doc.getDeviceStateDto("forcedDeviceState", "forcedDeviceStateExtra"),
             clientVersion = doc.getStringOrThrow("clientVersion"),
             clientType = doc.getStringOrThrow("clientType"),
-            schedule = doc.getSchedule("schedule"),
             clientTimezoneOffsetSeconds = doc.getLongOrThrow("clientTimezoneOffsetSeconds"),
             iconData = doc.getString("iconData"),
             iconType = doc.getString("iconType"),
@@ -127,7 +121,6 @@ class FirestoreDevicesRepository(
             details.clientType.ifPresent { "clientType" to it },
             details.clientVersion.ifPresent { "clientVersion" to it },
             details.clientTimezoneOffsetSeconds.ifPresent { "clientTimezoneOffsetSeconds" to it },
-            details.schedule.ifPresent { "schedule" to it.encodeSchedule() },
             details.iconData.ifPresent { "iconData" to it },
             details.iconType.ifPresent { "iconType" to it },
             details.knownApps.ifPresent { "knownApps" to it.encodeKnownApps() },
@@ -149,10 +142,6 @@ class FirestoreDevicesRepository(
     private fun QueryDocumentSnapshot.getKnownAppsOrThrow(fieldName: String) =
         json.decodeFromString<Map<String, FirestoreKnownApp>>(getStringOrThrow(fieldName))
             .mapValues { AppDto(it.value.appName, it.value.iconBase64) }
-
-    private fun QueryDocumentSnapshot.getSchedule(fieldName: String) =
-        json.decodeFromString<WeeklyScheduleDto>(getString(fieldName) ?: "{}")
-            .let { schedulePacker.unpack(it) }
 
     private fun QueryDocumentSnapshot.getAvailableDeviceStates(fieldName: String) =
         json.decodeFromString<List<DeviceStateTypeDto>>(getString(fieldName) ?: "[]").ensureActiveIsPresent()

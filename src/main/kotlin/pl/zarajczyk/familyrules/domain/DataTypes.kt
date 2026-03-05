@@ -1,9 +1,7 @@
 package pl.zarajczyk.familyrules.domain
 
-import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.Instant
 import kotlinx.serialization.Serializable
-import pl.zarajczyk.familyrules.domain.port.DeviceStateDto
 
 data class ScreenReportDto(
     val screenTimeSeconds: Long,
@@ -48,24 +46,4 @@ data class ClientInfoDto(
     val states: List<DeviceStateTypeDto>
 )
 
-@Serializable
-data class WeeklyScheduleDto(
-    val schedule: Map<DayOfWeek, DailyScheduleDto>
-) {
-    companion object {
-        fun empty() = WeeklyScheduleDto(DayOfWeek.entries.associateWith { DailyScheduleDto(emptyList()) })
-    }
-}
-
-@Serializable
-data class DailyScheduleDto(
-    val periods: List<PeriodDto>
-)
-
-@Serializable
-data class PeriodDto(
-    val fromSeconds: Long,
-    val toSeconds: Long,
-    val deviceState: DeviceStateDto
-)
 
