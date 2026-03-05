@@ -7,7 +7,6 @@ interface AppGroupRepository {
     fun createAppGroup(userRef: UserRef, groupId: String, name: String, color: String): AppGroupRef
     fun get(userRef: UserRef, groupId: String): AppGroupRef?
     fun getAll(userRef: UserRef): List<AppGroupRef>
-    fun fetchDetails(appGroupRef: AppGroupRef): AppGroupDto
     fun rename(appGroupRef: AppGroupRef, newName: String)
     fun delete(appGroupRef: AppGroupRef)
 
@@ -17,24 +16,28 @@ interface AppGroupRepository {
     fun createGroupState(appGroupRef: AppGroupRef, stateId: String, name: String, deviceStates: Map<DeviceId, DeviceStateDto?>): GroupStateRef
     fun getGroupState(appGroupRef: AppGroupRef, stateId: String): GroupStateRef?
     fun getAllGroupStates(appGroupRef: AppGroupRef): List<GroupStateRef>
-    fun fetchGroupStateDetails(groupStateRef: GroupStateRef): GroupStateDetails
     fun updateGroupState(appGroupRef: AppGroupRef, stateId: String, name: String, deviceStates: Map<DeviceId, DeviceStateDto?>)
     fun deleteGroupState(appGroupRef: AppGroupRef, stateId: String)
 }
 
 /**
- * Represents abstract reference to the database object related to the given app group
+ * Represents abstract reference to the database object related to the given app group.
+ * Details are populated eagerly at fetch time — no extra DB read needed.
  */
-interface AppGroupRef
+interface AppGroupRef {
+    val details: AppGroupDto
+}
 
 /**
  * Represents abstract reference to the database object related to the given group state.
  * Group states are embedded inside their parent appGroup document, so a ref carries both
  * the appGroupRef and the stateId needed to locate the state.
+ * Details are populated eagerly at fetch time — no extra DB read needed.
  */
 interface GroupStateRef {
     val appGroupRef: AppGroupRef
     val stateId: String
+    val details: GroupStateDetails
 }
 
 typealias AppTechnicalId = String

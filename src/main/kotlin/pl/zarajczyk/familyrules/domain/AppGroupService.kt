@@ -15,7 +15,7 @@ class AppGroupService(private val appGroupRepository: AppGroupRepository, privat
     fun createAppGroup(user: User, name: String): AppGroup {
         val groupId = UUID.randomUUID().toString()
         val usedColors = listAllAppGroups(user)
-            .map { it.fetchDetails().color }
+            .map { it.asRef().details.color }
             .toSet()
         val nextColor = AppGroupColorPalette.getNextColor(usedColors)
 
@@ -42,7 +42,7 @@ class AppGroupService(private val appGroupRepository: AppGroupRepository, privat
         }
 
         return appGroupRefs.map { appGroupRef ->
-            val groupDto = appGroupRepository.fetchDetails(appGroupRef)
+            val groupDto = appGroupRef.details
 
             var totalScreenTimeSeconds = 0L
             var isOnline = false
@@ -85,8 +85,8 @@ class AppGroupService(private val appGroupRepository: AppGroupRepository, privat
         }
 
         val groupStats = appGroups.map { appGroupRef ->
-            // Fetch all group data in a single read (includes embedded members + states)
-            val groupDto = appGroupRepository.fetchDetails(appGroupRef)
+            // Use embedded details — no extra Firestore read
+            val groupDto = appGroupRef.details
 
             // Calculate statistics across all instances
             var totalApps = 0
@@ -186,9 +186,7 @@ data class RefBasedAppGroup(
     override fun asRef(): AppGroupRef = appGroupRef
     
     override fun fetchDetails(): AppGroupDetails {
-        return appGroupRepository.fetchDetails(appGroupRef).let {
-            AppGroupDetails(it.id, it.name, it.color)
-        }
+        return AppGroupDetails(appGroupRef.details.id, appGroupRef.details.name, appGroupRef.details.color)
     }
 
     override fun delete() {

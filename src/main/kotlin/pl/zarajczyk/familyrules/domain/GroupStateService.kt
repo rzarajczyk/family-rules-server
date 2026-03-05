@@ -49,7 +49,7 @@ data class RefBasedGroupState(
     override fun asRef(): GroupStateRef = groupStateRef
 
     override fun fetchDetails(): GroupStateDetails {
-        return appGroupRepository.fetchGroupStateDetails(groupStateRef)
+        return groupStateRef.details
     }
 
     override fun update(name: String, deviceStates: Map<DeviceId, DeviceStateDto?>) {

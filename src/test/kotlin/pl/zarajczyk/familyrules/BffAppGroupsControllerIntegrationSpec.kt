@@ -122,7 +122,7 @@ class BffAppGroupsControllerIntegrationSpec : FunSpec() {
                 val groupId = group.get("id").asText()
 
                 val appGroupRef = appGroupRepository.get(userRef, groupId)!!
-                val dto = appGroupRepository.fetchDetails(appGroupRef)
+                val dto = appGroupRef.details
 
                 dto.id shouldBe groupId
                 dto.name shouldBe "Social Media"
@@ -148,7 +148,7 @@ class BffAppGroupsControllerIntegrationSpec : FunSpec() {
                 val appGroups = appGroupRepository.getAll(userRef)
                 appGroups shouldHaveSize 2
                 val groupNames = appGroups
-                    .map { appGroupRepository.fetchDetails(it) }
+                    .map { it.details }
                     .map { it.name }
 
                 groupNames shouldContain "Social Media"
@@ -275,7 +275,7 @@ class BffAppGroupsControllerIntegrationSpec : FunSpec() {
 
             test("should verify renamed group in database") {
                 val appGroupRef = appGroupRepository.get(userRef, groupIdToRename!!)!!
-                val dto = appGroupRepository.fetchDetails(appGroupRef)
+                val dto = appGroupRef.details
 
                 dto.id shouldBe groupIdToRename
                 dto.name shouldBe "Social Networks"
@@ -644,11 +644,11 @@ class BffAppGroupsControllerIntegrationSpec : FunSpec() {
             test("verify groups are isolated in database") {
                 val user1Ref = usersRepository.get(user1Username)!!
                 val user1AppGroupNames = appGroupRepository.getAll(user1Ref)
-                    .map { appGroupRepository.fetchDetails(it) }
+                    .map { it.details }
                     .map { it.name }
                 val user2Ref = usersRepository.get(user2Username)!!
                 val user2AppGroupNames = appGroupRepository.getAll(user2Ref)
-                    .map { appGroupRepository.fetchDetails(it) }
+                    .map { it.details }
                     .map { it.name }
 
                 user1AppGroupNames shouldHaveSize 1

@@ -28,19 +28,19 @@ class FirestoreAppGroupRepository(
 
         doc.set(groupData).get()
 
-        return FirestoreAppGroupRef(doc)
+        val details = AppGroupDto(id = groupId, name = name, color = color)
+        return FirestoreAppGroupRef(doc, details)
     }
 
     override fun get(userRef: UserRef, groupId: String): AppGroupRef? {
-        return (userRef as FirestoreUserRef).doc
+        val docRef = (userRef as FirestoreUserRef).doc
             .collection("appGroups")
             .document(groupId)
-            .let {
-                if (it.get().get().exists())
-                    FirestoreAppGroupRef(it)
-                else
-                    null
-            }
+        val snapshot = docRef.get().get()
+        return if (snapshot.exists())
+            FirestoreAppGroupRef(docRef, snapshot.toAppGroupDocument().toDomain())
+        else
+            null
     }
 
     override fun getAll(userRef: UserRef): List<AppGroupRef> {
@@ -49,12 +49,9 @@ class FirestoreAppGroupRepository(
             .get()
             .get()
 
-        return snapshot.documents.map { FirestoreAppGroupRef(it.reference) }
-    }
-
-    override fun fetchDetails(appGroupRef: AppGroupRef): AppGroupDto {
-        val snapshot = (appGroupRef as FirestoreAppGroupRef).ref.get().get()
-        return snapshot.toAppGroupDocument().toDomain()
+        return snapshot.documents.map { doc ->
+            FirestoreAppGroupRef(doc.reference, doc.toAppGroupDocument().toDomain())
+        }
     }
 
     override fun rename(appGroupRef: AppGroupRef, newName: String) {
@@ -75,8 +72,8 @@ class FirestoreAppGroupRepository(
 
     override fun getMembers(appGroupRef: AppGroupRef, deviceRef: DeviceRef): Set<AppTechnicalId> {
         val deviceId = deviceRef.getDeviceId().toString()
-        val details = fetchDetails(appGroupRef)
-        return details.members[deviceId] ?: emptySet()
+        val snapshot = (appGroupRef as FirestoreAppGroupRef).ref.get().get()
+        return snapshot.toAppGroupDocument().toDomain().members[deviceId] ?: emptySet()
     }
 
     // GroupState operations (stored as Firestore native map: states[stateId] = {name, deviceStates})
@@ -93,27 +90,21 @@ class FirestoreAppGroupRepository(
             "deviceStates" to encodeDeviceStatesMap(deviceStates),
         )
         ref.update("states.$stateId", stateData).get()
-        return FirestoreGroupStateRef(appGroupRef, stateId)
+        val stateDetails = GroupStateDetails(id = stateId, name = name, deviceStates = deviceStates)
+        return FirestoreGroupStateRef(appGroupRef, stateId, stateDetails)
     }
 
     override fun getGroupState(appGroupRef: AppGroupRef, stateId: String): GroupStateRef? {
-        val details = fetchDetails(appGroupRef)
-        return if (details.states.containsKey(stateId))
-            FirestoreGroupStateRef(appGroupRef, stateId)
-        else
-            null
+        val dto = (appGroupRef as FirestoreAppGroupRef).details
+        val stateDetails = dto.states[stateId] ?: return null
+        return FirestoreGroupStateRef(appGroupRef, stateId, stateDetails)
     }
 
     override fun getAllGroupStates(appGroupRef: AppGroupRef): List<GroupStateRef> {
-        val details = fetchDetails(appGroupRef)
-        return details.states.keys.map { FirestoreGroupStateRef(appGroupRef, it) }
-    }
-
-    override fun fetchGroupStateDetails(groupStateRef: GroupStateRef): GroupStateDetails {
-        groupStateRef as FirestoreGroupStateRef
-        val details = fetchDetails(groupStateRef.appGroupRef)
-        return details.states[groupStateRef.stateId]
-            ?: throw IllegalStateException("GroupState ${groupStateRef.stateId} not found in appGroup")
+        val dto = (appGroupRef as FirestoreAppGroupRef).details
+        return dto.states.map { (stateId, stateDetails) ->
+            FirestoreGroupStateRef(appGroupRef, stateId, stateDetails)
+        }
     }
 
     override fun updateGroupState(
@@ -137,10 +128,12 @@ class FirestoreAppGroupRepository(
 }
 
 data class FirestoreAppGroupRef(
-    val ref: DocumentReference
+    val ref: DocumentReference,
+    override val details: AppGroupDto,
 ) : AppGroupRef
 
 data class FirestoreGroupStateRef(
     override val appGroupRef: AppGroupRef,
     override val stateId: String,
+    override val details: GroupStateDetails,
 ) : GroupStateRef
