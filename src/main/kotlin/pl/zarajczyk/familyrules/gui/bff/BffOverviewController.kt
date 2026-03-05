@@ -35,14 +35,32 @@ class BffOverviewController(
         val user = usersService.get(authentication.name)
         val day = LocalDate.parse(date)
         val devices = devicesService.getAllDevices(user)
+        val appGroups = appGroupService.listAllAppGroups(user)
+        val appGroupsDetails = appGroups.associateWith { it.getDetails() }
+
+        // Pre-build reverse index: (deviceId, appTechnicalId) → list of AppGroupWithColor
+        val appGroupIndex = mutableMapOf<Pair<String, String>, MutableList<AppGroupWithColor>>()
+        for ((group, groupDto) in appGroupsDetails) {
+            val colorInfo = AppGroupColorPalette.getColorInfo(groupDto.color)
+            val groupWithColor = AppGroupWithColor(
+                id = groupDto.id,
+                name = groupDto.name,
+                color = groupDto.color,
+                textColor = colorInfo?.text ?: "#000000",
+            )
+            for ((deviceId, appIds) in group.asRef().details.members) {
+                for (appId in appIds) {
+                    appGroupIndex.getOrPut(deviceId to appId) { mutableListOf() }.add(groupWithColor)
+                }
+            }
+        }
+
         StatusResponse(devices.map { device ->
             val screenTimeDto = device.getScreenTimeReport(day)
             val deviceDetails = device.getDetails()
             val state = stateService.calculateCurrentDeviceState(deviceDetails)
             val availableStates = deviceDetails.availableDeviceStates
-            val appGroups = appGroupService.listAllAppGroups(user)
-
-            val appGroupsDetails = appGroups.associateWith { it.getDetails() }
+            val deviceIdStr = deviceDetails.deviceId.toString()
 
             Instance(
                 instanceId = deviceDetails.deviceId,
@@ -52,25 +70,13 @@ class BffOverviewController(
                 appUsageSeconds = screenTimeDto.applicationsSeconds
                     .map { (appTechnicalId, v) ->
                         val knownApp = deviceDetails.knownApps[appTechnicalId]
-                        val appGroupsForThisApp = appGroups
-                            .filter { it.containsMember(device, appTechnicalId) }
-                            .map { group -> appGroupsDetails.getValue(group) }
-                            .map { groupDto ->
-                                val colorInfo = AppGroupColorPalette.getColorInfo(groupDto.color)
-                                AppGroupWithColor(
-                                    id = groupDto.id,
-                                    name = groupDto.name,
-                                    color = groupDto.color,
-                                    textColor = colorInfo?.text ?: "#000000",
-                                )
-                            }
                         AppUsage(
                             name = appTechnicalId,
                             path = appTechnicalId,
                             usageSeconds = v,
                             appName = knownApp?.appName,
                             iconBase64 = knownApp?.iconBase64Png,
-                            appGroups = appGroupsForThisApp,
+                            appGroups = appGroupIndex[deviceIdStr to appTechnicalId] ?: emptyList(),
                             online = appTechnicalId in screenTimeDto.onlineApps
                         )
                     }.sortedByDescending { it.usageSeconds },

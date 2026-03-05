@@ -202,7 +202,7 @@ data class RefBasedAppGroup(
     }
 
     override fun getMembers(device: Device): Set<AppTechnicalId> {
-        return appGroupRepository.getMembers(appGroupRef, device.asRef())
+        return appGroupRef.details.members[device.getId().toString()] ?: emptySet()
     }
 
     override fun addMember(device: Device, appTechnicalId: AppTechnicalId) {
