@@ -108,10 +108,9 @@ class HappyPathIntegrationSpec : FunSpec() {
         test("step 3 - should verify device exists in database") {
             val deviceRef = devicesRepository.get(UUID.fromString(deviceId))
             deviceRef shouldNotBe null
-            val details = devicesRepository.fetchDetails(deviceRef!!)
-            details.deviceId.toString() shouldBe deviceId
-            details.deviceName shouldBe deviceName
-            details.clientType shouldBe clientType
+            deviceRef!!.details.deviceId.toString() shouldBe deviceId
+            deviceRef.details.deviceName shouldBe deviceName
+            deviceRef.details.clientType shouldBe clientType
         }
 
         test("step 4 - should send client-info successfully") {
@@ -153,12 +152,11 @@ class HappyPathIntegrationSpec : FunSpec() {
 
         test("step 5 - should verify client-info data in database") {
             val deviceRef = devicesRepository.get(UUID.fromString(deviceId))!!
-            val details = devicesRepository.fetchDetails(deviceRef)
-            details.clientVersion shouldBe clientVersion
-            details.clientTimezoneOffsetSeconds shouldBe timezoneOffsetSeconds
-            details.reportIntervalSeconds shouldBe reportIntervalSeconds.toLong()
-            details.knownApps shouldNotBe null
-            details.availableDeviceStates.size shouldBeGreaterThan 0
+            deviceRef.details.clientVersion shouldBe clientVersion
+            deviceRef.details.clientTimezoneOffsetSeconds shouldBe timezoneOffsetSeconds
+            deviceRef.details.reportIntervalSeconds shouldBe reportIntervalSeconds.toLong()
+            deviceRef.details.knownApps shouldNotBe null
+            deviceRef.details.availableDeviceStates.size shouldBeGreaterThan 0
         }
 
         test("step 6 - should send first report successfully") {

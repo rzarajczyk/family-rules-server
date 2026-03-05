@@ -29,16 +29,16 @@ class FirestoreDevicesRepository(
             .get()
             ?.documents
             ?.firstOrNull()
-            ?.let { FirestoreDeviceRef(it) }
+            ?.let { fetchDetails(it) }
     }
 
-    override fun createDevice(user: UserRef, details: DeviceDetailsDto): DeviceRef {
+    override fun createDevice(user: UserRef, details: DeviceDetailsDto, tokenHash: String): DeviceRef {
         val deviceData = mapOf(
             "instanceId" to details.deviceId.toString(),
             "instanceName" to details.deviceName,
             "forcedDeviceState" to details.forcedDeviceState?.deviceState,
             "forcedDeviceStateExtra" to details.forcedDeviceState?.extra,
-            "instanceTokenSha256" to details.hashedToken,
+            "instanceTokenSha256" to tokenHash,
             "clientType" to details.clientType,
             "clientVersion" to details.clientVersion,
             "clientTimezoneOffsetSeconds" to details.clientTimezoneOffsetSeconds,
@@ -86,7 +86,7 @@ class FirestoreDevicesRepository(
             .get()
             .get()
             .documents
-            .map { FirestoreDeviceRef(it) }
+            .map { fetchDetails(it) }
 
     override fun get(id: DeviceId): DeviceRef? =
         firestore.collectionGroup("instances")
@@ -95,12 +95,10 @@ class FirestoreDevicesRepository(
             .get()
             ?.documents
             ?.firstOrNull()
-            ?.let { FirestoreDeviceRef(it) }
+            ?.let { fetchDetails(it) }
 
-    override fun fetchDetails(device: DeviceRef, includePasswordHash: Boolean): DeviceDetailsDto {
-        val doc = (device as FirestoreDeviceRef).document
-
-        return DeviceDetailsDto(
+    private fun fetchDetails(doc: QueryDocumentSnapshot): DeviceRef {
+        val details = DeviceDetailsDto(
             deviceId = UUID.fromString(doc.getStringOrThrow("instanceId")),
             deviceName = doc.getStringOrThrow("instanceName"),
             forcedDeviceState = doc.getDeviceStateDto("forcedDeviceState", "forcedDeviceStateExtra"),
@@ -108,10 +106,6 @@ class FirestoreDevicesRepository(
             clientType = doc.getStringOrThrow("clientType"),
             schedule = doc.getSchedule("schedule"),
             clientTimezoneOffsetSeconds = doc.getLongOrThrow("clientTimezoneOffsetSeconds"),
-            hashedToken = when (includePasswordHash) {
-                true -> doc.getStringOrThrow("instanceTokenSha256")
-                false -> ""
-            },
             iconData = doc.getString("iconData"),
             iconType = doc.getString("iconType"),
             reportIntervalSeconds = doc.getLongOrThrow("reportIntervalSeconds"),
@@ -119,6 +113,8 @@ class FirestoreDevicesRepository(
             availableDeviceStates = doc.getAvailableDeviceStates("deviceStates"),
             appGroups = doc.getAppGroups("appGroups")
         )
+        val tokenHash = doc.getStringOrThrow("instanceTokenSha256")
+        return FirestoreDeviceRef(doc, details, tokenHash)
     }
 
     override fun update(device: DeviceRef, details: DeviceDetailsUpdateDto) {
@@ -164,7 +160,7 @@ class FirestoreDevicesRepository(
     private fun QueryDocumentSnapshot.getAppGroups(fieldName: String): AppGroupsDto =
         try {
             json.decodeFromString<AppGroupsDto>(getString(fieldName) ?: "{}")
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             AppGroupsDto.empty()
         }
 
@@ -270,6 +266,10 @@ class FirestoreKnownApp(
     val iconBase64: String?
 )
 
-class FirestoreDeviceRef(val document: QueryDocumentSnapshot) : DeviceRef {
-    override fun getDeviceId(): DeviceId = UUID.fromString(document.getString("instanceId"))
+class FirestoreDeviceRef(
+    val document: QueryDocumentSnapshot,
+    override val details: DeviceDetailsDto,
+    override val tokenHash: String
+) : DeviceRef {
+    override fun getDeviceId(): DeviceId = details.deviceId
 }

@@ -101,9 +101,8 @@ class V2InitialSetupControllerIntegrationSpec : FunSpec() {
                 // Verify repository side-effects
                 val deviceRef = devicesRepository.get(java.util.UUID.fromString(instanceId))
                 deviceRef shouldNotBe null
-                val details = devicesRepository.fetchDetails(deviceRef!!)
-                details.deviceName shouldBe "Test Device"
-                details.clientType shouldBe "TEST"
+                deviceRef!!.details.deviceName shouldBe "Test Device"
+                deviceRef.details.clientType shouldBe "TEST"
             }
 
             test("should reject when password is invalid") {

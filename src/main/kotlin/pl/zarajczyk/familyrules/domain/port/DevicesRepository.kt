@@ -7,11 +7,10 @@ import pl.zarajczyk.familyrules.domain.port.ValueUpdate.Companion.leaveUnchanged
 import java.util.concurrent.atomic.AtomicReference
 
 interface DevicesRepository {
-    fun createDevice(user: UserRef, details: DeviceDetailsDto): DeviceRef
+    fun createDevice(user: UserRef, details: DeviceDetailsDto, tokenHash: String): DeviceRef
     fun get(id: DeviceId): DeviceRef?
     fun getAll(userRef: UserRef): List<DeviceRef>
     fun getByName(user: UserRef, deviceName: String): DeviceRef?
-    fun fetchDetails(device: DeviceRef, includePasswordHash: Boolean = false): DeviceDetailsDto
     fun delete(device: DeviceRef)
     fun update(device: DeviceRef, details: DeviceDetailsUpdateDto)
     fun getOwner(deviceRef: DeviceRef): UserRef
@@ -22,6 +21,8 @@ interface DevicesRepository {
 }
 
 interface DeviceRef {
+    val details: DeviceDetailsDto
+    val tokenHash: String
     fun getDeviceId(): DeviceId
 }
 
@@ -29,7 +30,6 @@ data class DeviceDetailsDto(
     val deviceId: DeviceId,
     val deviceName: String,
     val forcedDeviceState: DeviceStateDto?,
-    val hashedToken: String,
     val clientType: String,
     val clientVersion: String,
     val schedule: WeeklyScheduleDto,

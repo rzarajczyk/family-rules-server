@@ -421,7 +421,7 @@ class BffOverviewControllerIntegrationSpec : FunSpec() {
 
                 // Verify the update
                 val updatedRef = devicesRepository.get(deviceDetails.deviceId)!!
-                val details = devicesRepository.fetchDetails(updatedRef)
+                val details = updatedRef.details
                 details.deviceName shouldBe "Updated Device Name"
                 details.iconType shouldBe "image/png"
                 details.iconData.shouldNotBeNull()
@@ -450,7 +450,7 @@ class BffOverviewControllerIntegrationSpec : FunSpec() {
                     .andExpect(status().isOk)
 
                 val updatedRef = devicesRepository.get(deviceDetails.deviceId)!!
-                val details = devicesRepository.fetchDetails(updatedRef)
+                val details = updatedRef.details
                 details.deviceName shouldBe "Updated Name Only"
             }
 
@@ -538,7 +538,7 @@ class BffOverviewControllerIntegrationSpec : FunSpec() {
 
                 // Verify the state was set
                 val updatedRef = devicesRepository.get(deviceDetails.deviceId)!!
-                val details = devicesRepository.fetchDetails(updatedRef)
+                val details = updatedRef.details
                 details.forcedDeviceState.shouldNotBeNull()
                 details.forcedDeviceState?.deviceState shouldBe "LOCKED"
             }
@@ -571,7 +571,7 @@ class BffOverviewControllerIntegrationSpec : FunSpec() {
                     .andExpect(status().isOk)
 
                 val updatedRef = devicesRepository.get(deviceDetails.deviceId)!!
-                val details = devicesRepository.fetchDetails(updatedRef)
+                val details = updatedRef.details
                 details.forcedDeviceState.shouldBeNull()
             }
 
@@ -597,7 +597,7 @@ class BffOverviewControllerIntegrationSpec : FunSpec() {
                     .andExpect(status().isOk)
 
                 val updatedRef = devicesRepository.get(deviceDetails.deviceId)!!
-                val details = devicesRepository.fetchDetails(updatedRef)
+                val details = updatedRef.details
                 details.forcedDeviceState.shouldNotBeNull()
                 details.forcedDeviceState?.deviceState shouldBe "LIMITED_TO"
                 details.forcedDeviceState?.extra shouldBe "some-group-id"
@@ -732,7 +732,7 @@ class BffOverviewControllerIntegrationSpec : FunSpec() {
 
                 // Verify deletion
                 val allInstances = devicesRepository.getAll(usersRepository.get(testUsername)!!)
-                allInstances.none { devicesRepository.fetchDetails(it).deviceId.toString() == instanceId } shouldBe true
+                allInstances.none { it.details.deviceId.toString() == instanceId } shouldBe true
             }
         }
     }

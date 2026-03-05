@@ -16,16 +16,14 @@ class DevicesService(
 ) {
     fun get(deviceId: DeviceId): Device {
         val ref = devicesRepository.get(deviceId) ?: throw DeviceNotFoundException(deviceId)
-        val details = devicesRepository.fetchDetails(ref)
-        return RefBasedDevice(ref, details, devicesRepository, usersService)
+        return RefBasedDevice(ref, devicesRepository, usersService)
     }
 
     fun getAllDevices(user: User): List<Device> {
         return devicesRepository
             .getAll(user.asRef())
             .map {
-                val details = devicesRepository.fetchDetails(it)
-                RefBasedDevice(it, details, devicesRepository, usersService)
+                RefBasedDevice(it, devicesRepository, usersService)
             }
     }
 
@@ -46,7 +44,6 @@ class DevicesService(
             deviceId = deviceId,
             deviceName = deviceName,
             forcedDeviceState = null,
-            hashedToken = token.sha256(),
             clientType = clientType,
             clientVersion = "v0",
             clientTimezoneOffsetSeconds = 0L,
@@ -58,7 +55,7 @@ class DevicesService(
             availableDeviceStates = emptyList()
         )
 
-        devicesRepository.createDevice(userRef, details)
+        devicesRepository.createDevice(userRef, details, token.sha256())
 
         return NewDeviceDetails(
             deviceId = deviceId,
@@ -98,7 +95,6 @@ interface Device {
 
 data class RefBasedDevice(
     val deviceRef: DeviceRef,
-    private val deviceDetails: DeviceDetailsDto,
     private val devicesRepository: DevicesRepository,
     private val usersService: UsersService
 ) : Device {
@@ -110,7 +106,7 @@ data class RefBasedDevice(
     override fun getId(): DeviceId = deviceRef.getDeviceId()
 
     override fun validateToken(token: String): Boolean {
-        return devicesRepository.fetchDetails(deviceRef, includePasswordHash = true).hashedToken == token.sha256()
+        return deviceRef.tokenHash == token.sha256()
     }
 
     override fun update(update: DeviceDetailsUpdateDto) {
@@ -126,7 +122,7 @@ data class RefBasedDevice(
     }
 
     override fun fetchDetails(): DeviceDetailsDto {
-        return deviceDetails
+        return deviceRef.details
     }
 
     override fun getScreenTimeReport(day: LocalDate): ScreenReport {

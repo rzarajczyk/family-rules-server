@@ -9,8 +9,7 @@ import pl.zarajczyk.familyrules.domain.port.*
 
 @Service
 class FirestoreAppGroupRepository(
-    private val firestore: Firestore,
-    private val devicesRepository: DevicesRepository
+    private val firestore: Firestore
 ) : AppGroupRepository {
 
     // App group operations
@@ -69,13 +68,13 @@ class FirestoreAppGroupRepository(
     // Members operations (stored as Firestore native map: members[deviceId] = List<appId>)
 
     override fun setMembers(appGroupRef: AppGroupRef, deviceRef: DeviceRef, apps: Set<AppTechnicalId>) {
-        val deviceId = devicesRepository.fetchDetails(deviceRef).deviceId.toString()
+        val deviceId = deviceRef.getDeviceId().toString()
         val ref = (appGroupRef as FirestoreAppGroupRef).ref
         ref.update("members.$deviceId", apps.toList()).get()
     }
 
     override fun getMembers(appGroupRef: AppGroupRef, deviceRef: DeviceRef): Set<AppTechnicalId> {
-        val deviceId = devicesRepository.fetchDetails(deviceRef).deviceId.toString()
+        val deviceId = deviceRef.getDeviceId().toString()
         val details = fetchDetails(appGroupRef)
         return details.members[deviceId] ?: emptySet()
     }
