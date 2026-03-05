@@ -39,7 +39,7 @@ class BffSettingsController(
     fun getWebhookSettings(authentication: Authentication): WebhookSettingsResponse {
         return try {
             val user = usersService.get(authentication.name)
-            val details = user.fetchDetails()
+            val details = user.getDetails()
             
             WebhookSettingsResponse(
                 success = true,
@@ -72,7 +72,7 @@ class BffSettingsController(
         return try {
             val user = usersService.get(authentication.name)
             val history = usersRepository.getWebhookCallHistory(user.asRef())
-            val webhookHistoryUntil = user.fetchDetails().webhookHistoryUntil
+            val webhookHistoryUntil = user.getDetails().webhookHistoryUntil
             
             val calls = history.map { entry ->
                 WebhookCallHistoryItem(
@@ -107,7 +107,7 @@ class BffSettingsController(
     fun getIntegrationApiSettings(authentication: Authentication): IntegrationApiSettingsResponse {
         return try {
             val user = usersService.get(authentication.name)
-            val details = user.fetchDetails()
+            val details = user.getDetails()
             IntegrationApiSettingsResponse(success = true, token = details.integrationApiToken)
         } catch (_: Exception) {
             IntegrationApiSettingsResponse(success = false, token = null)

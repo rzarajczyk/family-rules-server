@@ -20,7 +20,7 @@ class BffUserController(
 
         return GetUsersResponse(
             users = usersService.getAllUsers().map {
-                GetUsersUserResponse(it.fetchDetails().username)
+                GetUsersUserResponse(it.getDetails().username)
             }
         )
     }
@@ -28,7 +28,7 @@ class BffUserController(
     @GetMapping("/bff/current-user")
     fun getCurrentUser(authentication: Authentication): CurrentUserResponse {
         val user = usersService.get(authentication.name)
-        val details = user.fetchDetails()
+        val details = user.getDetails()
         return CurrentUserResponse(
             username = details.username,
             accessLevel = details.accessLevel
@@ -43,7 +43,7 @@ class BffUserController(
         val user = usersService.get(authentication.name)
         user.mustBeAdmin()
 
-        if (user.fetchDetails().username == username) {
+        if (user.getDetails().username == username) {
             throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot delete your own account")
         }
 
@@ -85,7 +85,7 @@ class BffUserController(
     }
 
     private fun User.mustBeAdmin() {
-        if (fetchDetails().accessLevel != AccessLevel.ADMIN) {
+        if (getDetails().accessLevel != AccessLevel.ADMIN) {
             throw ResponseStatusException(HttpStatus.FORBIDDEN, "Admin access required")
         }
     }

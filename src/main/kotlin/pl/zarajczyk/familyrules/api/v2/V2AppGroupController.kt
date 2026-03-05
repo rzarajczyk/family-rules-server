@@ -2,7 +2,6 @@ package pl.zarajczyk.familyrules.api.v2
 
 import org.springframework.security.core.Authentication
 import org.springframework.web.bind.annotation.PostMapping
-import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RestController
 import pl.zarajczyk.familyrules.domain.*
 
@@ -14,7 +13,7 @@ class V2AppGroupController(
     @PostMapping("/api/v2/get-blocked-apps")
     fun getBlockedApps(authentication: Authentication): BlockedAppsResponse {
         val device = devicesService.get(authentication)
-        val deviceDetails = device.fetchDetails()
+        val deviceDetails = device.getDetails()
 
         val blockedAppsTechnicalIds = deviceDetails.appGroups.block.flatMap { appGroupId ->
             val appGroup = appGroupService.get(device.getOwner(), appGroupId)
@@ -38,7 +37,7 @@ class V2AppGroupController(
     @PostMapping("/api/v2/groups-usage-report")
     fun getAppGroupsUsageReport(authentication: Authentication): AppGroupsUsageReportResponse {
         val device = devicesService.get(authentication)
-        val deviceDetails = device.fetchDetails()
+        val deviceDetails = device.getDetails()
         val report = appGroupService.getReport(device.getOwner(), today())
         
         // Filter app groups based on device's appGroups.show configuration

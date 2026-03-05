@@ -10,7 +10,6 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.context.annotation.Import
-import org.springframework.http.MediaType
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
@@ -256,7 +255,7 @@ class IntegrationAppGroupsControllerIntegrationSpec : FunSpec() {
 
                 // Verify device state was actually written to Firestore
                 val updatedDevice = devicesService.get(deviceId)
-                val forcedState = updatedDevice.fetchDetails().forcedDeviceState
+                val forcedState = updatedDevice.getDetails().forcedDeviceState
                 forcedState shouldNotBe null
                 forcedState!!.deviceState shouldBe "LOCKED"
             }
@@ -271,7 +270,7 @@ class IntegrationAppGroupsControllerIntegrationSpec : FunSpec() {
                     .andExpect(jsonPath("$.appliedStateName").value("Allowed"))
 
                 val device = devicesService.get(deviceId)
-                device.fetchDetails().forcedDeviceState?.deviceState shouldBe "ACTIVE"
+                device.getDetails().forcedDeviceState?.deviceState shouldBe "ACTIVE"
 
                 // Apply "Locked" state
                 mockMvc.perform(
@@ -282,7 +281,7 @@ class IntegrationAppGroupsControllerIntegrationSpec : FunSpec() {
                     .andExpect(jsonPath("$.appliedStateName").value("Locked"))
 
                 val device2 = devicesService.get(deviceId)
-                device2.fetchDetails().forcedDeviceState?.deviceState shouldBe "LOCKED"
+                device2.getDetails().forcedDeviceState?.deviceState shouldBe "LOCKED"
 
                 // Cleanup
                 device2.update(DeviceDetailsUpdateDto(forcedDeviceState = set(null)))

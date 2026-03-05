@@ -37,7 +37,7 @@ class BffOverviewController(
         val devices = devicesService.getAllDevices(user)
         StatusResponse(devices.map { device ->
             val screenTimeDto = device.getScreenTimeReport(day)
-            val deviceDetails = device.fetchDetails()
+            val deviceDetails = device.getDetails()
             val state = stateService.calculateCurrentDeviceState(deviceDetails)
             val availableStates = deviceDetails.availableDeviceStates
             val appGroups = appGroupService.listAllAppGroups(user)
@@ -104,7 +104,7 @@ class BffOverviewController(
         @RequestParam("instanceId") deviceId: DeviceId
     ): InstanceInfoResponse {
         val device = devicesService.get(deviceId)
-        val details = device.fetchDetails()
+        val details = device.getDetails()
         return InstanceInfoResponse(
             instanceId = deviceId,
             instanceName = details.deviceName,
@@ -122,7 +122,7 @@ class BffOverviewController(
         authentication: Authentication
     ): InstanceEditInfo {
         val device = devicesService.get(deviceId)
-        val details = device.fetchDetails()
+        val details = device.getDetails()
         val user = usersService.get(authentication.name)
         val appGroups = appGroupService.listAllAppGroups(user).map { it.fetchDetails() }
         return InstanceEditInfo(
@@ -164,7 +164,7 @@ class BffOverviewController(
         val appGroups = usersService.get(authentication.name).let { user ->
             appGroupService.listAllAppGroups(user).map { it.fetchDetails() }
         }
-        val deviceDetails = device.fetchDetails()
+        val deviceDetails = device.getDetails()
         return InstanceStateResponse(
             instanceId = deviceId,
             instanceName = deviceDetails.deviceName,

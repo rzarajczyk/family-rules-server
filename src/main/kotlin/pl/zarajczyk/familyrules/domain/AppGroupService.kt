@@ -79,7 +79,7 @@ class AppGroupService(private val appGroupRepository: AppGroupRepository, privat
         val appGroups = appGroupsOverride?.map { it.asRef() } ?: appGroupRepository.getAll(user.asRef())
 
         // Pre-fetch screen time reports once per device (D reads) instead of once per (group × device) (G×D reads)
-        val deviceDetails = devices.map { it.fetchDetails() }
+        val deviceDetails = devices.map { it.getDetails() }
         val screenTimeByDeviceId: Map<DeviceId, ScreenReport> = devices.zip(deviceDetails).associate { (device, details) ->
             details.deviceId to device.getScreenTimeReport(day)
         }

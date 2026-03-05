@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.extensions.spring.SpringExtension
 import io.kotest.matchers.collections.shouldContain
-import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.collections.shouldNotContain
 import io.kotest.matchers.longs.shouldBeGreaterThanOrEqual
 import io.kotest.matchers.nulls.shouldNotBeNull
@@ -25,7 +24,6 @@ import pl.zarajczyk.familyrules.domain.port.DeviceDetailsUpdateDto
 import pl.zarajczyk.familyrules.domain.port.DeviceStateDto
 import pl.zarajczyk.familyrules.domain.port.UsersRepository
 import pl.zarajczyk.familyrules.domain.port.ValueUpdate.Companion.set
-import pl.zarajczyk.familyrules.domain.webhook.WebhookProcessor
 import pl.zarajczyk.familyrules.domain.webhook.WebhookQueue
 import pl.zarajczyk.familyrules.domain.webhook.WebhookScheduler
 import java.util.concurrent.TimeUnit
@@ -146,7 +144,7 @@ class WebhookIntegrationSpec : FunSpec() {
             
             // Then
             val user = usersService.get(testUsername)
-            val userDetails = user.fetchDetails()
+            val userDetails = user.getDetails()
             userDetails.lastActivity.shouldNotBeNull()
             userDetails.lastActivity!! shouldBeGreaterThanOrEqual beforeTime
         }

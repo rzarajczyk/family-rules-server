@@ -44,7 +44,7 @@ class IntegrationApiKeyAuthFilter(
         val token = authHeader.substring("Bearer ".length).trim()
 
         val user = usersService.getByIntegrationApiToken(token) ?: throw UnauthorizedException()
-        val username = user.fetchDetails().username
+        val username = user.getDetails().username
         return IntegrationApiAuthenticationToken(username, token)
     }
 }

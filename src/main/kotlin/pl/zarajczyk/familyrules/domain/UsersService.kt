@@ -34,7 +34,7 @@ class UsersService(private val usersRepository: UsersRepository) {
 interface User {
     fun asRef(): UserRef
 
-    fun fetchDetails(): UserDetails
+    fun getDetails(): UserDetails
 
     fun delete()
 
@@ -56,7 +56,7 @@ data class RefBasedUser(
 ) : User {
     override fun asRef(): UserRef = userRef
 
-    override fun fetchDetails(): UserDetails {
+    override fun getDetails(): UserDetails {
         return userRef.details.let {
             UserDetails(
                 username = it.username,

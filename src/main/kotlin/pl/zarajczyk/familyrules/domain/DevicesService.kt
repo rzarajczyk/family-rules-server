@@ -85,7 +85,7 @@ interface Device {
 
     fun getOwner(): User
 
-    fun fetchDetails(): DeviceDetailsDto
+    fun getDetails(): DeviceDetailsDto
 
     fun getScreenTimeReport(day: LocalDate): ScreenReport
 
@@ -120,12 +120,12 @@ data class RefBasedDevice(
         return usersService.get(devicesRepository.getOwner(deviceRef))
     }
 
-    override fun fetchDetails(): DeviceDetailsDto {
+    override fun getDetails(): DeviceDetailsDto {
         return deviceRef.details
     }
 
     override fun getScreenTimeReport(day: LocalDate): ScreenReport {
-        val reportIntervalSeconds = fetchDetails().reportIntervalSeconds
+        val reportIntervalSeconds = getDetails().reportIntervalSeconds
         return (devicesRepository.getScreenReport(deviceRef, day) ?: ScreenReportDto.empty()).toDomain(
             reportIntervalSeconds
         )

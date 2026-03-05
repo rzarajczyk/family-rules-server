@@ -8,7 +8,7 @@ import pl.zarajczyk.familyrules.domain.port.DeviceStateDto
 class StateService {
 
     fun calculateCurrentDeviceState(device: Device): CurrentDeviceState {
-        val deviceDetails = device.fetchDetails()
+        val deviceDetails = device.getDetails()
         return calculateCurrentDeviceState(deviceDetails)
     }
 

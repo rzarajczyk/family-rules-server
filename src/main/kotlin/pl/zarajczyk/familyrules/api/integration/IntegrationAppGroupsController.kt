@@ -29,7 +29,7 @@ class IntegrationAppGroupsController(
         val allDevices = devicesService.getAllDevices(user)
         val deviceForcedStates: Map<DeviceId, DeviceStateDto?> =
             allDevices.associate { device ->
-                val details = device.fetchDetails()
+                val details = device.getDetails()
                 details.deviceId to stateService.calculateCurrentDeviceState(details).forcedState
             }
 
@@ -65,7 +65,7 @@ class IntegrationAppGroupsController(
         val allDevices = devicesService.getAllDevices(user)
         val deviceForcedStates: Map<DeviceId, DeviceStateDto?> =
             allDevices.associate { device ->
-                val details = device.fetchDetails()
+                val details = device.getDetails()
                 details.deviceId to stateService.calculateCurrentDeviceState(details).forcedState
             }
 

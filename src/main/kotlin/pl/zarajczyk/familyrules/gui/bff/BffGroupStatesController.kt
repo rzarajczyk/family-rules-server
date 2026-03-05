@@ -110,7 +110,7 @@ class BffGroupStatesController(
         val devices = devicesService.getAllDevices(user)
         
         val deviceInfos = devices.map { device ->
-            val details = device.fetchDetails()
+            val details = device.getDetails()
             DeviceForStateDto(
                 deviceId = details.deviceId.toString(),
                 deviceName = details.deviceName,

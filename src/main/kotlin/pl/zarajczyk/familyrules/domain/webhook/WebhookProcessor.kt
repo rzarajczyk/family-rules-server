@@ -106,7 +106,7 @@ class WebhookProcessor(
             logger.info("Processing webhook for user: {}", username)
             
             val user = usersService.get(username)
-            val userDetails = user.fetchDetails()
+            val userDetails = user.getDetails()
             
             if (!userDetails.webhookEnabled || userDetails.webhookUrl == null) {
                 logger.warn("User {} has webhookEnabled=false or no webhookUrl, skipping", username)
@@ -153,7 +153,7 @@ class WebhookProcessor(
 
     private fun computeWebhookPayload(user: User, date: LocalDate): WebhookPayload {
         val allDevices = devicesService.getAllDevices(user)
-        val allDeviceDetails = allDevices.associateWith { it.fetchDetails() }
+        val allDeviceDetails = allDevices.associateWith { it.getDetails() }
 
         val simplifiedReport = appGroupService.getSimplifiedReport(user, date, allDeviceDetails)
 
