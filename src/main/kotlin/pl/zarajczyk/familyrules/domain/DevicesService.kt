@@ -140,7 +140,7 @@ data class RefBasedDevice(
             screenTimeSeconds = screenTimeSeconds,
             applicationsSeconds = applicationsSeconds,
             updatedAt = updatedAt,
-            screenTimeHistogram = screenTimeHistogram.mapValues { (_, v) -> v * reportIntervalSeconds },
+            screenTimeHistogram = onlinePeriods.associateWith { 1L },
             lastUpdatedApps = lastUpdatedApps,
             online = isOnline,
             onlineApps = onlineApps
@@ -156,26 +156,22 @@ data class RefBasedDevice(
         applicationsSeconds: Map<String, Long>
     ) {
         val previousReport = devicesRepository.getScreenReport(deviceRef, day) ?: ScreenReportDto.empty()
-        val screenTimeHistogram = previousReport.screenTimeHistogram
         val now = Clock.System.now()
 
         val lastUpdatedApps = applicationsSeconds
             .filter { (appId, seconds) -> seconds > (previousReport.applicationsSeconds[appId] ?: 0L) }
             .keys
 
-        val bucketKey = now.toBucket()
-        val updatedHistogram = screenTimeHistogram.toMutableMap()
-        val current = updatedHistogram[bucketKey] ?: 0L
-        updatedHistogram[bucketKey] = current + 1
+        val onlinePeriodBucket = now.toBucket()
 
         devicesRepository.setScreenReport(
             device = deviceRef,
             day = day,
-            screenReportDto = ScreenReportDto(
+            screenReportDto = SetScreenReportDto(
                 screenTimeSeconds = screenTimeSeconds,
                 applicationsSeconds = applicationsSeconds,
                 updatedAt = now,
-                screenTimeHistogram = updatedHistogram,
+                currentOnlinePeriodBucket = onlinePeriodBucket,
                 lastUpdatedApps = lastUpdatedApps
             )
         )

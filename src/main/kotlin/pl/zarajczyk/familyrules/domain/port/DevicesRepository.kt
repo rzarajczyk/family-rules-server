@@ -6,6 +6,7 @@ import pl.zarajczyk.familyrules.domain.AppDto
 import pl.zarajczyk.familyrules.domain.DeviceId
 import pl.zarajczyk.familyrules.domain.DeviceStateTypeDto
 import pl.zarajczyk.familyrules.domain.ScreenReportDto
+import pl.zarajczyk.familyrules.domain.SetScreenReportDto
 import pl.zarajczyk.familyrules.domain.port.ValueUpdate.Companion.leaveUnchanged
 import java.util.concurrent.atomic.AtomicReference
 
@@ -21,7 +22,7 @@ interface DevicesRepository {
     fun updateOwnerLastActivity(deviceRef: DeviceRef, lastActivityMillis: Long)
 
     // Screen time operations
-    fun setScreenReport(device: DeviceRef, day: LocalDate, screenReportDto: ScreenReportDto)
+    fun setScreenReport(device: DeviceRef, day: LocalDate, screenReportDto: SetScreenReportDto)
     fun getScreenReport(device: DeviceRef, day: LocalDate): ScreenReportDto?
 }
 

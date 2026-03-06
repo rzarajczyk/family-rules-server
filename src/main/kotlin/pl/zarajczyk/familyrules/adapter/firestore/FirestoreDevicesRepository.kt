@@ -1,8 +1,10 @@
 package pl.zarajczyk.familyrules.adapter.firestore
 
 import com.google.cloud.firestore.DocumentSnapshot
+import com.google.cloud.firestore.FieldValue
 import com.google.cloud.firestore.Firestore
 import com.google.cloud.firestore.QueryDocumentSnapshot
+import com.google.cloud.firestore.SetOptions
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.Serializable
@@ -165,7 +167,7 @@ class FirestoreDevicesRepository(
     override fun setScreenReport(
         device: DeviceRef,
         day: LocalDate,
-        screenReportDto: ScreenReportDto
+        screenReportDto: SetScreenReportDto
     ) {
         val doc = (device as FirestoreDeviceRef).document
 
@@ -178,14 +180,14 @@ class FirestoreDevicesRepository(
                 "screenTime" to screenReportDto.screenTimeSeconds,
                 "applicationTimes" to screenReportDto.applicationsSeconds.encodeApplicationTimes(),
                 "updatedAt" to screenReportDto.updatedAt.toString(),
-                "screenTimeHistogram" to screenReportDto.screenTimeHistogram.encodeHistogram(),
-                "lastUpdatedApps" to screenReportDto.lastUpdatedApps.encodeLastUpdatedApps()
-            )
+                "lastUpdatedApps" to screenReportDto.lastUpdatedApps.encodeLastUpdatedApps(),
+                "onlinePeriods" to FieldValue.arrayUnion(screenReportDto.currentOnlinePeriodBucket)
+            ),
+            SetOptions.merge()
         ).get()
     }
 
     private fun Map<String, Long>.encodeApplicationTimes() = json.encodeToString(this)
-    private fun Map<String, Long>.encodeHistogram() = json.encodeToString(this)
     private fun Set<String>.encodeLastUpdatedApps() = json.encodeToString(this)
 
     override fun getScreenReport(device: DeviceRef, day: LocalDate): ScreenReportDto? {
@@ -202,14 +204,14 @@ class FirestoreDevicesRepository(
         val screenTimeSeconds = dayDoc.getLongOrThrow("screenTime")
         val updatedAt = dayDoc.getStringOrThrow("updatedAt").let { Instant.parse(it) }
         val applicationTimes = dayDoc.getApplicationTimes("applicationTimes")
-        val screenTimeHistogram = dayDoc.getHistogram("screenTimeHistogram")
+        val onlinePeriods = dayDoc.getOnlinePeriods("onlinePeriods")
         val lastUpdatedApps = dayDoc.getLastUpdatedApps("lastUpdatedApps")
 
         return ScreenReportDto(
             screenTimeSeconds = screenTimeSeconds,
             applicationsSeconds = applicationTimes,
             updatedAt = updatedAt,
-            screenTimeHistogram = screenTimeHistogram,
+            onlinePeriods = onlinePeriods,
             lastUpdatedApps = lastUpdatedApps
         )
     }
@@ -217,8 +219,9 @@ class FirestoreDevicesRepository(
     private fun DocumentSnapshot.getApplicationTimes(fieldName: String): Map<String, Long> =
         json.decodeFromString(getStringOrThrow(fieldName))
 
-    private fun DocumentSnapshot.getHistogram(fieldName: String): Map<String, Long> =
-        json.decodeFromString(getString(fieldName) ?: "{}")
+    @Suppress("UNCHECKED_CAST")
+    private fun DocumentSnapshot.getOnlinePeriods(fieldName: String): Set<String> =
+        (get(fieldName) as? List<String>)?.toSet() ?: emptySet()
 
     private fun DocumentSnapshot.getLastUpdatedApps(fieldName: String): Set<String> =
         json.decodeFromString(getString(fieldName) ?: "[]")

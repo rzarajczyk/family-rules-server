@@ -6,6 +6,7 @@ import io.kotest.extensions.spring.SpringExtension
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
+import io.kotest.matchers.collections.shouldContain
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -123,11 +124,10 @@ class V2ReportControllerIntegrationSpec : FunSpec() {
             screenTimes.applicationsSeconds["com.example.app1"] shouldBe 600L
             screenTimes.applicationsSeconds["com.example.app2"] shouldBe 300L
             screenTimes.updatedAt shouldNotBe null
-            val histogram = screenTimes.screenTimeHistogram
-            histogram.isNotEmpty() shouldBe true
-            histogram.values.sum() shouldBe 1L
+            val onlinePeriods = screenTimes.onlinePeriods
+            onlinePeriods.isNotEmpty() shouldBe true
             val expectedBucket = histogramBucketFor(screenTimes.updatedAt)
-            histogram[expectedBucket] shouldBe 1L
+            onlinePeriods shouldContain expectedBucket
         }
 
         test("should track lastUpdatedApps for initially reported apps") {
