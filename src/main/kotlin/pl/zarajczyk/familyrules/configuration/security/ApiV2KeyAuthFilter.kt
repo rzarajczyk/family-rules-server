@@ -74,7 +74,7 @@ class ApiV2KeyAuthFilter(
         val instanceId = DeviceId.fromString(auth.user)
 
         // Check cache first
-        val cacheKey = "${instanceId}:${auth.pass.hashCode()}"
+        val cacheKey = "${instanceId}:${auth.pass.sha256()}"
         val cachedEntry = authCache[cacheKey]
 
         if (cachedEntry != null && !cachedEntry.isExpired()) {
