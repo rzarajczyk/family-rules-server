@@ -20,6 +20,7 @@ import kotlin.time.Duration.Companion.milliseconds
 class WebhookScheduler(
     private val usersRepository: UsersRepository,
     private val webhookQueue: WebhookQueue,
+    private val leaderElectionClient: LeaderElectionClient,
     private val webhookProperties: WebhookProperties
 ) {
     private val logger = LoggerFactory.getLogger(WebhookScheduler::class.java)
@@ -31,6 +32,10 @@ class WebhookScheduler(
      */
     @Scheduled(fixedDelayString = "\${webhook.scheduler-interval-millis:30000}")
     fun scheduleWebhookNotifications() {
+        if (!leaderElectionClient.isLeader()) {
+            logger.info("Not a leader - skipping webhook scheduling")
+            return
+        }
         val activityWindow = Clock.System.now() - webhookProperties.schedulerIntervalMillis.milliseconds * 2
         enqueueUsersWithRecentActivity(activityWindow, "webhook")
     }
@@ -41,6 +46,10 @@ class WebhookScheduler(
      */
     @Scheduled(cron = "0 1 0 * * *")
     fun scheduleMidnightWebhookNotifications() {
+        if (!leaderElectionClient.isLeader()) {
+            logger.info("Not a leader - skipping midnight reset")
+            return
+        }
         val activityWindow = Clock.System.now() - 24.hours
         enqueueUsersWithRecentActivity(activityWindow, "midnight webhook to reset screen times")
     }

@@ -18,6 +18,8 @@ interface DevicesRepository {
     fun update(device: DeviceRef, details: DeviceDetailsUpdateDto)
     fun getOwner(deviceRef: DeviceRef): UserRef
 
+    fun updateOwnerLastActivity(deviceRef: DeviceRef, lastActivityMillis: Long)
+
     // Screen time operations
     fun setScreenReport(device: DeviceRef, day: LocalDate, screenReportDto: ScreenReportDto)
     fun getScreenReport(device: DeviceRef, day: LocalDate): ScreenReportDto?

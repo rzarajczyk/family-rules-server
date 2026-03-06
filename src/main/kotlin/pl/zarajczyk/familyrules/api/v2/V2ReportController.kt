@@ -30,8 +30,8 @@ class V2ReportController(
                 applicationsSeconds = report.applicationsSeconds,
             )
             
-            // Update user's lastActivity timestamp
-            device.getOwner().updateLastActivity(System.currentTimeMillis())
+            // Update user's lastActivity timestamp (blind write — no prior fetch)
+            device.updateOwnerLastActivity(System.currentTimeMillis())
             
             val response = stateService.calculateCurrentDeviceState(device).finalState.toReportResponse()
             return response

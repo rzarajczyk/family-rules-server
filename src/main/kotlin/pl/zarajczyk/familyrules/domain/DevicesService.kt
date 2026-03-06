@@ -90,6 +90,8 @@ interface Device {
     fun getScreenTimeReport(day: LocalDate): ScreenReport
 
     fun saveScreenTimeReport(day: LocalDate, screenTimeSeconds: Long, applicationsSeconds: Map<String, Long>)
+
+    fun updateOwnerLastActivity(lastActivityMillis: Long)
 }
 
 data class RefBasedDevice(
@@ -177,6 +179,10 @@ data class RefBasedDevice(
                 lastUpdatedApps = lastUpdatedApps
             )
         )
+    }
+
+    override fun updateOwnerLastActivity(lastActivityMillis: Long) {
+        devicesRepository.updateOwnerLastActivity(deviceRef, lastActivityMillis)
     }
 
     private fun Instant.toBucket(): String {

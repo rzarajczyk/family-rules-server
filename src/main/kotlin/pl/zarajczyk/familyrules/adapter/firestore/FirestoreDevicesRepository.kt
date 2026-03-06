@@ -247,6 +247,17 @@ class FirestoreDevicesRepository(
             ?: throw UserNotFoundException("parent is null")
         return FirestoreUsersRepository.fetch(doc) ?: throw UserNotFoundException("owner for device not found")
     }
+
+    override fun updateOwnerLastActivity(deviceRef: DeviceRef, lastActivityMillis: Long) {
+        val userDoc = (deviceRef as FirestoreDeviceRef)
+            .document
+            .reference
+            .parent
+            .parent
+            ?: throw UserNotFoundException("parent is null")
+        val timestamp = com.google.cloud.Timestamp.ofTimeMicroseconds(lastActivityMillis * 1000)
+        userDoc.update("lastActivity", timestamp).get()
+    }
 }
 
 @Serializable
