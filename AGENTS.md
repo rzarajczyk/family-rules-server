@@ -10,6 +10,14 @@ This file provides guidance for agentic coding agents working in this repository
 
 ---
 
+## Deployment
+
+This app is deployed on a Google Cloud Run.
+It used Google-managed Firestore, which is charged by the number of reads, writes and deletes. It's important
+to keep those numbers low.
+
+---
+
 ## Build, Lint, and Test Commands
 
 All commands use the Gradle wrapper (`./gradlew`). There is no npm, TypeScript, or Node.js toolchain.
