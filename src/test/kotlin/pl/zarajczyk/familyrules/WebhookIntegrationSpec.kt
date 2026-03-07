@@ -79,21 +79,37 @@ class WebhookIntegrationSpec : FunSpec() {
         }
     }
 
+    /** Minimal in-memory [User] for local queue tests — no Firestore required. */
+    private fun testUser(username: String): User = object : User {
+        override fun asRef() = throw UnsupportedOperationException("not needed in queue tests")
+        override fun getDetails() = UserDetails(
+            username = username,
+            passwordSha256 = "",
+            accessLevel = AccessLevel.PARENT,
+        )
+        override fun delete() = throw UnsupportedOperationException()
+        override fun validatePassword(password: String) = throw UnsupportedOperationException()
+        override fun changePassword(newPassword: String) = throw UnsupportedOperationException()
+        override fun updateWebhookSettings(webhookEnabled: Boolean, webhookUrl: String?) = throw UnsupportedOperationException()
+        override fun updateIntegrationApiToken(token: String?) = throw UnsupportedOperationException()
+        override fun updateLastActivity(lastActivityMillis: Long) = throw UnsupportedOperationException()
+    }
+
     init {
-        test("WebhookQueue should enqueue and dequeue usernames") {
+        test("WebhookQueue should enqueue and dequeue Users") {
             // Given
             val queue = WebhookQueue()
-            
+
             // When
-            queue.enqueue("user1")
-            queue.enqueue("user2")
-            queue.enqueue("user3")
-            
+            queue.enqueue(testUser("user1"))
+            queue.enqueue(testUser("user2"))
+            queue.enqueue(testUser("user3"))
+
             // Then
             queue.size() shouldBe 3
-            queue.take(100, TimeUnit.MILLISECONDS) shouldBe "user1"
-            queue.take(100, TimeUnit.MILLISECONDS) shouldBe "user2"
-            queue.take(100, TimeUnit.MILLISECONDS) shouldBe "user3"
+            queue.take(100, TimeUnit.MILLISECONDS)?.getDetails()?.username shouldBe "user1"
+            queue.take(100, TimeUnit.MILLISECONDS)?.getDetails()?.username shouldBe "user2"
+            queue.take(100, TimeUnit.MILLISECONDS)?.getDetails()?.username shouldBe "user3"
             queue.take(100, TimeUnit.MILLISECONDS) shouldBe null
             queue.isEmpty() shouldBe true
         }
@@ -206,7 +222,7 @@ class WebhookIntegrationSpec : FunSpec() {
             // Then - the user with webhook disabled should NOT be enqueued
             val dequeuedUsers = mutableListOf<String>()
             while (!webhookQueue.isEmpty()) {
-                webhookQueue.take(100, TimeUnit.MILLISECONDS)?.let { dequeuedUsers.add(it) }
+                webhookQueue.take(100, TimeUnit.MILLISECONDS)?.getDetails()?.username?.let { dequeuedUsers.add(it) }
             }
             dequeuedUsers shouldNotContain testUsername
         }
@@ -238,7 +254,7 @@ class WebhookIntegrationSpec : FunSpec() {
             // Then - the user with old activity should NOT be enqueued
             val dequeuedUsers = mutableListOf<String>()
             while (!webhookQueue.isEmpty()) {
-                webhookQueue.take(100, TimeUnit.MILLISECONDS)?.let { dequeuedUsers.add(it) }
+                webhookQueue.take(100, TimeUnit.MILLISECONDS)?.getDetails()?.username?.let { dequeuedUsers.add(it) }
             }
             dequeuedUsers shouldNotContain testUsername
         }
@@ -302,7 +318,7 @@ class WebhookIntegrationSpec : FunSpec() {
             capturingWebhookClient.clear()
 
             // When — enqueue and wait for the processor to fire (max 5 s)
-            webhookQueue.enqueue(testUsername)
+            webhookQueue.enqueue(usersService.get(testUsername))
             val deadline = System.currentTimeMillis() + 5_000
             while (capturingWebhookClient.capturedPayloads.isEmpty() && System.currentTimeMillis() < deadline) {
                 Thread.sleep(100)

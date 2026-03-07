@@ -100,7 +100,7 @@ class IntegrationAppGroupsController(
         groupStateService.apply(state)
 
         // Trigger a webhook push so HA receives the updated state promptly
-        webhookQueue.enqueue(authentication.name)
+        webhookQueue.enqueue(user)
 
         val details = state.fetchDetails()
         LOGGER.info("Applied group state ${details.name} to group $groupId")

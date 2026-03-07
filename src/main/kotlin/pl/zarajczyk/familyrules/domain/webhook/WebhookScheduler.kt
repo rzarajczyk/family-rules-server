@@ -7,7 +7,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
 import pl.zarajczyk.familyrules.configuration.WebhookProperties
-import pl.zarajczyk.familyrules.domain.port.UsersRepository
+import pl.zarajczyk.familyrules.domain.UsersService
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -18,7 +18,7 @@ import kotlin.time.Duration.Companion.milliseconds
 @Service
 @EnableConfigurationProperties(WebhookProperties::class)
 class WebhookScheduler(
-    private val usersRepository: UsersRepository,
+    private val usersService: UsersService,
     private val webhookQueue: WebhookQueue,
     private val leaderElectionClient: LeaderElectionClient,
     private val webhookProperties: WebhookProperties
@@ -56,14 +56,14 @@ class WebhookScheduler(
 
     private fun enqueueUsersWithRecentActivity(activityWindow: Instant, notificationType: String) {
         try {
-            val usersWithRecentActivity = usersRepository.getUsersWithRecentActivity(activityWindow)
-            
-            usersWithRecentActivity.forEach { userRef ->
-                val userDetails = userRef.details
-                logger.debug("Enqueueing user {} for {} notification", userDetails.username, notificationType)
-                webhookQueue.enqueue(userDetails.username)
+            val usersWithRecentActivity = usersService.getUsersWithRecentActivity(activityWindow)
+
+            usersWithRecentActivity.forEach { user ->
+                val username = user.getDetails().username
+                logger.debug("Enqueueing user {} for {} notification", username, notificationType)
+                webhookQueue.enqueue(user)
             }
-            
+
             if (usersWithRecentActivity.isNotEmpty()) {
                 logger.info("Enqueued {} users for {} notifications", usersWithRecentActivity.size, notificationType)
             } else {

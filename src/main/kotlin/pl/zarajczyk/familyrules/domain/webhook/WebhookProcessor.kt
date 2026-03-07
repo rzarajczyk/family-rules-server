@@ -29,7 +29,6 @@ import java.util.concurrent.TimeUnit
 class WebhookProcessor(
     private val webhookQueue: WebhookQueue,
     private val webhookClient: WebhookClient,
-    private val usersService: UsersService,
     private val usersRepository: UsersRepository,
     private val appGroupService: AppGroupService,
     private val devicesService: DevicesService,
@@ -83,9 +82,9 @@ class WebhookProcessor(
     private fun processQueue() {
         while (running.get()) {
             try {
-                val username = webhookQueue.take(500, TimeUnit.MILLISECONDS)
-                if (username != null) {
-                    processWebhookForUser(username)
+                val user = webhookQueue.take(500, TimeUnit.MILLISECONDS)
+                if (user != null) {
+                    processWebhookForUser(user)
                 }
             } catch (e: InterruptedException) {
                 logger.debug("WebhookProcessor worker thread interrupted")
@@ -97,17 +96,16 @@ class WebhookProcessor(
         }
     }
 
-    private fun processWebhookForUser(username: String) {
+    private fun processWebhookForUser(user: User) {
+        val userDetails = user.getDetails()
+        val username = userDetails.username
         var statusCode: Int? = null
         var errorMessage: String? = null
         var status = "success"
-        
+
         try {
             logger.info("Processing webhook for user: {}", username)
-            
-            val user = usersService.get(username)
-            val userDetails = user.getDetails()
-            
+
             if (!userDetails.webhookEnabled || userDetails.webhookUrl == null) {
                 logger.warn("User {} has webhookEnabled=false or no webhookUrl, skipping", username)
                 return
@@ -145,7 +143,7 @@ class WebhookProcessor(
                     usersRepository.addWebhookCallHistory(user.asRef(), historyEntry)
                 }
             }
-            
+
         } catch (e: Exception) {
             logger.error("Failed to process webhook for user: {}", username, e)
         }

@@ -1,5 +1,6 @@
 package pl.zarajczyk.familyrules.domain
 
+import kotlinx.datetime.Instant
 import org.springframework.stereotype.Service
 import pl.zarajczyk.familyrules.domain.port.UserRef
 import pl.zarajczyk.familyrules.domain.port.UsersRepository
@@ -29,6 +30,10 @@ class UsersService(private val usersRepository: UsersRepository) {
     fun getByIntegrationApiToken(token: String): User? =
         usersRepository.getByIntegrationApiToken(token)
             ?.let { RefBasedUser(it, usersRepository) }
+
+    fun getUsersWithRecentActivity(since: Instant): List<User> =
+        usersRepository.getUsersWithRecentActivity(since)
+            .map { RefBasedUser(it, usersRepository) }
 }
 
 interface User {

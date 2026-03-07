@@ -25,7 +25,7 @@ class BffGroupStatesController(
         val appGroup = appGroupService.get(user, groupId)
         val state = groupStateService.getGroupState(appGroup, stateId)
         groupStateService.apply(state)
-        webhookQueue.enqueue(authentication.name)
+        webhookQueue.enqueue(user)
         return ApplyGroupStateResponse(success = true, appliedDevices = state.fetchDetails().deviceStates.size)
     }
 
