@@ -89,7 +89,7 @@ interface Device {
 
     fun getScreenTimeReport(day: LocalDate): ScreenReport
 
-    fun saveScreenTimeReport(day: LocalDate, screenTimeSeconds: Long, applicationsSeconds: Map<String, Long>)
+    fun saveScreenTimeReport(day: LocalDate, screenTimeSeconds: Long, applicationsSeconds: Map<String, Long>, activeApps: Set<String>?)
 
     fun updateOwnerLastActivity(lastActivityMillis: Long)
 }
@@ -153,14 +153,19 @@ data class RefBasedDevice(
     override fun saveScreenTimeReport(
         day: LocalDate,
         screenTimeSeconds: Long,
-        applicationsSeconds: Map<String, Long>
+        applicationsSeconds: Map<String, Long>,
+        activeApps: Set<String>?,
     ) {
-        val previousReport = devicesRepository.getScreenReport(deviceRef, day) ?: ScreenReportDto.empty()
-        val now = Clock.System.now()
+        val lastUpdatedApps: Set<String> = if (activeApps != null) {
+            activeApps
+        } else {
+            val previousReport = devicesRepository.getScreenReport(deviceRef, day) ?: ScreenReportDto.empty()
+            applicationsSeconds
+                .filter { (appId, seconds) -> seconds > (previousReport.applicationsSeconds[appId] ?: 0L) }
+                .keys
+        }
 
-        val lastUpdatedApps = applicationsSeconds
-            .filter { (appId, seconds) -> seconds > (previousReport.applicationsSeconds[appId] ?: 0L) }
-            .keys
+        val now = Clock.System.now()
 
         val onlinePeriodBucket = now.toBucket()
 

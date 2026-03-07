@@ -163,7 +163,8 @@ class BffOverviewControllerIntegrationSpec : FunSpec() {
                     mapOf(
                         "com.example.app1" to 600L,
                         "com.example.app2" to 400L
-                    )
+                    ),
+                    activeApps = null
                 )
 
                 val result = mockMvc.perform(
@@ -206,7 +207,8 @@ class BffOverviewControllerIntegrationSpec : FunSpec() {
                     mapOf(
                         "com.example.app1" to 500L,
                         "com.example.app2" to 500L
-                    )
+                    ),
+                    activeApps = null
                 )
 
                 // Second report - only app1 usage increased
@@ -216,7 +218,8 @@ class BffOverviewControllerIntegrationSpec : FunSpec() {
                     mapOf(
                         "com.example.app1" to 900L,
                         "com.example.app2" to 500L
-                    )
+                    ),
+                    activeApps = null
                 )
 
                 val result = mockMvc.perform(
@@ -263,7 +266,8 @@ class BffOverviewControllerIntegrationSpec : FunSpec() {
                     mapOf(
                         "com.example.app1" to 600L,
                         "com.example.app2" to 400L
-                    )
+                    ),
+                    activeApps = null
                 )
 
                 // Second report - same values (device idle)
@@ -273,7 +277,8 @@ class BffOverviewControllerIntegrationSpec : FunSpec() {
                     mapOf(
                         "com.example.app1" to 600L,
                         "com.example.app2" to 400L
-                    )
+                    ),
+                    activeApps = null
                 )
 
                 val result = mockMvc.perform(

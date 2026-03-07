@@ -138,7 +138,8 @@ class WebhookIntegrationSpec : FunSpec() {
             device.saveScreenTimeReport(
                 day = today(),
                 screenTimeSeconds = 1000,
-                applicationsSeconds = mapOf("app1" to 500L)
+                applicationsSeconds = mapOf("app1" to 500L),
+                activeApps = null
             )
             device.getOwner().updateLastActivity(System.currentTimeMillis())
             

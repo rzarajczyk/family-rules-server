@@ -827,7 +827,8 @@ class BffAppGroupsControllerIntegrationSpec : FunSpec() {
                         "com.example.onlineapp1" to 1000L,
                         "com.example.onlineapp2" to 800L,
                         "com.example.offlineapp" to 200L
-                    )
+                    ),
+                    activeApps = null
                 )
 
                 val result = mockMvc.perform(
@@ -862,7 +863,8 @@ class BffAppGroupsControllerIntegrationSpec : FunSpec() {
                         "com.example.onlineapp1" to 1800L,
                         "com.example.onlineapp2" to 1500L,
                         "com.example.offlineapp" to 200L  // No change
-                    )
+                    ),
+                    activeApps = null
                 )
 
                 val result = mockMvc.perform(
@@ -907,7 +909,8 @@ class BffAppGroupsControllerIntegrationSpec : FunSpec() {
                         "com.example.onlineapp1" to 1800L,
                         "com.example.onlineapp2" to 1500L,
                         "com.example.offlineapp" to 200L
-                    )
+                    ),
+                    activeApps = null
                 )
 
                 val result = mockMvc.perform(
@@ -943,7 +946,8 @@ class BffAppGroupsControllerIntegrationSpec : FunSpec() {
                         "com.example.onlineapp1" to 2300L,  // Increased
                         "com.example.onlineapp2" to 1500L,  // No change
                         "com.example.offlineapp" to 200L    // No change
-                    )
+                    ),
+                    activeApps = null
                 )
 
                 val result = mockMvc.perform(
