@@ -107,7 +107,12 @@ class FirestoreDevicesRepository(
             reportIntervalSeconds = doc.getLongOrThrow("reportIntervalSeconds"),
             knownApps = doc.getKnownAppsOrThrow("knownApps"),
             availableDeviceStates = doc.getAvailableDeviceStates("deviceStates"),
-            appGroups = doc.getAppGroups("appGroups")
+            appGroups = doc.getAppGroups("appGroups"),
+            currentDay = doc.getString("currentDay"),
+            currentScreenTime = doc.getLong("currentScreenTime"),
+            currentApplicationTimes = doc.getNativeApplicationTimes("currentApplicationTimes"),
+            currentUpdatedAt = doc.getString("currentUpdatedAt")?.let { Instant.parse(it) },
+            currentLastUpdatedApps = doc.getNativeLastUpdatedApps("currentLastUpdatedApps"),
         )
         val tokenHash = doc.getStringOrThrow("instanceTokenSha256")
         return FirestoreDeviceRef(doc, details, tokenHash)
@@ -189,6 +194,37 @@ class FirestoreDevicesRepository(
 
     private fun Map<String, Long>.encodeApplicationTimes() = json.encodeToString(this)
     private fun Set<String>.encodeLastUpdatedApps() = json.encodeToString(this)
+
+    override fun setCurrentScreenReport(
+        device: DeviceRef,
+        day: LocalDate,
+        screenReportDto: SetScreenReportDto
+    ) {
+        val doc = (device as FirestoreDeviceRef).document
+        doc.reference.update(
+            mapOf(
+                "currentDay" to day.toString(),
+                "currentScreenTime" to screenReportDto.screenTimeSeconds,
+                "currentApplicationTimes" to screenReportDto.applicationsSeconds,
+                "currentUpdatedAt" to screenReportDto.updatedAt.toString(),
+                "currentLastUpdatedApps" to screenReportDto.lastUpdatedApps.toList()
+            )
+        ).get()
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    private fun QueryDocumentSnapshot.getNativeApplicationTimes(fieldName: String): Map<String, Long>? =
+        (get(fieldName) as? Map<String, Any>)?.mapValues { (_, v) ->
+            when (v) {
+                is Long -> v
+                is Number -> v.toLong()
+                else -> 0L
+            }
+        }
+
+    @Suppress("UNCHECKED_CAST")
+    private fun QueryDocumentSnapshot.getNativeLastUpdatedApps(fieldName: String): Set<String>? =
+        (get(fieldName) as? List<String>)?.toSet()
 
     override fun getScreenReport(device: DeviceRef, day: LocalDate): ScreenReportDto? {
         val doc = (device as FirestoreDeviceRef).document

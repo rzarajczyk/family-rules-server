@@ -1,5 +1,6 @@
 package pl.zarajczyk.familyrules.domain.port
 
+import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.Serializable
 import pl.zarajczyk.familyrules.domain.AppDto
@@ -23,6 +24,7 @@ interface DevicesRepository {
 
     // Screen time operations
     fun setScreenReport(device: DeviceRef, day: LocalDate, screenReportDto: SetScreenReportDto)
+    fun setCurrentScreenReport(device: DeviceRef, day: LocalDate, screenReportDto: SetScreenReportDto)
     fun getScreenReport(device: DeviceRef, day: LocalDate): ScreenReportDto?
 }
 
@@ -44,7 +46,12 @@ data class DeviceDetailsDto(
     val reportIntervalSeconds: Long,
     val knownApps: Map<String, AppDto>,
     val availableDeviceStates: List<DeviceStateTypeDto>,
-    val appGroups: AppGroupsDto = AppGroupsDto.empty()
+    val appGroups: AppGroupsDto = AppGroupsDto.empty(),
+    val currentDay: String? = null,
+    val currentScreenTime: Long? = null,
+    val currentApplicationTimes: Map<String, Long>? = null,
+    val currentUpdatedAt: Instant? = null,
+    val currentLastUpdatedApps: Set<String>? = null,
 )
 
 data class DeviceDetailsUpdateDto(

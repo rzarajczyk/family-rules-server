@@ -127,7 +127,22 @@ data class RefBasedDevice(
     }
 
     override fun getScreenTimeReport(day: LocalDate): ScreenReport {
-        val reportIntervalSeconds = getDetails().reportIntervalSeconds
+        val details = getDetails()
+        if (details.currentDay == day.toString() && details.currentApplicationTimes != null) {
+            val updatedAt = details.currentUpdatedAt ?: Instant.DISTANT_PAST
+            val isOnline = updatedAt.isOnline(details.reportIntervalSeconds)
+            val onlineApps = if (isOnline) details.currentLastUpdatedApps ?: emptySet() else emptySet()
+            return ScreenReport(
+                screenTimeSeconds = details.currentScreenTime ?: 0L,
+                applicationsSeconds = details.currentApplicationTimes,
+                updatedAt = updatedAt,
+                screenTimeHistogram = emptyMap(),
+                lastUpdatedApps = details.currentLastUpdatedApps ?: emptySet(),
+                online = isOnline,
+                onlineApps = onlineApps
+            )
+        }
+        val reportIntervalSeconds = details.reportIntervalSeconds
         return (devicesRepository.getScreenReport(deviceRef, day) ?: ScreenReportDto.empty()).toDomain(
             reportIntervalSeconds
         )
@@ -170,6 +185,18 @@ data class RefBasedDevice(
         val onlinePeriodBucket = now.toBucket()
 
         devicesRepository.setScreenReport(
+            device = deviceRef,
+            day = day,
+            screenReportDto = SetScreenReportDto(
+                screenTimeSeconds = screenTimeSeconds,
+                applicationsSeconds = applicationsSeconds,
+                updatedAt = now,
+                currentOnlinePeriodBucket = onlinePeriodBucket,
+                lastUpdatedApps = lastUpdatedApps
+            )
+        )
+
+        devicesRepository.setCurrentScreenReport(
             device = deviceRef,
             day = day,
             screenReportDto = SetScreenReportDto(
