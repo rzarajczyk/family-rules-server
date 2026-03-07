@@ -23,7 +23,7 @@ database-initialization:
   password: ${ADMIN_PASS:admin}
 
 webhook:
-  scheduler-interval-millis: ${WEBHOOK_SCHEDULER_INTERVAL_MILLIS:30000}
+  scheduler-interval-millis: ${WEBHOOK_SCHEDULER_INTERVAL_MILLIS:60000}
   processor-threads: ${WEBHOOK_PROCESSOR_THREADS:1}
 
 management:
