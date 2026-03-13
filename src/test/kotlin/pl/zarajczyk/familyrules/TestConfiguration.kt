@@ -41,10 +41,15 @@ class TestConfiguration {
  */
 class CapturingWebhookClient : WebhookClient {
     val capturedPayloads: MutableList<String> = CopyOnWriteArrayList()
+    val capturedUrls: MutableList<String> = CopyOnWriteArrayList()
 
     override fun sendWebhook(url: String, payload: String) {
+        capturedUrls.add(url)
         capturedPayloads.add(payload)
     }
 
-    fun clear() = capturedPayloads.clear()
+    fun clear() {
+        capturedUrls.clear()
+        capturedPayloads.clear()
+    }
 }

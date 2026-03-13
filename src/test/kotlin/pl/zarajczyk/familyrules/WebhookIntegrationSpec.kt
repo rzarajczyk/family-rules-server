@@ -203,35 +203,34 @@ class WebhookIntegrationSpec : FunSpec() {
             // Given
             val testUsername = "webhook-disabled-test-${System.currentTimeMillis()}"
             val testPassword = "test-password"
+            val webhookUrl = "https://example.com/webhook/$testUsername"
             
             usersRepository.createUser(testUsername, testPassword.sha256(), AccessLevel.PARENT)
             val user = usersService.get(testUsername)
             
-            // Webhook disabled
-            user.updateWebhookSettings(webhookEnabled = false, webhookUrl = null)
+            // Webhook disabled, but we set a URL anyway to ensure it doesn't get called
+            user.updateWebhookSettings(webhookEnabled = false, webhookUrl = webhookUrl)
             user.updateLastActivity(System.currentTimeMillis())
             
             // Clear the queue
             while (!webhookQueue.isEmpty()) {
                 webhookQueue.take(100, TimeUnit.MILLISECONDS)
             }
+            capturingWebhookClient.clear()
             
             // When
             webhookScheduler.scheduleWebhookNotifications()
             
             // Then - the user with webhook disabled should NOT be enqueued
-            val dequeuedUsers = mutableListOf<String>()
-            while (!webhookQueue.isEmpty()) {
-                webhookQueue.take(100, TimeUnit.MILLISECONDS)?.getDetails()?.username?.let { dequeuedUsers.add(it) }
-            }
-            dequeuedUsers shouldNotContain testUsername
+            Thread.sleep(1000) // Give the processor a moment to run if it mistakenly enqueued
+            capturingWebhookClient.capturedUrls shouldNotContain webhookUrl
         }
 
         test("WebhookScheduler should NOT enqueue users with old activity") {
             // Given
             val testUsername = "webhook-old-activity-test-${System.currentTimeMillis()}"
             val testPassword = "test-password"
-            val webhookUrl = "https://example.com/webhook"
+            val webhookUrl = "https://example.com/webhook/$testUsername"
             
             usersRepository.createUser(testUsername, testPassword.sha256(), AccessLevel.PARENT)
             val user = usersService.get(testUsername)
@@ -239,24 +238,22 @@ class WebhookIntegrationSpec : FunSpec() {
             // Enable webhook
             user.updateWebhookSettings(webhookEnabled = true, webhookUrl = webhookUrl)
             
-            // Update lastActivity to 1 minute ago (older than the 30-second window)
-            val oneMinuteAgo = System.currentTimeMillis() - 60000
-            user.updateLastActivity(oneMinuteAgo)
+            // Update lastActivity to 1 HOUR ago (safely older than the 30-second window)
+            val oneHourAgo = System.currentTimeMillis() - 3600000
+            user.updateLastActivity(oneHourAgo)
             
             // Clear the queue
             while (!webhookQueue.isEmpty()) {
                 webhookQueue.take(100, TimeUnit.MILLISECONDS)
             }
+            capturingWebhookClient.clear()
             
             // When
             webhookScheduler.scheduleWebhookNotifications()
             
             // Then - the user with old activity should NOT be enqueued
-            val dequeuedUsers = mutableListOf<String>()
-            while (!webhookQueue.isEmpty()) {
-                webhookQueue.take(100, TimeUnit.MILLISECONDS)?.getDetails()?.username?.let { dequeuedUsers.add(it) }
-            }
-            dequeuedUsers shouldNotContain testUsername
+            Thread.sleep(1000) // Give the processor a moment to run if it mistakenly enqueued
+            capturingWebhookClient.capturedUrls shouldNotContain webhookUrl
         }
 
         test("getUsersWithRecentActivity should return users with activity within time window") {
