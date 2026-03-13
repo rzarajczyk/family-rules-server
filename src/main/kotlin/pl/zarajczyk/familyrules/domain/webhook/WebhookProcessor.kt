@@ -116,7 +116,7 @@ class WebhookProcessor(
             val jsonPayload = objectMapper.writeValueAsString(payload)
             val brief = payload.appGroups.joinToString(", ") { it.name + "=" + it.currentState.label }
 
-            logger.info("Webhook payload calculated user: {} - {}", username, brief)
+            logger.info("Webhook payload calculated for user: {} - {}", username, brief)
 
             try {
                 webhookClient.sendWebhook(userDetails.webhookUrl, jsonPayload)
