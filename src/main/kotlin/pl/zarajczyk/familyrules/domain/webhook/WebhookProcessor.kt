@@ -96,7 +96,7 @@ class WebhookProcessor(
         }
     }
 
-    private fun processWebhookForUser(user: User) {
+    fun processWebhookForUser(user: User) {
         val userDetails = user.getDetails()
         val username = userDetails.username
         var statusCode: Int? = null

@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.*
 import org.springframework.web.server.ResponseStatusException
 import pl.zarajczyk.familyrules.domain.*
 import pl.zarajczyk.familyrules.domain.port.DeviceStateDto
+import pl.zarajczyk.familyrules.domain.webhook.WebhookProcessor
 import pl.zarajczyk.familyrules.domain.webhook.WebhookQueue
 
 @RestController
@@ -18,6 +19,7 @@ class IntegrationAppGroupsController(
     private val devicesService: DevicesService,
     private val stateService: StateService,
     private val webhookQueue: WebhookQueue,
+    private val webhookProcessor: WebhookProcessor,
 ) {
     private val LOGGER = LoggerFactory.getLogger(javaClass)
 
@@ -99,8 +101,9 @@ class IntegrationAppGroupsController(
 
         groupStateService.apply(state)
 
-        // Trigger a webhook push so HA receives the updated state promptly
-        webhookQueue.enqueue(user)
+        // Trigger a webhook push synchronously so HA receives the updated state promptly
+        // This prevents CPU throttling in Cloud Run from delaying the webhook delivery
+        webhookProcessor.processWebhookForUser(user)
 
         val details = state.fetchDetails()
         LOGGER.info("Applied group state ${details.name} to group $groupId")
