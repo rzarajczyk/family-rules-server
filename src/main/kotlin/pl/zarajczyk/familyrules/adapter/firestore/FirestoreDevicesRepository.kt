@@ -113,6 +113,7 @@ class FirestoreDevicesRepository(
             currentApplicationTimes = doc.getNativeApplicationTimes("currentApplicationTimes"),
             currentUpdatedAt = doc.getString("currentUpdatedAt")?.let { Instant.parse(it) },
             currentLastUpdatedApps = doc.getNativeLastUpdatedApps("currentLastUpdatedApps"),
+            currentOnlinePeriods = doc.getNativeOnlinePeriods("currentOnlinePeriods"),
         )
         val tokenHash = doc.getStringOrThrow("instanceTokenSha256")
         return FirestoreDeviceRef(doc, details, tokenHash)
@@ -207,7 +208,8 @@ class FirestoreDevicesRepository(
                 "currentScreenTime" to screenReportDto.screenTimeSeconds,
                 "currentApplicationTimes" to screenReportDto.applicationsSeconds,
                 "currentUpdatedAt" to screenReportDto.updatedAt.toString(),
-                "currentLastUpdatedApps" to screenReportDto.lastUpdatedApps.toList()
+                "currentLastUpdatedApps" to screenReportDto.lastUpdatedApps.toList(),
+                "currentOnlinePeriods" to screenReportDto.currentOnlinePeriods.toList()
             )
         ).get()
     }
@@ -224,6 +226,10 @@ class FirestoreDevicesRepository(
 
     @Suppress("UNCHECKED_CAST")
     private fun QueryDocumentSnapshot.getNativeLastUpdatedApps(fieldName: String): Set<String>? =
+        (get(fieldName) as? List<String>)?.toSet()
+
+    @Suppress("UNCHECKED_CAST")
+    private fun QueryDocumentSnapshot.getNativeOnlinePeriods(fieldName: String): Set<String>? =
         (get(fieldName) as? List<String>)?.toSet()
 
     override fun getScreenReport(device: DeviceRef, day: LocalDate): ScreenReportDto? {

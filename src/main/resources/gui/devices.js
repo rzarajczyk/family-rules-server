@@ -293,130 +293,235 @@ function resizeImage(file, onResize, width = 64, height = 64) {
             function onViewUsageClicked(e) {
                 let instanceId = e.target.closest('.fr-collapsible').dataset["instanceid"]
                 let instanceName = e.target.closest('.fr-collapsible').querySelector('.fr-name-text').textContent
-                let date = document.querySelector("#datepicker").value
-                
-                // Find instance data to get histogram
+
                 let instanceData = window.currentInstanceData?.find(inst => inst.instanceId === instanceId)
-                
-                if (!instanceData || !instanceData.screenTimeHistogram) {
+
+                if (!instanceData || !instanceData.onlinePeriods) {
                     Toast.info("No usage data available for this date")
                     return
                 }
-                
-                showHistogramModal(instanceName, instanceData.screenTimeHistogram)
+
+                showClockModal(instanceName, instanceData.onlinePeriods)
             }
 
-            function showHistogramModal(instanceName, histogram) {
-                let modal = M.Modal.getInstance(document.querySelector("#usage-histogram-modal"))
+            function showClockModal(instanceName, onlinePeriods) {
                 document.getElementById('usage-histogram-title').textContent = `Screen Time Usage - ${instanceName}`
-                
-                // Generate all time buckets for 24 hours (00:00 to 23:50)
-                let allBuckets = []
-                for (let hour = 0; hour < 24; hour++) {
-                    for (let minute = 0; minute < 60; minute += 10) {
-                        let timeStr = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`
-                        allBuckets.push(timeStr)
-                    }
-                }
-                
-                // Create labels and data arrays with zeros for missing buckets
-                let labels = allBuckets
-                let data = allBuckets.map(time => {
-                    let seconds = histogram[time] || 0
-                    return Math.round(seconds / 60) // Convert to minutes
-                })
-                
-                // Destroy existing chart if it exists
-                if (window.histogramChart) {
-                    window.histogramChart.destroy()
-                }
-                
-                // Create new chart
-                const ctx = document.getElementById('histogram-chart').getContext('2d')
-                window.histogramChart = new Chart(ctx, {
-                    type: 'bar',
-                    data: {
-                        labels: labels,
-                        datasets: [{
-                            label: 'Screen Time (minutes)',
-                            data: data,
-                            backgroundColor: 'rgba(54, 162, 235, 0.6)',
-                            borderColor: 'rgba(54, 162, 235, 1)',
-                            borderWidth: 1
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        scales: {
-                            y: {
-                                display: false,
-                                beginAtZero: true
-                            },
-                            x: {
-                                offset: false,
-                                grid: {
-                                    display: true,
-                                    drawOnChartArea: true,
-                                    color: function(context) {
-                                        // Draw grid line only for hourly marks
-                                        if (context.index % 6 === 0) {
-                                            return 'rgba(0, 0, 0, 0.1)';
-                                        }
-                                        return 'transparent';
-                                    }
-                                },
-                                ticks: {
-                                    autoSkip: false,
-                                    callback: function(value, index, ticks) {
-                                        // Show label only for hourly marks (every 6th bucket: 0, 6, 12, 18...)
-                                        if (index % 6 === 0) {
-                                            return this.getLabelForValue(value);
-                                        }
-                                        return '';
-                                    },
-                                    maxRotation: 45,
-                                    minRotation: 45
-                                },
-                                title: {
-                                    display: true,
-                                    text: 'Time of Day'
-                                }
-                            }
-                        },
-                        plugins: {
-                            legend: {
-                                display: false
-                            },
-                            tooltip: {
-                                enabled: true,
-                                callbacks: {
-                                    title: function(context) {
-                                        return context[0].label;
-                                    },
-                                    label: function(context) {
-                                        return '';
-                                    }
-                                }
-                            }
-                        }
-                    }
-                })
-                
+
+                drawClock(onlinePeriods)
+
+                let modal = M.Modal.getInstance(document.querySelector("#usage-histogram-modal"))
                 modal.open()
-                
-                // Scroll to show current hour after modal opens
-                setTimeout(() => {
-                    const scrollContainer = document.querySelector('#usage-histogram-modal .modal-content > div[style*="overflow-x"]')
-                    if (scrollContainer) {
-                        const currentHour = new Date().getHours()
-                        const containerWidth = scrollContainer.clientWidth
-                        const totalWidth = 1200 // min-width of chart
-                        const hourWidth = totalWidth / 24
-                        const scrollPosition = (currentHour * hourWidth) - (containerWidth / 2) + (hourWidth / 2)
-                        scrollContainer.scrollLeft = Math.max(0, scrollPosition)
+            }
+
+            function drawClock(onlinePeriods) {
+                const svg = document.getElementById('usage-clock')
+                // Clear previous drawing
+                while (svg.firstChild) svg.removeChild(svg.firstChild)
+
+                const ns = 'http://www.w3.org/2000/svg'
+                const cx = 250, cy = 250
+                const outerR = 220   // outer edge of usage ring
+                const innerR = 150   // inner edge of usage ring (donut)
+                const faceR  = 145   // clock face (filled circle inside)
+                const tickOuter = 230
+                const labelR = 242
+
+                // Helper: angle in radians for a given fractional time (0=midnight, 1=midnight again)
+                // Clock goes clockwise, midnight at top → angle 0 = -π/2 (12 o'clock)
+                function timeToAngle(hours) {
+                    return (hours / 24) * 2 * Math.PI - Math.PI / 2
+                }
+
+                function polarToCartesian(r, angle) {
+                    return { x: cx + r * Math.cos(angle), y: cy + r * Math.sin(angle) }
+                }
+
+                function arcPath(r1, r2, startAngle, endAngle) {
+                    const p1 = polarToCartesian(r2, startAngle)
+                    const p2 = polarToCartesian(r2, endAngle)
+                    const p3 = polarToCartesian(r1, endAngle)
+                    const p4 = polarToCartesian(r1, startAngle)
+                    const large = (endAngle - startAngle) > Math.PI ? 1 : 0
+                    return [
+                        `M ${p1.x} ${p1.y}`,
+                        `A ${r2} ${r2} 0 ${large} 1 ${p2.x} ${p2.y}`,
+                        `L ${p3.x} ${p3.y}`,
+                        `A ${r1} ${r1} 0 ${large} 0 ${p4.x} ${p4.y}`,
+                        'Z'
+                    ].join(' ')
+                }
+
+                function makePath(d, fill, stroke, strokeWidth) {
+                    const el = document.createElementNS(ns, 'path')
+                    el.setAttribute('d', d)
+                    el.setAttribute('fill', fill)
+                    if (stroke) { el.setAttribute('stroke', stroke); el.setAttribute('stroke-width', strokeWidth || 1) }
+                    return el
+                }
+
+                function makeCircle(r, fill, stroke, strokeWidth) {
+                    const el = document.createElementNS(ns, 'circle')
+                    el.setAttribute('cx', cx); el.setAttribute('cy', cy); el.setAttribute('r', r)
+                    el.setAttribute('fill', fill)
+                    if (stroke) { el.setAttribute('stroke', stroke); el.setAttribute('stroke-width', strokeWidth || 1) }
+                    return el
+                }
+
+                // Background ring (inactive)
+                svg.appendChild(makePath(arcPath(innerR, outerR, -Math.PI / 2, 3 * Math.PI / 2), '#e0e0e0', null))
+
+                // Usage arcs — merge contiguous 10-min buckets into single arcs
+                const activeSet = new Set(onlinePeriods)
+                // Build sorted list of minutes-since-midnight for all active buckets
+                const activeMins = []
+                for (let h = 0; h < 24; h++) {
+                    for (let m = 0; m < 60; m += 10) {
+                        const key = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`
+                        if (activeSet.has(key)) activeMins.push(h * 60 + m)
                     }
-                }, 100)
+                }
+
+                // Group into contiguous runs (gap > 10 min = new segment)
+                const segments = []
+                let segStart = null, segEnd = null
+                for (const mins of activeMins) {
+                    if (segStart === null) {
+                        segStart = mins; segEnd = mins
+                    } else if (mins === segEnd + 10) {
+                        segEnd = mins
+                    } else {
+                        segments.push([segStart, segEnd])
+                        segStart = mins; segEnd = mins
+                    }
+                }
+                if (segStart !== null) segments.push([segStart, segEnd])
+
+                // Draw each segment as an arc (bucket covers start → start+10min)
+                const accentColor = '#1565C0'
+                const accentHover = '#1E88E5'
+
+                // Tooltip element (reused across all arcs)
+                const tooltip = document.createElementNS(ns, 'g')
+                tooltip.setAttribute('visibility', 'hidden')
+                tooltip.setAttribute('pointer-events', 'none')
+
+                for (const [start, end] of segments) {
+                    const a1 = timeToAngle(start / 60)
+                    const a2 = timeToAngle((end + 10) / 60)
+                    const arcEl = makePath(arcPath(innerR, outerR, a1, a2), accentColor, null)
+                    arcEl.style.cursor = 'pointer'
+
+                    const startLabel = `${String(Math.floor(start / 60)).padStart(2,'0')}:${String(start % 60).padStart(2,'0')}`
+                    const endMins = end + 10
+                    const endLabel   = `${String(Math.floor(endMins / 60) % 24).padStart(2,'0')}:${String(endMins % 60).padStart(2,'0')}`
+                    const tipText = `${startLabel} – ${endLabel}`
+
+                    arcEl.addEventListener('mouseenter', (evt) => {
+                        arcEl.setAttribute('fill', accentHover)
+                        // Position tooltip near the midpoint of the arc, outside the ring
+                        const midAngle = (a1 + a2) / 2
+                        const tipR = outerR + 28
+                        const tp = polarToCartesian(tipR, midAngle)
+
+                        // Clamp so the box stays inside the 500×500 viewBox
+                        const boxW = 90, boxH = 24, pad = 4
+                        let bx = tp.x - boxW / 2
+                        let by = tp.y - boxH / 2
+                        bx = Math.max(pad, Math.min(500 - boxW - pad, bx))
+                        by = Math.max(pad, Math.min(500 - boxH - pad, by))
+
+                        tooltip.querySelector('rect').setAttribute('x', bx)
+                        tooltip.querySelector('rect').setAttribute('y', by)
+                        tooltip.querySelector('rect').setAttribute('width', boxW)
+                        tooltip.querySelector('rect').setAttribute('height', boxH)
+                        tooltip.querySelector('text').setAttribute('x', bx + boxW / 2)
+                        tooltip.querySelector('text').setAttribute('y', by + boxH / 2)
+                        tooltip.querySelector('text').textContent = tipText
+                        tooltip.setAttribute('visibility', 'visible')
+                    })
+                    arcEl.addEventListener('mouseleave', () => {
+                        arcEl.setAttribute('fill', accentColor)
+                        tooltip.setAttribute('visibility', 'hidden')
+                    })
+
+                    svg.appendChild(arcEl)
+                }
+
+                // Build tooltip DOM (appended last so it renders on top)
+                const tipRect = document.createElementNS(ns, 'rect')
+                tipRect.setAttribute('rx', 4)
+                tipRect.setAttribute('fill', '#212121')
+                tipRect.setAttribute('opacity', '0.85')
+                const tipText = document.createElementNS(ns, 'text')
+                tipText.setAttribute('text-anchor', 'middle')
+                tipText.setAttribute('dominant-baseline', 'middle')
+                tipText.setAttribute('font-size', '12')
+                tipText.setAttribute('font-family', 'sans-serif')
+                tipText.setAttribute('fill', '#ffffff')
+                tooltip.appendChild(tipRect)
+                tooltip.appendChild(tipText)
+
+                // Clock face circle
+                svg.appendChild(makeCircle(faceR, '#fafafa', '#bdbdbd', 1))
+
+                // Hour tick marks + labels
+                for (let h = 0; h < 24; h++) {
+                    const angle = timeToAngle(h)
+                    const isMajor = (h % 6 === 0)
+                    const tickInner = isMajor ? tickOuter - 14 : tickOuter - 7
+                    const p1 = polarToCartesian(tickInner, angle)
+                    const p2 = polarToCartesian(tickOuter, angle)
+                    const line = document.createElementNS(ns, 'line')
+                    line.setAttribute('x1', p1.x); line.setAttribute('y1', p1.y)
+                    line.setAttribute('x2', p2.x); line.setAttribute('y2', p2.y)
+                    line.setAttribute('stroke', isMajor ? '#424242' : '#9e9e9e')
+                    line.setAttribute('stroke-width', isMajor ? 2 : 1)
+                    svg.appendChild(line)
+
+                    // Label every 6 hours
+                    if (isMajor) {
+                        const lp = polarToCartesian(labelR, angle)
+                        const text = document.createElementNS(ns, 'text')
+                        text.setAttribute('x', lp.x); text.setAttribute('y', lp.y)
+                        text.setAttribute('text-anchor', 'middle')
+                        text.setAttribute('dominant-baseline', 'middle')
+                        text.setAttribute('font-size', '14')
+                        text.setAttribute('font-family', 'sans-serif')
+                        text.setAttribute('fill', '#424242')
+                        text.textContent = `${String(h).padStart(2,'0')}:00`
+                        svg.appendChild(text)
+                    }
+                }
+
+                // Center label — total screen time
+                const totalMins = activeMins.length * 10  // each bucket = 10 min
+                const hours = Math.floor(totalMins / 60)
+                const mins  = totalMins % 60
+                const label = hours > 0 ? `${hours}h ${mins}m` : `${mins}m`
+
+                const centerLabel = document.createElementNS(ns, 'text')
+                centerLabel.setAttribute('x', cx); centerLabel.setAttribute('y', cy - 10)
+                centerLabel.setAttribute('text-anchor', 'middle')
+                centerLabel.setAttribute('dominant-baseline', 'middle')
+                centerLabel.setAttribute('font-size', '28')
+                centerLabel.setAttribute('font-weight', 'bold')
+                centerLabel.setAttribute('font-family', 'sans-serif')
+                centerLabel.setAttribute('fill', '#1565C0')
+                centerLabel.textContent = label
+                svg.appendChild(centerLabel)
+
+                const centerSub = document.createElementNS(ns, 'text')
+                centerSub.setAttribute('x', cx); centerSub.setAttribute('y', cy + 22)
+                centerSub.setAttribute('text-anchor', 'middle')
+                centerSub.setAttribute('dominant-baseline', 'middle')
+                centerSub.setAttribute('font-size', '13')
+                centerSub.setAttribute('font-family', 'sans-serif')
+                centerSub.setAttribute('fill', '#757575')
+                centerSub.textContent = 'screen time'
+                svg.appendChild(centerSub)
+
+                // Tooltip renders on top of everything
+                svg.appendChild(tooltip)
             }
 
             function openModal(options) {

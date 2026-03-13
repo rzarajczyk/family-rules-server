@@ -122,13 +122,9 @@
 </div>
 
 <div id="usage-histogram-modal" class="modal modal-fixed-footer">
-    <div class="modal-content">
+    <div class="modal-content" style="text-align: center;">
         <h4 id="usage-histogram-title">Screen Time Usage</h4>
-        <div style="overflow-x: auto; width: 100%;">
-            <div style="position: relative; height: 400px; min-width: 1200px;">
-                <canvas id="histogram-chart"></canvas>
-            </div>
-        </div>
+        <svg id="usage-clock" viewBox="0 0 500 500" style="width: 100%; max-width: 480px; display: block; margin: 0 auto;"></svg>
     </div>
     <div class="modal-footer">
         <a href="#!" class="modal-close waves-effect btn-flat">Close</a>
@@ -141,7 +137,6 @@
 <script src="https://cdn.jsdelivr.net/npm/handlebars@latest/dist/handlebars.js"></script>
 <script src="components.js"></script>
 <script src="common.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="devices.js"></script>
 
 </body>

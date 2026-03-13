@@ -26,6 +26,7 @@ data class SetScreenReportDto(
     val applicationsSeconds: Map<String, Long>,
     val updatedAt: Instant,
     val currentOnlinePeriodBucket: String,
+    val currentOnlinePeriods: Set<String>,
     val lastUpdatedApps: Set<String>
 )
 

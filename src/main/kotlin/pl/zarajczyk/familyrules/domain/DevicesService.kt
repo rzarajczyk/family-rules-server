@@ -136,7 +136,7 @@ data class RefBasedDevice(
                 screenTimeSeconds = details.currentScreenTime ?: 0L,
                 applicationsSeconds = details.currentApplicationTimes,
                 updatedAt = updatedAt,
-                screenTimeHistogram = emptyMap(),
+                onlinePeriods = details.currentOnlinePeriods ?: emptySet(),
                 lastUpdatedApps = details.currentLastUpdatedApps ?: emptySet(),
                 online = isOnline,
                 onlineApps = onlineApps
@@ -155,7 +155,7 @@ data class RefBasedDevice(
             screenTimeSeconds = screenTimeSeconds,
             applicationsSeconds = applicationsSeconds,
             updatedAt = updatedAt,
-            screenTimeHistogram = onlinePeriods.associateWith { 1L },
+            onlinePeriods = onlinePeriods,
             lastUpdatedApps = lastUpdatedApps,
             online = isOnline,
             onlineApps = onlineApps
@@ -184,6 +184,13 @@ data class RefBasedDevice(
 
         val onlinePeriodBucket = now.toBucket()
 
+        val previousOnlinePeriods: Set<String> = if (getDetails().currentDay == day.toString()) {
+            getDetails().currentOnlinePeriods ?: emptySet()
+        } else {
+            emptySet()
+        }
+        val currentOnlinePeriods: Set<String> = previousOnlinePeriods + onlinePeriodBucket
+
         devicesRepository.setScreenReport(
             device = deviceRef,
             day = day,
@@ -192,6 +199,7 @@ data class RefBasedDevice(
                 applicationsSeconds = applicationsSeconds,
                 updatedAt = now,
                 currentOnlinePeriodBucket = onlinePeriodBucket,
+                currentOnlinePeriods = currentOnlinePeriods,
                 lastUpdatedApps = lastUpdatedApps
             )
         )
@@ -204,6 +212,7 @@ data class RefBasedDevice(
                 applicationsSeconds = applicationsSeconds,
                 updatedAt = now,
                 currentOnlinePeriodBucket = onlinePeriodBucket,
+                currentOnlinePeriods = currentOnlinePeriods,
                 lastUpdatedApps = lastUpdatedApps
             )
         )
@@ -227,7 +236,7 @@ data class ScreenReport(
     val screenTimeSeconds: Long,
     val applicationsSeconds: Map<String, Long>,
     val updatedAt: Instant,
-    val screenTimeHistogram: Map<String, Long>,
+    val onlinePeriods: Set<String>,
     val lastUpdatedApps: Set<String>,
     val online: Boolean,
     val onlineApps: Set<String>
