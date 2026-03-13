@@ -112,16 +112,20 @@ class WebhookProcessor(
             }
 
             val today = today()
+            val payloadStartedAt = System.nanoTime()
             val payload = computeWebhookPayload(user, today)
+            val payloadDurationMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - payloadStartedAt)
             val jsonPayload = objectMapper.writeValueAsString(payload)
             val brief = payload.appGroups.joinToString(", ") { it.name + "=" + it.currentState.label }
 
-            logger.info("Webhook payload calculated for user: {} - {}", username, brief)
+            logger.info("Webhook payload calculated for user: {} in {} ms - {}", username, payloadDurationMillis, brief)
 
             try {
+                val sendStartedAt = System.nanoTime()
                 webhookClient.sendWebhook(userDetails.webhookUrl, jsonPayload)
+                val sendDurationMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - sendStartedAt)
                 statusCode = 200
-                logger.info("Webhook sent successfully for user: {} - {}", username, brief)
+                logger.info("Webhook sent successfully for user: {} in {} ms - {}", username, sendDurationMillis, brief)
             } catch (e: HttpStatusCodeException) {
                 status = "error"
                 statusCode = e.statusCode.value()
@@ -158,7 +162,7 @@ class WebhookProcessor(
 
         val deviceForcedStates: Map<DeviceId, DeviceStateDto?> =
             allDevices.associate {
-                it.getId() to stateService.calculateCurrentDeviceState(it).forcedState
+                it.getId() to it.getDetails().forcedDeviceState
             }
 
         val appGroupStatistics = simplifiedReport.map { report ->

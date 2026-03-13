@@ -118,7 +118,7 @@ class BffOverviewControllerIntegrationSpec : FunSpec() {
                     .andExpect(jsonPath("$.instances[0].instanceId").exists())
                     .andExpect(jsonPath("$.instances[0].instanceName").value(deviceName))
                     .andExpect(jsonPath("$.instances[0].screenTimeSeconds").exists())
-                    .andExpect(jsonPath("$.instances[0].screenTimeHistogram").exists())
+                    .andExpect(jsonPath("$.instances[0].onlinePeriods").exists())
                     .andExpect(jsonPath("$.instances[0].appUsageSeconds").isArray)
                     .andExpect(jsonPath("$.instances[0].automaticDeviceState").exists())
                     .andExpect(jsonPath("$.instances[0].online").exists())
@@ -725,7 +725,7 @@ class BffOverviewControllerIntegrationSpec : FunSpec() {
                 )
                     .andExpect(status().isOk)
                     .andExpect(jsonPath("$.instances[?(@.instanceId=='$instanceId')].instanceName").value("Updated Lifecycle Device"))
-                    .andExpect(jsonPath("$.instances[0].screenTimeHistogram").exists())
+                    .andExpect(jsonPath("$.instances[0].onlinePeriods").exists())
 
                 // Delete instance
                 mockMvc.perform(

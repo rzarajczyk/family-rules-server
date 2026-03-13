@@ -4,6 +4,7 @@ import kotlinx.datetime.LocalDate
 import org.springframework.stereotype.Service
 import pl.zarajczyk.familyrules.domain.port.*
 import java.util.*
+import java.util.concurrent.Executors
 
 @Service
 class AppGroupService(private val appGroupRepository: AppGroupRepository, private val devicesService: DevicesService) {
@@ -34,22 +35,18 @@ class AppGroupService(private val appGroupRepository: AppGroupRepository, privat
         day: LocalDate,
         devices: List<Device>
     ): List<AppGroupSimplifiedReport> {
-        val appGroups = listAllAppGroups(user)
+        val appGroups = appGroupRepository.getAll(user.asRef())
+        val screenTimeByDeviceId = prefetchScreenTimeReports(devices, day)
 
-        // Pre-fetch screen time reports once per device (D reads)
-        val screenTimeByDeviceId: Map<DeviceId, ScreenReport> = devices.associate { device ->
-            device.getId() to device.getScreenTimeReport(day)
-        }
-
-        return appGroups.map { appGroup ->
-            val groupDto = appGroup.getDetails()
+        return appGroups.map { appGroupRef ->
+            val groupDto = appGroupRef.details
 
             var totalScreenTimeSeconds = 0L
             var isOnline = false
 
             devices.forEach { device ->
                 val screenTimeDto = screenTimeByDeviceId.getValue(device.getId())
-                val appTechnicalIds = appGroup.getMembers(device)
+                val appTechnicalIds = groupDto.members[device.getId().toString()] ?: emptySet()
 
                 appTechnicalIds.forEach { appTechnicalId ->
                     totalScreenTimeSeconds += screenTimeDto.applicationsSeconds[appTechnicalId] ?: 0L
@@ -64,7 +61,7 @@ class AppGroupService(private val appGroupRepository: AppGroupRepository, privat
                 name = groupDto.name,
                 online = isOnline,
                 totalScreenTimeSeconds = totalScreenTimeSeconds,
-                groupDto = appGroup.asRef().details,
+                groupDto = groupDto,
             )
         }
     }
@@ -77,12 +74,8 @@ class AppGroupService(private val appGroupRepository: AppGroupRepository, privat
     ): List<AppGroupReport> {
         val devices = devicesOverride ?: devicesService.getAllDevices(user)
         val appGroups = appGroupsOverride?.map { it.asRef() } ?: appGroupRepository.getAll(user.asRef())
-
-        // Pre-fetch screen time reports once per device (D reads) instead of once per (group × device) (G×D reads)
         val deviceDetails = devices.map { it.getDetails() }
-        val screenTimeByDeviceId: Map<DeviceId, ScreenReport> = devices.zip(deviceDetails).associate { (device, details) ->
-            details.deviceId to device.getScreenTimeReport(day)
-        }
+        val screenTimeByDeviceId = prefetchScreenTimeReports(devices, day)
 
         val groupStats = appGroups.map { appGroupRef ->
             // Use embedded details — no extra Firestore read
@@ -158,6 +151,23 @@ class AppGroupService(private val appGroupRepository: AppGroupRepository, privat
         }
 
         return groupStats
+    }
+
+    private fun prefetchScreenTimeReports(
+        devices: List<Device>,
+        day: LocalDate,
+    ): Map<DeviceId, ScreenReport> {
+        if (devices.isEmpty()) return emptyMap()
+
+        val executor = Executors.newVirtualThreadPerTaskExecutor()
+        try {
+            val futures = devices.associate { device ->
+                device.getId() to executor.submit<ScreenReport> { device.getScreenTimeReport(day) }
+            }
+            return futures.mapValues { (_, future) -> future.get() }
+        } finally {
+            executor.shutdown()
+        }
     }
 }
 
