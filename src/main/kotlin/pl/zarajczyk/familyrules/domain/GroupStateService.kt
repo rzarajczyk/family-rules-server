@@ -29,8 +29,18 @@ class GroupStateService(
 
     fun apply(state: GroupState) {
         val details = state.fetchDetails()
-        details.deviceStates.forEach { (deviceId, deviceState) ->
-            devicesService.get(deviceId).update(DeviceDetailsUpdateDto(forcedDeviceState = set(deviceState)))
+        if (details.deviceStates.isEmpty()) return
+
+        val executor = java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor()
+        try {
+            val futures = details.deviceStates.map { (deviceId, deviceState) ->
+                executor.submit {
+                    devicesService.get(deviceId).update(DeviceDetailsUpdateDto(forcedDeviceState = set(deviceState)))
+                }
+            }
+            futures.forEach { it.get() }
+        } finally {
+            executor.shutdown()
         }
     }
 }
