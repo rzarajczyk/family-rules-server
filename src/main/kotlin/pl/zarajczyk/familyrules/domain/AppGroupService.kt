@@ -15,13 +15,7 @@ class AppGroupService(private val appGroupRepository: AppGroupRepository, privat
 
     fun createAppGroup(user: User, name: String): AppGroup {
         val groupId = UUID.randomUUID().toString()
-        val usedColors = listAllAppGroups(user)
-            .map { it.asRef().details.color }
-            .toSet()
-        val nextColor = AppGroupColorPalette.getNextColor(usedColors)
-
-        val appGroupRef = appGroupRepository.createAppGroup(user.asRef(), groupId, name, nextColor)
-
+        val appGroupRef = appGroupRepository.createAppGroup(user.asRef(), groupId, name, "")
         return RefBasedAppGroup(appGroupRef, appGroupRepository)
     }
 
@@ -135,13 +129,11 @@ class AppGroupService(private val appGroupRepository: AppGroupRepository, privat
                 appDetails
             }.sortedByDescending { it.screenTime }
 
-            val colorInfo = AppGroupColorPalette.getColorInfo(groupDto.color)
             val isGroupOnline = appsWithPercentages.any { it.online }
             AppGroupReport(
                 id = groupDto.id,
                 name = groupDto.name,
-                color = groupDto.color,
-                textColor = colorInfo?.text ?: "#000000",
+                description = groupDto.description,
                 appsCount = totalApps,
                 devicesCount = deviceCount.size,
                 totalScreenTime = totalScreenTimeSeconds,
@@ -180,6 +172,8 @@ interface AppGroup {
 
     fun rename(newName: String)
 
+    fun updateDescription(newDescription: String)
+
     fun containsMember(device: Device, appTechnicalId: AppTechnicalId): Boolean
 
     fun getMembers(device: Device): Set<AppTechnicalId>
@@ -196,7 +190,7 @@ data class RefBasedAppGroup(
     override fun asRef(): AppGroupRef = appGroupRef
     
     override fun getDetails(): AppGroupDetails {
-        return AppGroupDetails(appGroupRef.details.id, appGroupRef.details.name, appGroupRef.details.color)
+        return AppGroupDetails(appGroupRef.details.id, appGroupRef.details.name, appGroupRef.details.description)
     }
 
     override fun delete() {
@@ -205,6 +199,10 @@ data class RefBasedAppGroup(
 
     override fun rename(newName: String) {
         appGroupRepository.rename(appGroupRef, newName)
+    }
+
+    override fun updateDescription(newDescription: String) {
+        appGroupRepository.updateDescription(appGroupRef, newDescription)
     }
 
     override fun containsMember(device: Device, appTechnicalId: AppTechnicalId): Boolean {
@@ -229,14 +227,13 @@ data class RefBasedAppGroup(
 data class AppGroupDetails(
     val id: String,
     val name: String,
-    val color: String,
+    val description: String = "",
 )
 
 data class AppGroupReport(
     val id: String,
     val name: String,
-    val color: String,
-    val textColor: String,
+    val description: String = "",
     val appsCount: Int,
     val devicesCount: Int,
     val totalScreenTime: Long,

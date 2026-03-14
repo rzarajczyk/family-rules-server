@@ -44,7 +44,7 @@ class IntegrationAppGroupsController(
                 IntegrationAppGroupDto(
                     id = details.id,
                     name = details.name,
-                    color = details.color,
+                    description = details.description,
                     availableStates = stateDetails.map { IntegrationGroupStateDto(id = it.id, name = it.name) },
                     currentState = currentState,
                 )
@@ -153,7 +153,7 @@ data class IntegrationAppGroupsResponse(
 data class IntegrationAppGroupDto(
     val id: String,
     val name: String,
-    val color: String,
+    val description: String = "",
     val availableStates: List<IntegrationGroupStateDto>,
     val currentState: IntegrationCurrentGroupState,
 )

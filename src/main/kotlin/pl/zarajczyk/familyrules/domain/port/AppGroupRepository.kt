@@ -4,10 +4,11 @@ import pl.zarajczyk.familyrules.domain.DeviceId
 import pl.zarajczyk.familyrules.domain.GroupStateDetails
 
 interface AppGroupRepository {
-    fun createAppGroup(userRef: UserRef, groupId: String, name: String, color: String): AppGroupRef
+    fun createAppGroup(userRef: UserRef, groupId: String, name: String, description: String): AppGroupRef
     fun get(userRef: UserRef, groupId: String): AppGroupRef?
     fun getAll(userRef: UserRef): List<AppGroupRef>
     fun rename(appGroupRef: AppGroupRef, newName: String)
+    fun updateDescription(appGroupRef: AppGroupRef, newDescription: String)
     fun delete(appGroupRef: AppGroupRef)
 
     fun setMembers(appGroupRef: AppGroupRef, deviceRef: DeviceRef, apps: Set<AppTechnicalId>)
@@ -45,7 +46,7 @@ typealias AppTechnicalId = String
 data class AppGroupDto(
     val id: String,
     val name: String,
-    val color: String,
+    val description: String = "",
     /** members[deviceId] = set of app technical IDs belonging to this group on that device */
     val members: Map<String, Set<AppTechnicalId>> = emptyMap(),
     /** states[stateId] = group state details */

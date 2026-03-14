@@ -149,7 +149,6 @@ class IntegrationAppGroupsControllerIntegrationSpec : FunSpec() {
                     .andExpect(jsonPath("$.appGroups").isArray)
                     .andExpect(jsonPath("$.appGroups[0].id").exists())
                     .andExpect(jsonPath("$.appGroups[0].name").value("Games"))
-                    .andExpect(jsonPath("$.appGroups[0].color").exists())
                     .andExpect(jsonPath("$.appGroups[0].availableStates").isArray)
                     .andExpect(jsonPath("$.appGroups[0].currentState").exists())
                     .andExpect(jsonPath("$.appGroups[0].currentState.kind").exists())

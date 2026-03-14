@@ -11,7 +11,6 @@ import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldNotBeBlank
-import io.kotest.matchers.string.shouldNotBeEmpty
 import org.hamcrest.Matchers.containsString
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
@@ -110,14 +109,12 @@ class BffAppGroupsControllerIntegrationSpec : FunSpec() {
                     .andExpect(jsonPath("$.group").exists())
                     .andExpect(jsonPath("$.group.id").exists())
                     .andExpect(jsonPath("$.group.name").value("Social Media"))
-                    .andExpect(jsonPath("$.group.color").exists())
                     .andReturn()
 
                 val response = objectMapper.readTree(result.response.contentAsString)
                 val group = response.get("group")
                 group.get("id").asText().shouldNotBeBlank()
                 group.get("name").asText() shouldBe "Social Media"
-                group.get("color").asText().shouldNotBeBlank()
 
                 val groupId = group.get("id").asText()
 
@@ -126,7 +123,6 @@ class BffAppGroupsControllerIntegrationSpec : FunSpec() {
 
                 dto.id shouldBe groupId
                 dto.name shouldBe "Social Media"
-                dto.color.shouldNotBeBlank()
             }
 
             test("should create multiple app groups with different names") {
@@ -279,7 +275,6 @@ class BffAppGroupsControllerIntegrationSpec : FunSpec() {
 
                 dto.id shouldBe groupIdToRename
                 dto.name shouldBe "Social Networks"
-                dto.color.shouldNotBeEmpty()
             }
 
             test("should verify renamed group in list") {

@@ -23,6 +23,9 @@ document.addEventListener("DOMContentLoaded", (event) => {
     const applyGroupStateModal = document.getElementById('apply-group-state-modal');
     M.Modal.init(applyGroupStateModal, {});
 
+    const editGroupModal = document.getElementById('edit-group-modal');
+    M.Modal.init(editGroupModal, {});
+
     function onDateChanged() {
         console.log('date changed')
         update()
@@ -107,11 +110,12 @@ document.addEventListener("DOMContentLoaded", (event) => {
             btn.addEventListener('click', function(e) {
                 e.stopPropagation();
                 const groupId = this.dataset.groupId;
-                const currentName = this.closest('.fr-collapsible').querySelector('.fr-name-text').textContent;
-                const newName = prompt('Enter new name for the group:', currentName);
-                if (newName && newName.trim() !== '' && newName !== currentName) {
-                    renameAppGroup(groupId, newName.trim());
-                }
+                const currentName = this.closest('.fr-collapsible').querySelector('.fr-name-text').textContent.trim();
+                const group = currentStatisticsData && currentStatisticsData.groups
+                    ? currentStatisticsData.groups.find(g => g.id === groupId)
+                    : null;
+                const currentDescription = group ? (group.description || '') : '';
+                showEditGroupModal(groupId, currentName, currentDescription);
             });
         });
 
@@ -159,24 +163,27 @@ document.addEventListener("DOMContentLoaded", (event) => {
     }
 
     function renameAppGroup(groupId, newName) {
+        updateAppGroup(groupId, newName, '');
+    }
+
+    function updateAppGroup(groupId, newName, description) {
         ServerRequest.fetch(`/bff/app-groups/${groupId}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ newName: newName })
+            body: JSON.stringify({ newName: newName, description: description })
         })
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                // Reload the page to show updated groups
                 window.update();
             } else {
-                console.error('Failed to rename app group');
+                console.error('Failed to update app group');
             }
         })
         .catch(error => {
-            console.error('Error renaming app group:', error);
+            console.error('Error updating app group:', error);
         });
     }
 
@@ -378,6 +385,40 @@ document.addEventListener("DOMContentLoaded", (event) => {
             console.error('Error removing app from group:', error);
             alert('Error removing app from group');
         });
+    }
+
+    function showEditGroupModal(groupId, currentName, currentDescription) {
+        const nameInput = document.getElementById('edit-group-name-input');
+        const descInput = document.getElementById('edit-group-description-input');
+
+        nameInput.value = currentName;
+        descInput.value = currentDescription;
+
+        // Activate labels when fields are pre-filled
+        nameInput.nextElementSibling.classList.add('active');
+        if (currentDescription) {
+            descInput.nextElementSibling.classList.add('active');
+        } else {
+            descInput.nextElementSibling.classList.remove('active');
+        }
+
+        // Resize textarea to fit content
+        descInput.style.height = 'auto';
+
+        document.getElementById('edit-group-save-btn').onclick = () => {
+            const newName = nameInput.value.trim();
+            if (!newName) {
+                nameInput.focus();
+                return;
+            }
+            const newDescription = descInput.value;
+            const modalInstance = M.Modal.getInstance(document.getElementById('edit-group-modal'));
+            modalInstance.close();
+            updateAppGroup(groupId, newName, newDescription);
+        };
+
+        const modalInstance = M.Modal.getInstance(document.getElementById('edit-group-modal'));
+        modalInstance.open();
     }
 
     function formatScreenTime(seconds) {

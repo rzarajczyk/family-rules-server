@@ -133,6 +133,10 @@ document.addEventListener("DOMContentLoaded", (event) => {
         return formattedHours + formattedMinutes + "m " + formattedSeconds + "s";
     })
 
+    Handlebars.registerHelper('firstLetter', function(str) {
+        return str && str.length > 0 ? str[0].toUpperCase() : '?';
+    })
+
     Handlebars.registerHelper('groupNameFrom', function(groups, id) {
         try {
             const list = Array.isArray(groups) ? groups : [];

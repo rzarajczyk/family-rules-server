@@ -13,11 +13,11 @@ class FirestoreAppGroupRepository(
 ) : AppGroupRepository {
 
     // App group operations
-    override fun createAppGroup(userRef: UserRef, groupId: String, name: String, color: String): AppGroupRef {
+    override fun createAppGroup(userRef: UserRef, groupId: String, name: String, description: String): AppGroupRef {
         val groupData = mapOf(
             "id" to groupId,
             "name" to name,
-            "color" to color,
+            "description" to description,
             "members" to emptyMap<String, Any>(),
             "states" to emptyMap<String, Any>(),
         )
@@ -28,7 +28,7 @@ class FirestoreAppGroupRepository(
 
         doc.set(groupData).get()
 
-        val details = AppGroupDto(id = groupId, name = name, color = color)
+        val details = AppGroupDto(id = groupId, name = name, description = description)
         return FirestoreAppGroupRef(doc, details)
     }
 
@@ -56,6 +56,10 @@ class FirestoreAppGroupRepository(
 
     override fun rename(appGroupRef: AppGroupRef, newName: String) {
         (appGroupRef as FirestoreAppGroupRef).ref.update("name", newName).get()
+    }
+
+    override fun updateDescription(appGroupRef: AppGroupRef, newDescription: String) {
+        (appGroupRef as FirestoreAppGroupRef).ref.update("description", newDescription).get()
     }
 
     override fun delete(appGroupRef: AppGroupRef) {

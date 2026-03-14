@@ -41,12 +41,9 @@ class BffOverviewController(
         // Pre-build reverse index: (deviceId, appTechnicalId) → list of AppGroupWithColor
         val appGroupIndex = mutableMapOf<Pair<String, String>, MutableList<AppGroupWithColor>>()
         for ((group, groupDto) in appGroupsDetails) {
-            val colorInfo = AppGroupColorPalette.getColorInfo(groupDto.color)
             val groupWithColor = AppGroupWithColor(
                 id = groupDto.id,
                 name = groupDto.name,
-                color = groupDto.color,
-                textColor = colorInfo?.text ?: "#000000",
             )
             for ((deviceId, appIds) in group.asRef().details.members) {
                 for (appId in appIds) {

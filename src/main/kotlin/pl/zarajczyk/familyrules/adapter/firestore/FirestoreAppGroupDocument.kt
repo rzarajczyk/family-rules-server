@@ -16,7 +16,7 @@ import java.util.UUID
 data class FirestoreAppGroupDocument(
     val id: String,
     val name: String,
-    val color: String,
+    val description: String = "",
     /** members[deviceId] = list of app technical IDs */
     val members: Map<String, List<String>> = emptyMap(),
     /** states[stateId] = group state document */
@@ -59,7 +59,7 @@ fun DocumentSnapshot.toAppGroupDocument(): FirestoreAppGroupDocument {
 fun FirestoreAppGroupDocument.toDomain(): AppGroupDto = AppGroupDto(
     id = id,
     name = name,
-    color = color,
+    description = description,
     members = members.mapValues { (_, apps) -> apps.toSet() },
     states = states.mapNotNull { (stateId, stateDoc) ->
         val deviceStates: Map<DeviceId, DeviceStateDto?> = stateDoc.deviceStates.mapNotNull { (deviceIdStr, dsDoc) ->

@@ -50,15 +50,16 @@ class BffAppGroupsController(
 
 
     @PutMapping("/bff/app-groups/{groupId}")
-    fun renameAppGroup(
+    fun updateAppGroup(
         @PathVariable groupId: String,
-        @RequestBody request: RenameAppGroupRequest,
+        @RequestBody request: UpdateAppGroupRequest,
         authentication: Authentication
-    ): RenameAppGroupResponse {
+    ): UpdateAppGroupResponse {
         val user = usersService.get(authentication.name)
         val appGroup = appGroupService.get(user, groupId)
         appGroup.rename(request.newName)
-        return RenameAppGroupResponse(true)
+        appGroup.updateDescription(request.description)
+        return UpdateAppGroupResponse(true)
     }
 
     @PostMapping("/bff/app-groups/{groupId}/apps")
@@ -113,8 +114,7 @@ class BffAppGroupsController(
                 AppGroupStatistics(
                     id = groupReport.id,
                     name = groupReport.name,
-                    color = groupReport.color,
-                    textColor = groupReport.textColor,
+                    description = groupReport.description,
                     appsCount = groupReport.appsCount,
                     devicesCount = groupReport.devicesCount,
                     totalScreenTime = groupReport.totalScreenTime,
@@ -251,6 +251,15 @@ data class DeleteAppGroupResponse(
     val success: Boolean
 )
 
+data class UpdateAppGroupRequest(
+    val newName: String,
+    val description: String = "",
+)
+
+data class UpdateAppGroupResponse(
+    val success: Boolean
+)
+
 data class RenameAppGroupRequest(
     val newName: String
 )
@@ -275,15 +284,12 @@ data class RemoveAppFromGroupResponse(
 data class AppGroupWithColor(
     val id: String,
     val name: String,
-    val color: String,
-    val textColor: String,
 )
 
 data class AppGroupStatistics(
     val id: String,
     val name: String,
-    val color: String,
-    val textColor: String,
+    val description: String = "",
     val appsCount: Int,
     val devicesCount: Int,
     val totalScreenTime: Long,
