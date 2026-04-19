@@ -1,110 +1,80 @@
 <!DOCTYPE html>
-<html>
+<html data-theme="light">
 <head>
-    <!--Import Google Icon Font-->
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-    <!--Import materialize.css-->
-    <link type="text/css" rel="stylesheet"
-          href="https://cdn.jsdelivr.net/npm/@materializecss/materialize@2.1.1/dist/css/materialize.min.css"
-          media="screen,projection"/>
-    <link type="text/css" rel="stylesheet" href="theme.css" media="screen,projection"/>
-    <link type="text/css" rel="stylesheet" href="common.css" media="screen,projection"/>
-    <link type="text/css" rel="stylesheet" href="components.css" media="screen,projection"/>
-    <style>
-        .home-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 70vh;
-            flex-wrap: wrap;
-            gap: 2rem;
-        }
-        
-        .home-link {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            text-decoration: none;
-            color: inherit;
-            background: white;
-            border-radius: 12px;
-            padding: 3rem 2rem;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-            transition: all 0.3s ease;
-            min-width: 200px;
-            min-height: 200px;
-        }
-        
-        .home-link:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 8px 16px rgba(0,0,0,0.15);
-            text-decoration: none;
-            color: inherit;
-        }
-        
-        .home-link i {
-            font-size: 4rem;
-            margin-bottom: 1rem;
-            color: var(--md-sys-color-primary);
-        }
-        
-        .home-link h3 {
-            margin: 0;
-            font-size: 1.5rem;
-            font-weight: 500;
-        }
-        
-        .home-link p {
-            margin: 0.5rem 0 0 0;
-            color: var(--md-sys-color-on-surface-variant);
-            text-align: center;
-        }
-        
-        @media only screen and (max-width: 600px) {
-            .home-container {
-                flex-direction: column;
-                gap: 1rem;
-            }
-            
-            .home-link {
-                min-width: 250px;
-                min-height: 150px;
-                padding: 2rem 1rem;
-            }
-        }
-    </style>
-    <!--Let browser know website is optimized for mobile-->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-
-    <link rel="icon" type="image/png" href="icon.png">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Family Rules - Home</title>
+    <link rel="icon" type="image/png" href="icon.png">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4/dist/full.min.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>tailwind.config = { theme: { extend: { colors: { primary: "#4758a9" } } } }</script>
+    <style>.btn-ghost:hover{background-color:rgba(0,0,0,0.08)!important;color:inherit!important} :root,[data-theme=light]{--p:48.86% 0.1304 271.86;--pf:41.53% 0.1304 271.86;--pc:100% 0 0}</style>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js"></script>
+    <script src="common.js"></script>
 </head>
-<body>
-<header data-source="./header.handlebars"></header>
+<body class="min-h-screen bg-base-200">
 
-<div class="container">
-    <div class="home-container">
-        <a href="/gui/devices.html" class="home-link">
-            <i class="material-icons">devices</i>
-            <h3>Devices</h3>
-            <p>Manage individual devices and their settings</p>
-        </a>
-        
-        <a href="/gui/groups.html" class="home-link">
-            <i class="material-icons">group_work</i>
-            <h3>Groups</h3>
-            <p>View and manage app groups and statistics</p>
-        </a>
-    </div>
+<!-- Toast container -->
+<div x-data class="toast toast-top toast-end z-[9999]">
+    <template x-for="t in $store.toast.items" :key="t.id">
+        <div class="alert shadow-lg" :class="t.cls">
+            <span x-text="t.message"></span>
+            <button class="btn btn-ghost btn-xs" @click="$store.toast.dismiss(t.id)">
+                <span class="material-icons text-sm">close</span>
+            </button>
+        </div>
+    </template>
 </div>
 
-<!--JavaScript at end of body for optimized loading-->
-<script type="text/javascript"
-        src="https://cdn.jsdelivr.net/npm/@materializecss/materialize@2.1.0/dist/js/materialize.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/handlebars@latest/dist/handlebars.js"></script>
-<script src="components.js"></script>
-<script src="common.js"></script>
+<!-- Drawer layout -->
+<div class="drawer lg:drawer-open">
+    <input id="main-drawer" type="checkbox" class="drawer-toggle">
+    <div class="drawer-content flex flex-col lg:pl-64">
+        <!-- Header -->
+        <div id="app-header"></div>
+
+        <!-- Page content -->
+        <div class="flex items-center justify-center min-h-[70vh] p-8">
+            <div class="flex flex-wrap justify-center gap-8">
+                <a href="/gui/devices.html"
+                   class="card bg-base-100 shadow-md hover:shadow-xl transition-all hover:-translate-y-1 w-52 h-52 flex items-center justify-center">
+                    <div class="card-body items-center text-center">
+                        <span class="material-icons text-primary text-6xl">devices</span>
+                        <h2 class="card-title mt-2">Devices</h2>
+                        <p class="text-base-content/60 text-sm">Manage individual devices and their settings</p>
+                    </div>
+                </a>
+
+                <a href="/gui/groups.html"
+                   class="card bg-base-100 shadow-md hover:shadow-xl transition-all hover:-translate-y-1 w-52 h-52 flex items-center justify-center">
+                    <div class="card-body items-center text-center">
+                        <span class="material-icons text-primary text-6xl">group_work</span>
+                        <h2 class="card-title mt-2">Groups</h2>
+                        <p class="text-base-content/60 text-sm">View and manage app groups and statistics</p>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="drawer-side z-50">
+        <label for="main-drawer" aria-label="close sidebar" class="drawer-overlay"></label>
+        <ul x-data class="menu bg-base-200 min-h-full w-64 p-4 text-base-content">
+            <li><a href="/gui/index.html"><span class="material-icons">home</span> Home</a></li>
+            <li><a href="/gui/devices.html"><span class="material-icons">devices</span> Devices</a></li>
+            <li><a href="/gui/groups.html"><span class="material-icons">group_work</span> App Groups</a></li>
+            <li class="border-t my-2"></li>
+            <li x-show="$store.user.accessLevel === 'ADMIN'" x-cloak>
+                <a href="/gui/users.html"><span class="material-icons">people</span> ADMIN: Users</a>
+            </li>
+            <li class="border-t my-2"></li>
+            <li><a href="/gui/settings.html"><span class="material-icons">settings</span> Settings</a></li>
+            <li><a href="/logout"><span class="material-icons">logout</span> Logout</a></li>
+        </ul>
+    </div>
+</div>
 
 </body>
 </html>

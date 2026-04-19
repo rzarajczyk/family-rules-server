@@ -1,256 +1,426 @@
 <!DOCTYPE html>
-<html>
+<html data-theme="light">
 <head>
-    <!--Import Google Icon Font-->
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-    <!--Import materialize.css-->
-    <link type="text/css" rel="stylesheet"
-          href="https://cdn.jsdelivr.net/npm/@materializecss/materialize@2.1.1/dist/css/materialize.min.css"
-          media="screen,projection"/>
-    <link type="text/css" rel="stylesheet" href="theme.css" media="screen,projection"/>
-    <link type="text/css" rel="stylesheet" href="common.css" media="screen,projection"/>
-    <link type="text/css" rel="stylesheet" href="components.css" media="screen,projection"/>
-    <style>
-        .settings-container {
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 2rem;
-        }
-        .settings-section {
-            margin-bottom: 2rem;
-        }
-        .settings-section h4 {
-            color: var(--md-sys-color-primary);
-            margin-bottom: 1rem;
-        }
-        .password-form {
-            background: var(--md-sys-color-surface);
-            padding: 1.5rem;
-            border-radius: 8px;
-            border: 1px solid var(--md-sys-color-outline-variant);
-        }
-        .input-field {
-            margin-bottom: 1rem;
-        }
-        .btn {
-            margin-top: 1rem;
-        }
-        #view-webhook-history-btn {
-            margin-left: 1rem;
-        }
-        .webhook-history-controls {
-            margin-top: 1rem;
-        }
-        .token-display {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            margin: 1rem 0;
-        }
-        .token-display input {
-            flex: 1;
-            font-family: monospace;
-            font-size: 0.85rem;
-            background: var(--md-sys-color-surface-variant);
-            border: 1px solid var(--md-sys-color-outline-variant);
-            border-radius: 4px;
-            padding: 0.5rem;
-            color: var(--md-sys-color-on-surface);
-        }
-        .token-actions {
-            margin-top: 0.75rem;
-            display: flex;
-            gap: 0.5rem;
-            flex-wrap: wrap;
-        }
-        .no-token-msg {
-            color: var(--md-sys-color-on-surface-variant);
-            font-style: italic;
-            margin: 0.75rem 0;
-        }
-        .success-message {
-            color: var(--md-sys-color-primary);
-            margin-top: 1rem;
-            display: none;
-        }
-        .error-message {
-            color: var(--md-sys-color-error);
-            margin-top: 1rem;
-            display: none;
-        }
-        .webhook-history-table {
-            width: 100%;
-            margin-top: 1rem;
-        }
-        .webhook-history-table th {
-            text-align: left;
-            padding: 0.5rem;
-            background: var(--md-sys-color-surface-variant);
-        }
-        .webhook-history-table td {
-            padding: 0.5rem;
-            border-bottom: 1px solid var(--md-sys-color-outline-variant);
-        }
-        .status-success {
-            color: var(--md-sys-color-primary);
-        }
-        .status-error {
-            color: var(--md-sys-color-error);
-        }
-    </style>
-    <!--Let browser know website is optimized for mobile-->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <link rel="icon" type="image/png" href="icon.png">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Settings - Family Rules</title>
+    <link rel="icon" type="image/png" href="icon.png">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4/dist/full.min.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>tailwind.config = { theme: { extend: { colors: { primary: "#4758a9" } } } }</script>
+    <style>.btn-ghost:hover{background-color:rgba(0,0,0,0.08)!important;color:inherit!important} :root,[data-theme=light]{--p:48.86% 0.1304 271.86;--pf:41.53% 0.1304 271.86;--pc:100% 0 0}</style>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js"></script>
+    <script src="common.js"></script>
 </head>
-<body>
-<header data-source="./header.handlebars"></header>
+<body class="min-h-screen bg-base-200">
 
-<div class="settings-container">
-    <div class="settings-section">
-        <h4>HomeAssistant Integration API</h4>
-        <div class="password-form">
-            <p>Generate a Bearer token to allow HomeAssistant to read and apply group states via <code>/integration-api/v1/</code>.</p>
-            <div id="integration-token-section">
-                <div id="integration-no-token" class="no-token-msg" style="display:none;">
-                    No token generated yet.
+<!-- Toast container -->
+<div x-data class="toast toast-top toast-end z-[9999]">
+    <template x-for="t in $store.toast.items" :key="t.id">
+        <div class="alert shadow-lg" :class="t.cls">
+            <span x-text="t.message"></span>
+            <button class="btn btn-ghost btn-xs" @click="$store.toast.dismiss(t.id)">
+                <span class="material-icons text-sm">close</span>
+            </button>
+        </div>
+    </template>
+</div>
+
+<!-- Drawer layout -->
+<div class="drawer lg:drawer-open">
+    <input id="main-drawer" type="checkbox" class="drawer-toggle">
+    <div class="drawer-content flex flex-col lg:pl-64">
+        <div id="app-header"></div>
+
+        <div class="container mx-auto p-4 max-w-2xl" x-data="settingsPage()" x-init="init()">
+
+            <!-- Integration API -->
+            <div class="card bg-base-100 shadow-sm mb-6">
+                <div class="card-body">
+                    <h2 class="card-title text-primary">HomeAssistant Integration API</h2>
+                    <p class="text-sm text-base-content/60 mb-3">Generate a Bearer token to allow HomeAssistant to read and apply group states via <code class="badge badge-ghost badge-sm">/integration-api/v1/</code>.</p>
+
+                    <!-- No token -->
+                    <p x-show="!token" class="italic text-base-content/50">No token generated yet.</p>
+
+                    <!-- Token display -->
+                    <div x-show="token" class="flex gap-2 items-center">
+                        <input type="text" class="input input-bordered input-sm font-mono flex-1" :value="token" readonly>
+                        <button class="btn btn-sm btn-ghost" @click="copyToken()" title="Copy">
+                            <span class="material-icons text-sm">content_copy</span>
+                        </button>
+                    </div>
+
+                    <div class="flex gap-2 flex-wrap mt-3">
+                        <button class="btn btn-sm btn-primary" @click="regenerateToken()">
+                            <span class="material-icons text-sm">refresh</span> Generate / Regenerate Token
+                        </button>
+                        <button x-show="token" class="btn btn-sm btn-error" @click="revokeToken()">
+                            <span class="material-icons text-sm">delete</span> Revoke Token
+                        </button>
+                    </div>
+
+                    <div x-show="integrationMsg" class="mt-2 text-sm"
+                         :class="integrationMsgOk ? 'text-success' : 'text-error'"
+                         x-text="integrationMsg"></div>
                 </div>
-                <div id="integration-token-display" class="token-display" style="display:none;">
-                    <input type="text" id="integration-token-value" readonly />
-                    <button class="btn-small waves-effect waves-light" id="copy-token-btn" type="button" title="Copy to clipboard">
-                        <i class="material-icons">content_copy</i>
-                    </button>
+            </div>
+
+            <!-- Webhook -->
+            <div class="card bg-base-100 shadow-sm mb-6">
+                <div class="card-body">
+                    <h2 class="card-title text-primary">HomeAssistant Webhook Integration</h2>
+
+                    <div class="form-control mb-3">
+                        <label class="label cursor-pointer justify-start gap-3">
+                            <input type="checkbox" class="toggle toggle-primary" x-model="webhookEnabled">
+                            <span class="label-text">Enable sending updates via webhook</span>
+                        </label>
+                    </div>
+                    <div class="form-control mb-3">
+                        <label class="label"><span class="label-text">Webhook URL</span></label>
+                        <input type="url" class="input input-bordered" x-model="webhookUrl" placeholder="https://...">
+                    </div>
+                    <button class="btn btn-sm btn-primary" @click="saveWebhook()">Save Webhook Settings</button>
+
+                    <div class="divider"></div>
+
+                    <!-- History controls -->
+                    <div x-show="!webhookHistoryActive">
+                        <button class="btn btn-sm btn-info" @click="enableWebhookHistory()">
+                            <span class="material-icons text-sm">history</span> Enable webhook history for 30 mins
+                        </button>
+                    </div>
+                    <div x-show="webhookHistoryActive" class="flex items-center gap-3 flex-wrap">
+                        <span class="text-sm" x-text="webhookHistoryStatusText"></span>
+                        <button class="btn btn-sm btn-info" @click="viewWebhookHistory()">
+                            <span class="material-icons text-sm">history</span> View History
+                        </button>
+                    </div>
+
+                    <div x-show="webhookMsg" class="mt-2 text-sm"
+                         :class="webhookMsgOk ? 'text-success' : 'text-error'"
+                         x-text="webhookMsg"></div>
                 </div>
             </div>
-            <div class="token-actions">
-                <button class="btn waves-effect waves-light" id="regenerate-token-btn" type="button">
-                    <i class="material-icons left">refresh</i>Generate / Regenerate Token
-                </button>
-                <button class="btn waves-effect waves-light red" id="revoke-token-btn" type="button" style="display:none;">
-                    <i class="material-icons left">delete</i>Revoke Token
-                </button>
+
+            <!-- Change Password -->
+            <div class="card bg-base-100 shadow-sm mb-6">
+                <div class="card-body">
+                    <h2 class="card-title text-primary">Change Password</h2>
+                    <div class="form-control mb-3">
+                        <label class="label"><span class="label-text">Current Password</span></label>
+                        <input type="password" class="input input-bordered" x-model="pw.current">
+                    </div>
+                    <div class="form-control mb-3">
+                        <label class="label"><span class="label-text">New Password</span></label>
+                        <input type="password" class="input input-bordered" x-model="pw.next">
+                    </div>
+                    <div class="form-control mb-3">
+                        <label class="label"><span class="label-text">Confirm New Password</span></label>
+                        <input type="password" class="input input-bordered" x-model="pw.confirm">
+                    </div>
+                    <button class="btn btn-sm btn-primary" @click="changePassword()">Change Password</button>
+                    <div x-show="pwMsg" class="mt-2 text-sm"
+                         :class="pwMsgOk ? 'text-success' : 'text-error'"
+                         x-text="pwMsg"></div>
+                </div>
             </div>
-            <div class="success-message" id="integration-success-message">
-                <i class="material-icons left">check_circle</i>
-                <span id="integration-success-text"></span>
-            </div>
-            <div class="error-message" id="integration-error-message">
-                <i class="material-icons left">error</i>
-                <span id="integration-error-text"></span>
-            </div>
+
+            <!-- Webhook History Modal -->
+            <dialog class="modal" :class="showHistoryModal && 'modal-open'">
+                <div class="modal-box max-w-3xl">
+                    <h3 class="font-bold text-lg mb-2">Webhook Call History</h3>
+                    <p class="text-sm text-base-content/60 mb-4">Webhook calls recorded during the active window</p>
+
+                    <div x-show="historyLoading" class="flex justify-center py-8">
+                        <span class="loading loading-spinner loading-lg"></span>
+                    </div>
+
+                    <div x-show="!historyLoading && historyCalls.length === 0" class="text-center py-4 text-base-content/60">
+                        No webhook call history found.
+                    </div>
+
+                    <div x-show="!historyLoading && historyCalls.length > 0" class="overflow-x-auto">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr><th>Timestamp</th><th>Status</th><th>Code</th><th>Error</th><th>Payload</th></tr>
+                            </thead>
+                            <tbody>
+                                <template x-for="call in historyCalls" :key="call.timestamp">
+                                    <tr>
+                                        <td x-text="new Date(call.timestamp).toLocaleString()"></td>
+                                        <td>
+                                            <span class="badge badge-sm"
+                                                  :class="call.status === 'success' ? 'badge-success' : 'badge-error'"
+                                                  x-text="call.status"></span>
+                                        </td>
+                                        <td x-text="call.statusCode || '-'"></td>
+                                        <td x-text="call.errorMessage || '-'"></td>
+                                        <td>
+                                            <button x-show="call.payload" class="btn btn-xs" @click="viewPayload(call.payload)">View</button>
+                                            <span x-show="!call.payload">-</span>
+                                        </td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="modal-action">
+                        <button class="btn btn-sm" @click="showHistoryModal = false">Close</button>
+                    </div>
+                </div>
+                <form method="dialog" class="modal-backdrop" @click="showHistoryModal = false"></form>
+            </dialog>
+
+            <!-- Payload Modal -->
+            <dialog class="modal" :class="showPayloadModal && 'modal-open'">
+                <div class="modal-box max-w-2xl">
+                    <h3 class="font-bold text-lg mb-2">Webhook Payload</h3>
+                    <pre class="bg-base-200 p-4 rounded-lg overflow-x-auto text-sm max-h-96" x-text="payloadText"></pre>
+                    <div class="modal-action">
+                        <button class="btn btn-sm" @click="showPayloadModal = false">Close</button>
+                    </div>
+                </div>
+                <form method="dialog" class="modal-backdrop" @click="showPayloadModal = false"></form>
+            </dialog>
         </div>
     </div>
 
-    <div class="settings-section">
-        <h4>HomeAssistant Webhook Integration</h4>
-        <div class="password-form">
-            <form id="webhook-settings-form">
-                <p>
-                    <label>
-                        <input type="checkbox" id="webhook-enabled" />
-                        <span>Enable sending updates via webhook</span>
-                    </label>
-                </p>
-                <div class="input-field">
-                    <input id="webhook-url" type="url" class="validate">
-                    <label for="webhook-url">Webhook URL</label>
-                </div>
-                <button class="btn waves-effect waves-light" type="submit">
-                    Save Webhook Settings
-                </button>
-            </form>
-            <div class="webhook-history-controls">
-                <div id="webhook-history-inactive">
-                    <button class="btn waves-effect waves-light blue" type="button" id="enable-webhook-history-btn">
-                        <i class="material-icons left">history</i>
-                        Enable webhook history for 30 mins
-                    </button>
-                </div>
-                <div id="webhook-history-active" style="display:none;">
-                    <span id="webhook-history-status-text" style="margin-right: 1rem;"></span>
-                    <button class="btn waves-effect waves-light blue" type="button" id="view-webhook-history-btn">
-                        <i class="material-icons left">history</i>
-                        View History
-                    </button>
-                </div>
-            </div>
-            <div class="success-message" id="webhook-success-message">
-                <i class="material-icons left">check_circle</i>
-                Webhook settings saved successfully!
-            </div>
-            <div class="error-message" id="webhook-error-message">
-                <i class="material-icons left">error</i>
-                <span id="webhook-error-text"></span>
-            </div>
-        </div>
-    </div>
-
-    <div class="settings-section">
-        <h4>Change Password</h4>
-        <div class="password-form">
-            <form id="password-change-form">
-                <div class="input-field">
-                    <input id="current-password" type="password" class="validate" required>
-                    <label for="current-password">Current Password</label>
-                </div>
-                <div class="input-field">
-                    <input id="new-password" type="password" class="validate" required>
-                    <label for="new-password">New Password</label>
-                </div>
-                <div class="input-field">
-                    <input id="confirm-password" type="password" class="validate" required>
-                    <label for="confirm-password">Confirm New Password</label>
-                </div>
-                <button class="btn waves-effect waves-light" type="submit">
-                    Change Password
-                </button>
-            </form>
-            <div class="success-message" id="success-message">
-                <i class="material-icons left">check_circle</i>
-                Password changed successfully!
-            </div>
-            <div class="error-message" id="error-message">
-                <i class="material-icons left">error</i>
-                <span id="error-text"></span>
-            </div>
-        </div>
+    <!-- Sidebar -->
+    <div class="drawer-side z-50">
+        <label for="main-drawer" aria-label="close sidebar" class="drawer-overlay"></label>
+        <ul x-data class="menu bg-base-200 min-h-full w-64 p-4 text-base-content">
+            <li><a href="/gui/index.html"><span class="material-icons">home</span> Home</a></li>
+            <li><a href="/gui/devices.html"><span class="material-icons">devices</span> Devices</a></li>
+            <li><a href="/gui/groups.html"><span class="material-icons">group_work</span> App Groups</a></li>
+            <li class="border-t my-2"></li>
+            <li x-show="$store.user.accessLevel === 'ADMIN'" x-cloak>
+                <a href="/gui/users.html"><span class="material-icons">people</span> ADMIN: Users</a>
+            </li>
+            <li class="border-t my-2"></li>
+            <li><a href="/gui/settings.html"><span class="material-icons">settings</span> Settings</a></li>
+            <li><a href="/logout"><span class="material-icons">logout</span> Logout</a></li>
+        </ul>
     </div>
 </div>
 
-<!-- Webhook Call History Modal -->
-<div id="webhook-history-modal" class="modal">
-    <div class="modal-content">
-        <h4>Webhook Call History</h4>
-        <p>Webhook calls recorded during the active window</p>
-        <div id="webhook-history-content">
-            <div class="progress">
-                <div class="indeterminate"></div>
-            </div>
-        </div>
-    </div>
-    <div class="modal-footer">
-        <a href="#!" id="webhook-history-close-btn" class="modal-close waves-effect waves-light btn-flat">Close</a>
-    </div>
-</div>
+<script>
+function settingsPage() {
+    return {
+        // Integration API
+        token: '',
+        integrationMsg: '',
+        integrationMsgOk: true,
 
-<!-- Webhook Payload Modal -->
-<div id="payload-modal" class="modal">
-    <div class="modal-content">
-        <h4>Webhook Payload</h4>
-        <pre id="payload-content" style="background-color: #f5f5f5; padding: 15px; border-radius: 4px; overflow-x: auto; max-height: 500px;"></pre>
-    </div>
-    <div class="modal-footer">
-        <a href="#!" class="modal-close waves-effect waves-light btn-flat">Close</a>
-    </div>
-</div>
+        // Webhook
+        webhookEnabled: false,
+        webhookUrl: '',
+        webhookMsg: '',
+        webhookMsgOk: true,
+        webhookHistoryActive: false,
+        webhookHistoryStatusText: '',
+        webhookHistoryUntil: null,
 
-<!--JavaScript at end of body for optimized loading-->
-<script type="text/javascript"
-        src="https://cdn.jsdelivr.net/npm/@materializecss/materialize@2.1.0/dist/js/materialize.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/handlebars@latest/dist/handlebars.js"></script>
-<script src="components.js"></script>
-<script src="common.js"></script>
-<script src="settings.js"></script>
+        // Password
+        pw: { current: '', next: '', confirm: '' },
+        pwMsg: '',
+        pwMsgOk: true,
 
+        // History modal
+        showHistoryModal: false,
+        historyLoading: false,
+        historyCalls: [],
+
+        // Payload modal
+        showPayloadModal: false,
+        payloadText: '',
+
+        async init() {
+            await Promise.all([this.loadWebhookSettings(), this.loadIntegrationSettings()]);
+        },
+
+        async loadWebhookSettings() {
+            try {
+                const resp = await ServerRequest.fetch('/bff/webhook-settings');
+                if (resp && resp.ok) {
+                    const data = await resp.json();
+                    if (data.success) {
+                        this.webhookEnabled = data.webhookEnabled;
+                        this.webhookUrl = data.webhookUrl || '';
+                        this.renderHistoryState(data.webhookHistoryUntil);
+                    }
+                }
+            } catch (_) {}
+        },
+
+        renderHistoryState(until) {
+            this.webhookHistoryUntil = until;
+            if (until && Date.now() <= until) {
+                this.webhookHistoryActive = true;
+                const d = new Date(until);
+                this.webhookHistoryStatusText = 'Webhook history active until ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            } else {
+                this.webhookHistoryActive = false;
+            }
+        },
+
+        async loadIntegrationSettings() {
+            try {
+                const resp = await ServerRequest.fetch('/bff/integration-api-settings');
+                if (resp && resp.ok) {
+                    const data = await resp.json();
+                    this.token = data.token || '';
+                }
+            } catch (_) {}
+        },
+
+        async regenerateToken() {
+            this.integrationMsg = '';
+            try {
+                const resp = await ServerRequest.fetch('/bff/integration-api-settings/regenerate-token', { method: 'POST' });
+                if (resp && resp.ok) {
+                    const data = await resp.json();
+                    if (data.success) {
+                        this.token = data.token;
+                        this.integrationMsg = 'Token generated. Copy it now — it will not be shown in full again after you leave this page.';
+                        this.integrationMsgOk = true;
+                        return;
+                    }
+                }
+                this.integrationMsg = 'Failed to generate token.';
+                this.integrationMsgOk = false;
+            } catch (_) {
+                this.integrationMsg = 'An error occurred.';
+                this.integrationMsgOk = false;
+            }
+        },
+
+        async revokeToken() {
+            if (!confirm('Revoke the integration API token? HomeAssistant automations using this token will stop working immediately.')) return;
+            this.integrationMsg = '';
+            try {
+                const resp = await ServerRequest.fetch('/bff/integration-api-settings/revoke-token', { method: 'POST' });
+                if (resp && resp.ok) {
+                    const data = await resp.json();
+                    if (data.success) {
+                        this.token = '';
+                        this.integrationMsg = 'Token revoked.';
+                        this.integrationMsgOk = true;
+                        return;
+                    }
+                }
+                this.integrationMsg = 'Failed to revoke token.';
+                this.integrationMsgOk = false;
+            } catch (_) {
+                this.integrationMsg = 'An error occurred.';
+                this.integrationMsgOk = false;
+            }
+        },
+
+        copyToken() {
+            navigator.clipboard.writeText(this.token).then(
+                () => { this.integrationMsg = 'Token copied to clipboard.'; this.integrationMsgOk = true; },
+                () => { this.integrationMsg = 'Failed to copy.'; this.integrationMsgOk = false; }
+            );
+        },
+
+        async saveWebhook() {
+            this.webhookMsg = '';
+            if (this.webhookEnabled && !this.webhookUrl) {
+                this.webhookMsg = 'Webhook URL is required when enabled';
+                this.webhookMsgOk = false;
+                return;
+            }
+            try {
+                const resp = await ServerRequest.fetch('/bff/webhook-settings', {
+                    method: 'POST',
+                    body: JSON.stringify({ webhookEnabled: this.webhookEnabled, webhookUrl: this.webhookUrl || null })
+                });
+                if (resp && resp.ok) {
+                    const data = await resp.json();
+                    if (data.success) {
+                        this.webhookMsg = 'Webhook settings saved successfully!';
+                        this.webhookMsgOk = true;
+                        return;
+                    }
+                }
+                this.webhookMsg = 'Failed to save webhook settings';
+                this.webhookMsgOk = false;
+            } catch (_) {
+                this.webhookMsg = 'An error occurred while saving';
+                this.webhookMsgOk = false;
+            }
+        },
+
+        async enableWebhookHistory() {
+            try {
+                const resp = await ServerRequest.fetch('/bff/webhook-history/enable', { method: 'POST' });
+                if (resp && resp.ok) {
+                    const data = await resp.json();
+                    if (data.success) this.renderHistoryState(data.webhookHistoryUntil);
+                }
+            } catch (_) {}
+        },
+
+        async viewWebhookHistory() {
+            this.showHistoryModal = true;
+            this.historyLoading = true;
+            this.historyCalls = [];
+            try {
+                const resp = await ServerRequest.fetch('/bff/webhook-call-history');
+                if (resp && resp.ok) {
+                    const data = await resp.json();
+                    if (data.success) this.historyCalls = data.calls || [];
+                }
+            } catch (_) {}
+            this.historyLoading = false;
+        },
+
+        viewPayload(payloadJson) {
+            try {
+                this.payloadText = JSON.stringify(JSON.parse(payloadJson), null, 2);
+            } catch (_) {
+                this.payloadText = payloadJson;
+            }
+            this.showPayloadModal = true;
+        },
+
+        async changePassword() {
+            this.pwMsg = '';
+            if (this.pw.next !== this.pw.confirm) {
+                this.pwMsg = 'New passwords do not match';
+                this.pwMsgOk = false;
+                return;
+            }
+            if (this.pw.next.length < 6) {
+                this.pwMsg = 'New password must be at least 6 characters long';
+                this.pwMsgOk = false;
+                return;
+            }
+            try {
+                const resp = await ServerRequest.fetch('/bff/change-password', {
+                    method: 'POST',
+                    body: JSON.stringify({ currentPassword: this.pw.current, newPassword: this.pw.next })
+                });
+                if (resp && resp.ok) {
+                    this.pwMsg = 'Password changed successfully!';
+                    this.pwMsgOk = true;
+                    this.pw = { current: '', next: '', confirm: '' };
+                } else {
+                    const err = await resp.json();
+                    this.pwMsg = err.message || 'Failed to change password';
+                    this.pwMsgOk = false;
+                }
+            } catch (e) {
+                this.pwMsg = 'An error occurred';
+                this.pwMsgOk = false;
+            }
+        }
+    };
+}
+</script>
 </body>
 </html>

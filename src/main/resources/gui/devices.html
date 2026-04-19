@@ -1,143 +1,636 @@
 <!DOCTYPE html>
-<html>
+<html data-theme="light">
 <head>
-    <!--Import Google Icon Font-->
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-    <!--Import materialize.css-->
-
-    <link type="text/css" rel="stylesheet"
-          href="https://cdn.jsdelivr.net/npm/@materializecss/materialize@2.1.1/dist/css/materialize.min.css"
-          media="screen,projection"/>
-    <link type="text/css" rel="stylesheet" href="theme.css" media="screen,projection"/>
-    <link type="text/css" rel="stylesheet" href="common.css" media="screen,projection"/>
-    <link type="text/css" rel="stylesheet" href="fr-row.css" media="screen,projection"/>
-    <link type="text/css" rel="stylesheet" href="components.css" media="screen,projection"/>
-    <style>
-        .input-field {
-            margin-top: 2em;
-        }
-        .instance-report {
-            margin-top: 0.5em;
-            margin-bottom: 2em;
-        }
-
-        .collapsible-header::after {
-            display: none;
-        }
-
-        .collection-item svg.circle {
-            border-radius: 0;
-        }
-
-        .explanation {
-            margin-top: 4rem;
-            font-style: italic;
-        }
-
-        .edit-instance-data .image-icon {
-            float: left;
-        }
-
-        .edit-instance-data .file-field {
-            float: left;
-            clear: none;
-            margin-top: 12px;
-        }
-
-        .edit-instance-data .remove-icon-container {
-            float: left;
-            margin-top: 12px;
-            margin-right: 1em;
-        }
-
-        .edit-instance-data .remove-icon-container button {
-            height: 42px;
-        }
-
-        .edit-instance-data .file-path-wrapper {
-            margin-top: -10px;
-        }
-
-        .edit-instance-data .fake-label {
-            font-size: 12px;
-            margin-left: 12px;
-            margin-top: 48px;
-        }
-
-        .edit-instance-data .dropdown-trigger {
-            color: black !important;
-        }
-    </style>
-    <!--Let browser know website is optimized for mobile-->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-
-    <link rel="icon" type="image/png" href="icon.png">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Family Rules - Devices</title>
-
+    <link rel="icon" type="image/png" href="icon.png">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4/dist/full.min.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>tailwind.config = { theme: { extend: { colors: { primary: "#4758a9" } } } }</script>
+    <style>.btn-ghost:hover{background-color:rgba(0,0,0,0.08)!important;color:inherit!important} :root,[data-theme=light]{--p:48.86% 0.1304 271.86;--pf:41.53% 0.1304 271.86;--pc:100% 0 0}</style>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js"></script>
+    <script src="common.js"></script>
 </head>
-<body>
-<header data-source="./header.handlebars"></header>
+<body class="min-h-screen bg-base-200">
 
-<div class="container">
-    <div class="row">
-        <div class="col s12">
-            <form>
-                <div class="input-field">
-                    <input id="datepicker" type="text" class="datepicker no-autoinit">
-                    <label for="datepicker">Date</label>
+<!-- Toast -->
+<div x-data class="toast toast-top toast-end z-[9999]">
+    <template x-for="t in $store.toast.items" :key="t.id">
+        <div class="alert shadow-lg" :class="t.cls">
+            <span x-text="t.message"></span>
+            <button class="btn btn-ghost btn-xs" @click="$store.toast.dismiss(t.id)"><span class="material-icons text-sm">close</span></button>
+        </div>
+    </template>
+</div>
+
+<div class="drawer lg:drawer-open">
+    <input id="main-drawer" type="checkbox" class="drawer-toggle">
+    <div class="drawer-content flex flex-col lg:pl-64">
+        <div id="app-header"></div>
+
+        <div class="container mx-auto p-4 max-w-4xl" x-data="devicesPage()" x-init="init()">
+
+            <!-- Date picker -->
+            <div class="form-control mb-4 max-w-xs">
+                <label class="label"><span class="label-text">Date</span></label>
+                <input type="date" class="input input-bordered" x-model="selectedDate" @change="update()">
+            </div>
+
+            <!-- Loading -->
+            <div x-show="loading" class="flex flex-col items-center py-12">
+                <span class="loading loading-spinner loading-lg text-primary"></span>
+                <p class="mt-2 text-base-content/60">Loading...</p>
+            </div>
+
+            <!-- Error -->
+            <div x-show="errorMsg" class="flex flex-col items-center py-12 gap-4">
+                <span class="material-icons text-error text-5xl">error</span>
+                <p class="text-base-content/60" x-text="errorMsg"></p>
+                <button class="btn btn-primary" @click="update()"><span class="material-icons text-sm">refresh</span> Retry</button>
+            </div>
+
+            <!-- Devices list -->
+            <div x-show="!loading && !errorMsg" class="flex flex-col gap-3">
+                <template x-for="device in instances" :key="device.instanceId">
+                    <div class="collapse collapse-arrow bg-base-100 shadow-sm">
+                        <input type="checkbox">
+                        <!-- Header -->
+                        <div class="collapse-title pr-10">
+                            <div class="flex items-center gap-3 flex-wrap">
+                                <img :src="iconSrc(device.icon)" class="w-12 h-12 rounded-full flex-shrink-0" alt="">
+                                <span class="font-semibold" x-text="device.instanceName"></span>
+                                <span class="badge badge-primary badge-sm" x-text="formatScreenTime(device.screenTimeSeconds)"></span>
+                                <!-- Forced state badge -->
+                                <template x-if="device.forcedDeviceState">
+                                    <span class="badge badge-warning badge-sm" x-text="device.forcedDeviceState.title"></span>
+                                </template>
+                                <template x-if="!device.forcedDeviceState">
+                                    <span class="badge badge-success badge-sm" x-text="'Auto: ' + (device.automaticDeviceState?.title || '')"></span>
+                                </template>
+                                <template x-if="device.online">
+                                    <span class="badge badge-error badge-sm animate-pulse">
+                                        <span class="material-icons text-xs">online_prediction</span>
+                                    </span>
+                                </template>
+                            </div>
+                        </div>
+                        <!-- Body -->
+                        <div class="collapse-content">
+                            <!-- App usage list -->
+                            <div class="mb-4">
+                                <template x-for="app in device.appUsageSeconds" :key="app.path">
+                                    <div class="flex items-center gap-3 py-2 border-b border-base-200 last:border-0">
+                                        <img :src="appIconSrc(app.iconBase64)" class="w-6 h-6 flex-shrink-0" alt="">
+                                        <div class="flex-1 min-w-0">
+                                            <span class="cursor-pointer hover:text-primary text-sm block truncate"
+                                                  :class="app._showPath && 'italic text-base-content/50'"
+                                                  @click="app._showPath = !app._showPath"
+                                                  x-text="app._showPath ? app.path : (app.appName || app.name)"></span>
+                                            <!-- Group labels -->
+                                            <div class="flex flex-wrap gap-1 mt-1">
+                                                <template x-for="g in (app.appGroups || [])" :key="g.id">
+                                                    <span class="badge badge-xs badge-outline gap-1">
+                                                        <span x-text="g.name"></span>
+                                                        <span class="cursor-pointer material-icons text-xs opacity-60 hover:opacity-100"
+                                                              @click.stop="removeAppFromGroup(device.instanceId, app.path, g.id)">close</span>
+                                                    </span>
+                                                </template>
+                                                <button class="badge badge-xs badge-ghost border-dashed opacity-0 group-hover:opacity-100 hover:!opacity-100"
+                                                        @click.stop="showAddGroupDropdown($event, device.instanceId, app.path, device.availableAppGroups)">
+                                                    <span class="material-icons text-xs">add</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="flex items-center gap-1 flex-shrink-0">
+                                            <template x-if="app.online">
+                                                <span class="text-error animate-pulse"><span class="material-icons text-xs">online_prediction</span></span>
+                                            </template>
+                                            <span class="text-sm font-medium" x-text="formatScreenTime(app.usageSeconds)"></span>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+
+                            <!-- Action buttons -->
+                            <div class="flex flex-wrap gap-2">
+                                <button class="btn btn-sm btn-ghost" @click="showInfo(device.instanceId)">
+                                    <span class="material-icons text-sm">info</span> <span class="hidden sm:inline">Info</span>
+                                </button>
+                                <button class="btn btn-sm btn-ghost" @click="showEdit(device)">
+                                    <span class="material-icons text-sm">edit</span> <span class="hidden sm:inline">Edit</span>
+                                </button>
+                                <button class="btn btn-sm btn-ghost" @click="deleteDevice(device.instanceId)">
+                                    <span class="material-icons text-sm">delete</span> <span class="hidden sm:inline">Delete</span>
+                                </button>
+                                <button class="btn btn-sm btn-ghost" @click="showUsageClock(device)">
+                                    <span class="material-icons text-sm">bar_chart</span> <span class="hidden sm:inline">Usage</span>
+                                </button>
+                                <div class="flex-1"></div>
+                                <button class="btn btn-sm btn-outline btn-primary" @click="showChangeState(device.instanceId)">Change device state</button>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+            </div>
+
+            <!-- Change State Modal -->
+            <dialog class="modal" :class="stateModal.open && 'modal-open'">
+                <div class="modal-box">
+                    <h3 class="font-bold text-lg mb-4">Device state: <b x-text="stateModal.instanceName"></b></h3>
+                    <div class="flex flex-col gap-1">
+                        <template x-for="st in stateModal.states" :key="st.deviceState ?? '__auto__'">
+                            <button class="btn btn-block justify-start gap-3"
+                                    :class="st.deviceState === stateModal.currentState ? 'btn-primary' : 'btn-ghost'"
+                                    @click="applyDeviceState(st.deviceState, st.extra)">
+                                <template x-if="st.icon">
+                                    <svg xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 -960 960 960" width="20" fill="currentColor" x-html="st.icon"></svg>
+                                </template>
+                                <span x-text="st.title"></span>
+                            </button>
+                        </template>
+                    </div>
+                    <div class="modal-action"><button class="btn" @click="stateModal.open = false">Cancel</button></div>
                 </div>
-            </form>
+                <form method="dialog" class="modal-backdrop" @click="stateModal.open = false"></form>
+            </dialog>
+
+            <!-- Info Modal -->
+            <dialog class="modal" :class="infoModal.open && 'modal-open'">
+                <div class="modal-box">
+                    <h3 class="font-bold text-lg mb-4">Device: <b x-text="infoModal.instanceName"></b></h3>
+                    <table class="table">
+                        <tr><td class="font-medium">Client type</td><td x-text="infoModal.clientType"></td></tr>
+                        <tr><td class="font-medium">Client version</td><td x-text="infoModal.clientVersion"></td></tr>
+                        <tr><td class="font-medium">Timezone offset</td><td x-text="infoModal.clientTimezoneOffsetSeconds"></td></tr>
+                    </table>
+                    <div class="modal-action"><button class="btn" @click="infoModal.open = false">Close</button></div>
+                </div>
+                <form method="dialog" class="modal-backdrop" @click="infoModal.open = false"></form>
+            </dialog>
+
+            <!-- Edit Modal -->
+            <dialog class="modal" :class="editModal.open && 'modal-open'">
+                <div class="modal-box">
+                    <h3 class="font-bold text-lg mb-4">Edit: <b x-text="editModal.instanceName"></b></h3>
+                    <div class="form-control mb-3">
+                        <label class="label"><span class="label-text">Device name</span></label>
+                        <input type="text" class="input input-bordered" x-model="editModal.name">
+                    </div>
+
+                    <!-- Icon -->
+                    <div class="flex items-center gap-3 mb-4">
+                        <img :src="editModal.iconPreview" class="w-16 h-16 rounded-full" alt="">
+                        <div class="flex gap-2">
+                            <label class="btn btn-sm">
+                                Change icon
+                                <input type="file" accept="image/png, image/jpg" class="hidden" @change="onIconFileSelected($event)">
+                            </label>
+                            <button x-show="editModal.hasIcon" class="btn btn-sm btn-ghost" @click="removeIcon()">Remove icon</button>
+                        </div>
+                    </div>
+
+                    <!-- App groups (show) -->
+                    <div class="form-control mb-3">
+                        <label class="label"><span class="label-text">Show these app groups in 'All my devices' tab</span></label>
+                        <template x-for="ag in editModal.availableGroups" :key="ag.id">
+                            <label class="label cursor-pointer justify-start gap-3 py-1">
+                                <input type="checkbox" class="checkbox checkbox-sm"
+                                       :value="ag.id"
+                                       :checked="editModal.selectedShowGroups.includes(ag.id)"
+                                       @change="toggleGroup(editModal.selectedShowGroups, ag.id, $event.target.checked)">
+                                <span class="label-text" x-text="ag.name"></span>
+                            </label>
+                        </template>
+                    </div>
+
+                    <!-- App groups (block) -->
+                    <div class="form-control mb-3">
+                        <label class="label"><span class="label-text">Block apps from these groups when device is blocking</span></label>
+                        <template x-for="ag in editModal.availableGroups" :key="'block-'+ag.id">
+                            <label class="label cursor-pointer justify-start gap-3 py-1">
+                                <input type="checkbox" class="checkbox checkbox-sm"
+                                       :value="ag.id"
+                                       :checked="editModal.selectedBlockGroups.includes(ag.id)"
+                                       @change="toggleGroup(editModal.selectedBlockGroups, ag.id, $event.target.checked)">
+                                <span class="label-text" x-text="ag.name"></span>
+                            </label>
+                        </template>
+                    </div>
+
+                    <div class="modal-action">
+                        <button class="btn" @click="editModal.open = false">Cancel</button>
+                        <button class="btn btn-primary" @click="saveEdit()">Save</button>
+                    </div>
+                </div>
+                <form method="dialog" class="modal-backdrop" @click="editModal.open = false"></form>
+            </dialog>
+
+            <!-- Usage Clock Modal -->
+            <dialog class="modal" :class="clockModal.open && 'modal-open'">
+                <div class="modal-box max-w-lg">
+                    <h3 class="font-bold text-lg text-center mb-4" x-text="'Screen Time - ' + clockModal.instanceName"></h3>
+                    <div class="flex justify-center">
+                        <svg id="usage-clock" viewBox="0 0 500 500" class="w-full max-w-[480px]"></svg>
+                    </div>
+                    <div class="modal-action"><button class="btn" @click="clockModal.open = false">Close</button></div>
+                </div>
+                <form method="dialog" class="modal-backdrop" @click="clockModal.open = false"></form>
+            </dialog>
+
+            <!-- Add group dropdown (positioned absolutely) -->
+            <div x-show="groupDropdown.open" x-transition
+                 class="fixed z-50 bg-base-100 border border-base-300 rounded-lg shadow-lg min-w-[160px] max-h-52 overflow-y-auto"
+                 :style="`left:${groupDropdown.x}px;top:${groupDropdown.y}px`"
+                 @click.outside="groupDropdown.open = false">
+                <ul class="menu menu-sm p-1">
+                    <template x-for="g in groupDropdown.groups" :key="g.id">
+                        <li><a @click="addAppToGroup(groupDropdown.instanceId, groupDropdown.appPath, g.id)" x-text="g.name"></a></li>
+                    </template>
+                    <li class="border-t mt-1 pt-1"><a class="italic" @click="createGroupAndAdd()">New app group...</a></li>
+                </ul>
+            </div>
+
         </div>
     </div>
-    <div id="loading"></div>
 
-    <div class="row">
-        <div class="col s12">
-            <ul class="collapsible no-autoinit popout" id="instances" style="display: none;">
-            </ul>
-        </div>
+    <!-- Sidebar -->
+    <div class="drawer-side z-50">
+        <label for="main-drawer" aria-label="close sidebar" class="drawer-overlay"></label>
+        <ul x-data class="menu bg-base-200 min-h-full w-64 p-4 text-base-content">
+            <li><a href="/gui/index.html"><span class="material-icons">home</span> Home</a></li>
+            <li><a href="/gui/devices.html"><span class="material-icons">devices</span> Devices</a></li>
+            <li><a href="/gui/groups.html"><span class="material-icons">group_work</span> App Groups</a></li>
+            <li class="border-t my-2"></li>
+            <li x-show="$store.user.accessLevel === 'ADMIN'" x-cloak>
+                <a href="/gui/users.html"><span class="material-icons">people</span> ADMIN: Users</a>
+            </li>
+            <li class="border-t my-2"></li>
+            <li><a href="/gui/settings.html"><span class="material-icons">settings</span> Settings</a></li>
+            <li><a href="/logout"><span class="material-icons">logout</span> Logout</a></li>
+        </ul>
     </div>
 </div>
 
-<div id="instance-state-modal" class="modal modal-fixed-footer">
-    <div class="modal-content"></div>
-    <div class="modal-footer">
-        <a href="#!" class="modal-close waves-effect btn-flat">Cancel</a>
-    </div>
-</div>
+<script>
+function devicesPage() {
+    return {
+        selectedDate: today(),
+        instances: [],
+        loading: false,
+        errorMsg: '',
 
-<div id="instance-info-modal" class="modal modal-fixed-footer">
-    <div class="modal-content"></div>
-    <div class="modal-footer">
-        <a href="#!" class="modal-close waves-effect btn-flat">Close</a>
-    </div>
-</div>
+        // Modals
+        stateModal: { open: false, instanceId: '', instanceName: '', states: [], currentState: null },
+        infoModal: { open: false, instanceName: '', clientType: '', clientVersion: '', clientTimezoneOffsetSeconds: '' },
+        editModal: {
+            open: false, instanceId: '', instanceName: '', name: '',
+            iconPreview: 'default-icon.png', hasIcon: false,
+            iconFile: null, iconType: '', iconData: '',
+            availableGroups: [], selectedShowGroups: [], selectedBlockGroups: []
+        },
+        clockModal: { open: false, instanceName: '' },
+        groupDropdown: { open: false, x: 0, y: 0, groups: [], instanceId: '', appPath: '' },
 
-<div id="instance-edit-modal" class="modal modal-fixed-footer">
-    <div class="modal-content"></div>
-    <div class="modal-footer">
-        <a href="#!" class="modal-close waves-effect btn-flat">Cancel</a>
-        <a href="#!" class="waves-effect btn-flat" id="instance-edit-save">Save</a>
-    </div>
-</div>
+        init() { this.update(); },
 
-<div id="usage-histogram-modal" class="modal modal-fixed-footer">
-    <div class="modal-content" style="text-align: center;">
-        <h4 id="usage-histogram-title">Screen Time Usage</h4>
-        <svg id="usage-clock" viewBox="0 0 500 500" style="width: 100%; max-width: 480px; display: block; margin: 0 auto;"></svg>
-    </div>
-    <div class="modal-footer">
-        <a href="#!" class="modal-close waves-effect btn-flat">Close</a>
-    </div>
-</div>
+        async update() {
+            this.loading = true;
+            this.errorMsg = '';
+            try {
+                const resp = await ServerRequest.fetch('/bff/status?date=' + this.selectedDate);
+                const data = await resp.json();
+                // Add reactive _showPath to each app
+                data.instances.forEach(inst => {
+                    (inst.appUsageSeconds || []).forEach(app => { app._showPath = false; });
+                });
+                this.instances = data.instances;
+            } catch (e) {
+                this.errorMsg = 'Failed to load devices data. Please try again.';
+            } finally {
+                this.loading = false;
+            }
+        },
 
-<!--JavaScript at end of body for optimized loading-->
-<script type="text/javascript"
-        src="https://cdn.jsdelivr.net/npm/@materializecss/materialize@2.1.0/dist/js/materialize.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/handlebars@latest/dist/handlebars.js"></script>
-<script src="components.js"></script>
-<script src="common.js"></script>
-<script src="devices.js"></script>
+        // --- Change State ---
+        async showChangeState(instanceId) {
+            try {
+                const resp = await ServerRequest.fetch('/bff/instance-state?instanceId=' + instanceId);
+                const data = await resp.json();
+                const inst = this.instances.find(i => i.instanceId === instanceId);
+                // Prepend "Automatic" option
+                data.availableStates.unshift({
+                    title: 'Automatic',
+                    deviceState: null,
+                    icon: '<path d="m354-287 126-76 126 77-33-144 111-96-146-13-58-136-58 135-146 13 111 97-33 143ZM233-120l65-281L80-590l288-25 112-265 112 265 288 25-218 189 65 281-247-149-247 149Zm247-350Z"/>',
+                    description: null
+                });
+                this.stateModal = {
+                    open: true,
+                    instanceId,
+                    instanceName: inst?.instanceName || '',
+                    states: data.availableStates,
+                    currentState: data.forcedDeviceState
+                };
+            } catch (_) { Toast.error('Failed to load states'); }
+        },
 
+        async applyDeviceState(deviceState, extra) {
+            try {
+                await ServerRequest.fetch('/bff/instance-state?instanceId=' + this.stateModal.instanceId, {
+                    method: 'POST',
+                    body: JSON.stringify({ forcedDeviceState: deviceState, extra: extra })
+                });
+                Toast.info('Saved');
+                this.stateModal.open = false;
+                this.update();
+            } catch (_) { Toast.error('Failed to set state'); }
+        },
+
+        // --- Info ---
+        async showInfo(instanceId) {
+            try {
+                const resp = await ServerRequest.fetch('/bff/instance-info?instanceId=' + instanceId);
+                const data = await resp.json();
+                this.infoModal = { open: true, ...data };
+            } catch (_) { Toast.error('Failed to load info'); }
+        },
+
+        // --- Edit ---
+        async showEdit(device) {
+            try {
+                const resp = await ServerRequest.fetch('/bff/instance-edit-info?instanceId=' + device.instanceId);
+                const data = await resp.json();
+                const hasIcon = !!(data.icon && data.icon.type && data.icon.data);
+                this.editModal = {
+                    open: true,
+                    instanceId: device.instanceId,
+                    instanceName: data.instanceName,
+                    name: data.instanceName,
+                    iconPreview: hasIcon ? 'data:' + data.icon.type + ';base64,' + data.icon.data : 'default-icon.png',
+                    hasIcon,
+                    iconFile: null,
+                    iconType: hasIcon ? data.icon.type : '',
+                    iconData: hasIcon ? data.icon.data : '',
+                    availableGroups: data.availableAppGroups || [],
+                    selectedShowGroups: data.appGroups?.show ? [...data.appGroups.show] : [],
+                    selectedBlockGroups: data.appGroups?.block ? [...data.appGroups.block] : []
+                };
+            } catch (_) { Toast.error('Failed to load edit data'); }
+        },
+
+        toggleGroup(arr, id, checked) {
+            if (checked) { if (!arr.includes(id)) arr.push(id); }
+            else { const i = arr.indexOf(id); if (i >= 0) arr.splice(i, 1); }
+        },
+
+        onIconFileSelected(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            this.editModal.iconFile = file;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                this.editModal.iconPreview = e.target.result;
+                this.editModal.iconType = file.type;
+                this.editModal.iconData = e.target.result.split(',')[1];
+                this.editModal.hasIcon = true;
+            };
+            reader.readAsDataURL(file);
+        },
+
+        removeIcon() {
+            this.editModal.iconPreview = 'default-icon.png';
+            this.editModal.hasIcon = false;
+            this.editModal.iconFile = null;
+            this.editModal.iconType = '';
+            this.editModal.iconData = '';
+        },
+
+        async saveEdit() {
+            const m = this.editModal;
+            const doSave = (iconType, iconData) => {
+                return ServerRequest.fetch('/bff/instance-edit-info?instanceId=' + m.instanceId, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        instanceName: m.name,
+                        icon: iconType && iconData ? { type: iconType, data: iconData } : null,
+                        appGroups: { show: m.selectedShowGroups, block: m.selectedBlockGroups }
+                    })
+                });
+            };
+
+            try {
+                if (m.iconFile) {
+                    // Resize to 64x64
+                    const resized = await this.resizeImage(m.iconFile);
+                    await doSave(m.iconFile.type, resized);
+                } else {
+                    await doSave(m.iconType || null, m.iconData || null);
+                }
+                Toast.info('Saved');
+                m.open = false;
+                this.update();
+            } catch (_) { Toast.error('Failed to save'); }
+        },
+
+        resizeImage(file, w = 64, h = 64) {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = w; canvas.height = h;
+                        const ctx = canvas.getContext('2d');
+                        ctx.imageSmoothingEnabled = true;
+                        ctx.imageSmoothingQuality = 'high';
+                        ctx.drawImage(img, 0, 0, w, h);
+                        resolve(canvas.toDataURL(file.type).split(',')[1]);
+                    };
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            });
+        },
+
+        // --- Delete ---
+        async deleteDevice(instanceId) {
+            if (!confirm('Are you sure?')) return;
+            try {
+                await ServerRequest.fetch('/bff/delete-instance?instanceId=' + instanceId, { method: 'POST' });
+                Toast.info('Deleted');
+                this.update();
+            } catch (_) { Toast.error('Failed to delete'); }
+        },
+
+        // --- Usage clock ---
+        showUsageClock(device) {
+            if (!device.onlinePeriods || device.onlinePeriods.length === 0) {
+                Toast.info('No usage data available for this date');
+                return;
+            }
+            this.clockModal = { open: true, instanceName: device.instanceName };
+            this.$nextTick(() => drawClock(device.onlinePeriods));
+        },
+
+        // --- App group management ---
+        showAddGroupDropdown(event, instanceId, appPath, availableGroups) {
+            const rect = event.target.getBoundingClientRect();
+            this.groupDropdown = {
+                open: true,
+                x: Math.min(rect.left, window.innerWidth - 180),
+                y: rect.bottom + 4,
+                groups: availableGroups || [],
+                instanceId, appPath
+            };
+        },
+
+        async addAppToGroup(instanceId, appPath, groupId) {
+            this.groupDropdown.open = false;
+            try {
+                await ServerRequest.fetch('/bff/app-groups/' + groupId + '/apps', {
+                    method: 'POST',
+                    body: JSON.stringify({ instanceId, appPath })
+                });
+                this.update();
+            } catch (_) { Toast.error('Failed to add app to group'); }
+        },
+
+        async removeAppFromGroup(instanceId, appPath, groupId) {
+            try {
+                await ServerRequest.fetch('/bff/app-groups/' + groupId + '/apps/' + encodeURIComponent(appPath) + '?instanceId=' + instanceId, { method: 'DELETE' });
+                this.update();
+            } catch (_) { Toast.error('Failed to remove app from group'); }
+        },
+
+        async createGroupAndAdd() {
+            const name = prompt('Enter name for new app group:');
+            if (!name || !name.trim()) return;
+            try {
+                const resp = await ServerRequest.fetch('/bff/app-groups', {
+                    method: 'POST',
+                    body: JSON.stringify({ name: name.trim() })
+                });
+                const data = await resp.json();
+                if (data.group) {
+                    await this.addAppToGroup(this.groupDropdown.instanceId, this.groupDropdown.appPath, data.group.id);
+                }
+            } catch (_) { Toast.error('Failed to create group'); }
+            this.groupDropdown.open = false;
+        }
+    };
+}
+
+// ---- SVG Clock drawing (identical logic, vanilla DOM) ----
+function drawClock(onlinePeriods) {
+    const svg = document.getElementById('usage-clock');
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+
+    const ns = 'http://www.w3.org/2000/svg';
+    const cx = 250, cy = 250;
+    const outerR = 220, innerR = 150, faceR = 145;
+    const tickOuter = 230, labelR = 242;
+
+    function timeToAngle(hours) { return (hours / 24) * 2 * Math.PI - Math.PI / 2; }
+    function polar(r, a) { return { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) }; }
+
+    function arcPath(r1, r2, a1, a2) {
+        const p1 = polar(r2, a1), p2 = polar(r2, a2), p3 = polar(r1, a2), p4 = polar(r1, a1);
+        const lg = (a2 - a1) > Math.PI ? 1 : 0;
+        return `M ${p1.x} ${p1.y} A ${r2} ${r2} 0 ${lg} 1 ${p2.x} ${p2.y} L ${p3.x} ${p3.y} A ${r1} ${r1} 0 ${lg} 0 ${p4.x} ${p4.y} Z`;
+    }
+
+    function el(tag, attrs) {
+        const e = document.createElementNS(ns, tag);
+        for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+        return e;
+    }
+
+    // Background ring
+    svg.appendChild(el('path', { d: arcPath(innerR, outerR, -Math.PI / 2, 3 * Math.PI / 2), fill: '#e0e0e0' }));
+
+    // Active arcs
+    const activeSet = new Set(onlinePeriods);
+    const activeMins = [];
+    for (let h = 0; h < 24; h++) for (let m = 0; m < 60; m += 10) {
+        const key = String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
+        if (activeSet.has(key)) activeMins.push(h * 60 + m);
+    }
+
+    const segments = [];
+    let ss = null, se = null;
+    for (const mins of activeMins) {
+        if (ss === null) { ss = mins; se = mins; }
+        else if (mins === se + 10) se = mins;
+        else { segments.push([ss, se]); ss = mins; se = mins; }
+    }
+    if (ss !== null) segments.push([ss, se]);
+
+    const accent = '#1565C0', accentHover = '#1E88E5';
+    const tooltip = el('g', { visibility: 'hidden', 'pointer-events': 'none' });
+
+    for (const [start, end] of segments) {
+        const a1 = timeToAngle(start / 60), a2 = timeToAngle((end + 10) / 60);
+        const arc = el('path', { d: arcPath(innerR, outerR, a1, a2), fill: accent, style: 'cursor:pointer' });
+        const startL = String(Math.floor(start / 60)).padStart(2, '0') + ':' + String(start % 60).padStart(2, '0');
+        const endM = end + 10;
+        const endL = String(Math.floor(endM / 60) % 24).padStart(2, '0') + ':' + String(endM % 60).padStart(2, '0');
+        const tip = startL + ' – ' + endL;
+
+        arc.addEventListener('mouseenter', () => {
+            arc.setAttribute('fill', accentHover);
+            const mid = (a1 + a2) / 2, tp = polar(outerR + 28, mid);
+            const bw = 90, bh = 24;
+            let bx = Math.max(4, Math.min(500 - bw - 4, tp.x - bw / 2));
+            let by = Math.max(4, Math.min(500 - bh - 4, tp.y - bh / 2));
+            tooltip.querySelector('rect').setAttribute('x', bx);
+            tooltip.querySelector('rect').setAttribute('y', by);
+            tooltip.querySelector('rect').setAttribute('width', bw);
+            tooltip.querySelector('rect').setAttribute('height', bh);
+            tooltip.querySelector('text').setAttribute('x', bx + bw / 2);
+            tooltip.querySelector('text').setAttribute('y', by + bh / 2);
+            tooltip.querySelector('text').textContent = tip;
+            tooltip.setAttribute('visibility', 'visible');
+        });
+        arc.addEventListener('mouseleave', () => {
+            arc.setAttribute('fill', accent);
+            tooltip.setAttribute('visibility', 'hidden');
+        });
+        svg.appendChild(arc);
+    }
+
+    const tipRect = el('rect', { rx: 4, fill: '#212121', opacity: '0.85' });
+    const tipText = el('text', { 'text-anchor': 'middle', 'dominant-baseline': 'middle', 'font-size': '12', 'font-family': 'sans-serif', fill: '#ffffff' });
+    tooltip.appendChild(tipRect);
+    tooltip.appendChild(tipText);
+
+    svg.appendChild(el('circle', { cx, cy, r: faceR, fill: '#fafafa', stroke: '#bdbdbd', 'stroke-width': 1 }));
+
+    for (let h = 0; h < 24; h++) {
+        const a = timeToAngle(h), major = h % 6 === 0;
+        const ti = major ? tickOuter - 14 : tickOuter - 7;
+        const p1 = polar(ti, a), p2 = polar(tickOuter, a);
+        svg.appendChild(el('line', { x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y, stroke: major ? '#424242' : '#9e9e9e', 'stroke-width': major ? 2 : 1 }));
+        if (major) {
+            const lp = polar(labelR, a);
+            const t = el('text', { x: lp.x, y: lp.y, 'text-anchor': 'middle', 'dominant-baseline': 'middle', 'font-size': '14', 'font-family': 'sans-serif', fill: '#424242' });
+            t.textContent = String(h).padStart(2, '0') + ':00';
+            svg.appendChild(t);
+        }
+    }
+
+    const totalMins = activeMins.length * 10;
+    const hrs = Math.floor(totalMins / 60), mins = totalMins % 60;
+    const lbl = hrs > 0 ? hrs + 'h ' + mins + 'm' : mins + 'm';
+    const cl = el('text', { x: cx, y: cy - 10, 'text-anchor': 'middle', 'dominant-baseline': 'middle', 'font-size': '28', 'font-weight': 'bold', 'font-family': 'sans-serif', fill: '#1565C0' });
+    cl.textContent = lbl;
+    svg.appendChild(cl);
+    const cs = el('text', { x: cx, y: cy + 22, 'text-anchor': 'middle', 'dominant-baseline': 'middle', 'font-size': '13', 'font-family': 'sans-serif', fill: '#757575' });
+    cs.textContent = 'screen time';
+    svg.appendChild(cs);
+    svg.appendChild(tooltip);
+}
+</script>
 </body>
 </html>
