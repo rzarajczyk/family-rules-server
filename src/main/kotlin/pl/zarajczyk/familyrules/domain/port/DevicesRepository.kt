@@ -47,6 +47,7 @@ data class DeviceDetailsDto(
     val knownApps: Map<String, AppDto>,
     val availableDeviceStates: List<DeviceStateTypeDto>,
     val appGroups: AppGroupsDto = AppGroupsDto.empty(),
+    val autoAddGroupIds: List<String> = emptyList(),
     val currentDay: String? = null,
     val currentScreenTime: Long? = null,
     val currentApplicationTimes: Map<String, Long>? = null,
@@ -68,7 +69,8 @@ data class DeviceDetailsUpdateDto(
     val reportIntervalSeconds: ValueUpdate<Long> = leaveUnchanged(),
     val knownApps: ValueUpdate<Map<String, AppDto>> = leaveUnchanged(),
     val availableDeviceStates: ValueUpdate<List<DeviceStateTypeDto>> = leaveUnchanged(),
-    val appGroups: ValueUpdate<AppGroupsDto> = leaveUnchanged()
+    val appGroups: ValueUpdate<AppGroupsDto> = leaveUnchanged(),
+    val autoAddGroupIds: ValueUpdate<List<String>> = leaveUnchanged(),
 )
 
 data class ValueUpdate<T>(

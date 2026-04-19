@@ -5,7 +5,9 @@ import org.springframework.security.core.Authentication
 import org.springframework.web.bind.annotation.*
 import pl.zarajczyk.familyrules.domain.*
 import pl.zarajczyk.familyrules.domain.port.AppGroupRepository
+import pl.zarajczyk.familyrules.domain.port.DeviceDetailsUpdateDto
 import pl.zarajczyk.familyrules.domain.port.DeviceStateDto
+import pl.zarajczyk.familyrules.domain.port.ValueUpdate.Companion.set
 import java.util.*
 
 @RestController
@@ -233,6 +235,54 @@ class BffAppGroupsController(
         return UpdateGroupMembersResponse(success = true)
     }
 
+    @GetMapping("/bff/app-groups/{groupId}/auto-add-devices")
+    fun getAutoAddDevices(
+        @PathVariable groupId: String,
+        authentication: Authentication
+    ): AutoAddDevicesResponse {
+        val user = usersService.get(authentication.name)
+        // Validate group exists
+        appGroupService.get(user, groupId)
+        val devices = devicesService.getAllDevices(user)
+        val deviceInfos = devices.map { device ->
+            val details = device.getDetails()
+            AutoAddDeviceInfo(
+                deviceId = details.deviceId.toString(),
+                deviceName = details.deviceName,
+                isAutoAdd = groupId in details.autoAddGroupIds
+            )
+        }
+        return AutoAddDevicesResponse(groupId = groupId, devices = deviceInfos)
+    }
+
+    @PutMapping("/bff/app-groups/{groupId}/auto-add-devices")
+    fun updateAutoAddDevices(
+        @PathVariable groupId: String,
+        @RequestBody request: UpdateAutoAddDevicesRequest,
+        authentication: Authentication
+    ): UpdateAutoAddDevicesResponse {
+        val user = usersService.get(authentication.name)
+        // Validate group exists
+        appGroupService.get(user, groupId)
+        val devices = devicesService.getAllDevices(user)
+        val enabledDeviceIds = request.deviceIds.toSet()
+        devices.forEach { device ->
+            val details = device.getDetails()
+            val currentAutoAdd = details.autoAddGroupIds
+            val shouldBeEnabled = device.getId().toString() in enabledDeviceIds
+            val isCurrentlyEnabled = groupId in currentAutoAdd
+            if (shouldBeEnabled != isCurrentlyEnabled) {
+                val updatedList = if (shouldBeEnabled) {
+                    currentAutoAdd + groupId
+                } else {
+                    currentAutoAdd - groupId
+                }
+                device.update(DeviceDetailsUpdateDto(autoAddGroupIds = set(updatedList)))
+            }
+        }
+        return UpdateAutoAddDevicesResponse(success = true)
+    }
+
 }
 
 data class CreateAppGroupRequest(
@@ -347,5 +397,24 @@ data class DeviceGroupUpdate(
 )
 
 data class UpdateGroupMembersResponse(
+    val success: Boolean
+)
+
+data class AutoAddDevicesResponse(
+    val groupId: String,
+    val devices: List<AutoAddDeviceInfo>
+)
+
+data class AutoAddDeviceInfo(
+    val deviceId: String,
+    val deviceName: String,
+    val isAutoAdd: Boolean
+)
+
+data class UpdateAutoAddDevicesRequest(
+    val deviceIds: List<String>
+)
+
+data class UpdateAutoAddDevicesResponse(
     val success: Boolean
 )

@@ -140,6 +140,9 @@
                                 <button class="btn btn-sm btn-ghost" @click="showAllAppsModal(group.id)">
                                     <span class="material-icons text-sm">apps</span> <span class="hidden sm:inline">Select Apps</span>
                                 </button>
+                                <button class="btn btn-sm btn-ghost" @click="showAutoAddModal(group.id)">
+                                    <span class="material-icons text-sm">add_circle</span> <span class="hidden sm:inline">Auto Adding</span>
+                                </button>
                                 <button class="btn btn-sm btn-ghost" @click="showGroupStatesModal(group.id)">
                                     <span class="material-icons text-sm">settings</span> <span class="hidden sm:inline">Define States</span>
                                 </button>
@@ -206,6 +209,42 @@
                     </div>
                 </div>
                 <form method="dialog" class="modal-backdrop" @click="allAppsModal.open = false"></form>
+            </dialog>
+
+            <!-- Auto Add Devices Modal -->
+            <dialog class="modal" :class="autoAddModal.open && 'modal-open'">
+                <div class="modal-box w-11/12 max-w-lg">
+                    <h3 class="font-bold text-lg mb-2">Auto Adding</h3>
+                    <p class="text-sm text-base-content/60 mb-4">Select devices that should automatically add newly installed apps to group <b x-text="autoAddModal.groupName"></b>.</p>
+                    <!-- Loading -->
+                    <div x-show="autoAddModal.loading" class="flex flex-col items-center py-8">
+                        <span class="loading loading-spinner loading-lg text-primary"></span>
+                        <p class="mt-2 text-base-content/60">Loading devices...</p>
+                    </div>
+                    <!-- Content -->
+                    <div x-show="!autoAddModal.loading">
+                        <template x-if="autoAddModal.devices.length === 0">
+                            <p class="text-center py-8 text-base-content/50">No devices found</p>
+                        </template>
+                        <template x-for="device in autoAddModal.devices" :key="device.deviceId">
+                            <label class="flex items-center gap-3 py-3 cursor-pointer hover:bg-base-200 rounded px-2">
+                                <input type="checkbox" class="checkbox checkbox-sm"
+                                       :checked="device.isAutoAdd"
+                                       @change="device.isAutoAdd = $event.target.checked">
+                                <span class="material-icons text-sm">phone_android</span>
+                                <span class="font-medium" x-text="device.deviceName"></span>
+                            </label>
+                        </template>
+                    </div>
+                    <div class="modal-action">
+                        <button class="btn" @click="autoAddModal.open = false">Cancel</button>
+                        <button class="btn btn-primary" :disabled="autoAddModal.saving" @click="saveAutoAddDevices()">
+                            <span x-show="autoAddModal.saving" class="loading loading-spinner loading-xs"></span>
+                            <span x-text="autoAddModal.saving ? 'Saving...' : 'Save Changes'"></span>
+                        </button>
+                    </div>
+                </div>
+                <form method="dialog" class="modal-backdrop" @click="autoAddModal.open = false"></form>
             </dialog>
 
             <!-- Group States Modal -->
@@ -371,6 +410,7 @@ function groupsPage() {
 
         // Modals
         allAppsModal: { open: false, groupId: '', groupName: '', devices: [], initialState: new Map(), loading: false, saving: false },
+        autoAddModal: { open: false, groupId: '', groupName: '', devices: [], loading: false, saving: false },
         statesModal: { open: false, groupId: '', states: [], devices: [], loading: false },
         editStateModal: { open: false, stateId: null, name: '', deviceStates: {} },
         applyModal: { open: false, groupId: '', groupName: '', states: [], devices: [] },
@@ -483,6 +523,40 @@ function groupsPage() {
                 this.update();
             } catch (_) {
                 Toast.error('Failed to save changes');
+            } finally {
+                m.saving = false;
+            }
+        },
+
+        // --- Auto Add Modal ---
+        async showAutoAddModal(groupId) {
+            const group = this.groups.find(g => g.id === groupId);
+            this.autoAddModal = { open: true, groupId, groupName: group?.name || '', devices: [], loading: true, saving: false };
+            try {
+                const resp = await ServerRequest.fetch('/bff/app-groups/' + groupId + '/auto-add-devices');
+                const data = await resp.json();
+                this.autoAddModal.devices = data.devices || [];
+            } catch (_) {
+                Toast.error('Failed to load auto-add settings');
+                this.autoAddModal.open = false;
+            } finally {
+                this.autoAddModal.loading = false;
+            }
+        },
+
+        async saveAutoAddDevices() {
+            const m = this.autoAddModal;
+            m.saving = true;
+            try {
+                const deviceIds = m.devices.filter(d => d.isAutoAdd).map(d => d.deviceId);
+                await ServerRequest.fetch('/bff/app-groups/' + m.groupId + '/auto-add-devices', {
+                    method: 'PUT',
+                    body: JSON.stringify({ deviceIds })
+                });
+                m.open = false;
+                Toast.info('Auto-add settings saved');
+            } catch (_) {
+                Toast.error('Failed to save auto-add settings');
             } finally {
                 m.saving = false;
             }

@@ -108,6 +108,7 @@ class FirestoreDevicesRepository(
             knownApps = doc.getKnownAppsOrThrow("knownApps"),
             availableDeviceStates = doc.getAvailableDeviceStates("deviceStates"),
             appGroups = doc.getAppGroups("appGroups"),
+            autoAddGroupIds = doc.getAutoAddGroupIds("autoAddGroupIds"),
             currentDay = doc.getString("currentDay"),
             currentScreenTime = doc.getLong("currentScreenTime"),
             currentApplicationTimes = doc.getNativeApplicationTimes("currentApplicationTimes"),
@@ -134,7 +135,8 @@ class FirestoreDevicesRepository(
             details.knownApps.ifPresent { "knownApps" to it.encodeKnownApps() },
             details.reportIntervalSeconds.ifPresent { "reportIntervalSeconds" to it },
             details.availableDeviceStates.ifPresent { "deviceStates" to it.encodeDeviceStates() },
-            details.appGroups.ifPresent { "appGroups" to it.encodeAppGroups() }
+            details.appGroups.ifPresent { "appGroups" to it.encodeAppGroups() },
+            details.autoAddGroupIds.ifPresent { "autoAddGroupIds" to json.encodeToString(it) }
         ).toMap()
 
         val doc = (device as FirestoreDeviceRef).document
@@ -159,6 +161,13 @@ class FirestoreDevicesRepository(
             json.decodeFromString<AppGroupsDto>(getString(fieldName) ?: "{}")
         } catch (_: Exception) {
             AppGroupsDto.empty()
+        }
+
+    private fun QueryDocumentSnapshot.getAutoAddGroupIds(fieldName: String): List<String> =
+        try {
+            json.decodeFromString<List<String>>(getString(fieldName) ?: "[]")
+        } catch (_: Exception) {
+            emptyList()
         }
 
 

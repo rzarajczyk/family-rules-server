@@ -12,19 +12,25 @@ import pl.zarajczyk.familyrules.domain.port.ValueUpdate
 import pl.zarajczyk.familyrules.domain.port.ValueUpdate.Companion.set
 
 @RestController
-class V2ClientInfoController(private val devicesService: DevicesService) {
+class V2ClientInfoController(
+    private val devicesService: DevicesService,
+    private val autoAddAppsService: AutoAddAppsService
+) {
 
     @PostMapping(value = ["/api/v2/launch", "/api/v2/client-info"])
     fun clientInfo(@RequestBody request: ClientInfoRequest, authentication: Authentication): ClientInfoResponse {
         val device = devicesService.get(authentication)
+        val oldKnownApps = device.getDetails().knownApps
+        val newKnownApps = request.knownApps?.mapValues { it.value.toDto() } ?: emptyMap()
         device.update(DeviceDetailsUpdateDto(
             clientVersion = set(request.version),
             clientTimezoneOffsetSeconds = set(request.timezoneOffsetSeconds ?: 0L),
             reportIntervalSeconds = set(request.reportIntervalSeconds ?: 60L),
-            knownApps = set(request.knownApps?.mapValues { it.value.toDto() } ?: emptyMap()),
+            knownApps = set(newKnownApps),
             availableDeviceStates = set(request.availableStates.map { it.toDto() })
 
         ))
+        autoAddAppsService.handleKnownAppsUpdate(device, oldKnownApps, newKnownApps)
         return ClientInfoResponse()
     }
 
