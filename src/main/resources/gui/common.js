@@ -1,207 +1,162 @@
-const ServerRequest = {
-    getCookie: function(name) {
-        let cookies = document.cookie.split(';');
-        for (let cookie of cookies) {
-            let [cookieName, cookieValue] = cookie.trim().split('=');
-            if (cookieName === name) {
-                return decodeURIComponent(cookieValue);
-            }
-        }
-        return null;
-    },
+// ============================================================
+// common.js — shared utilities for all pages (Alpine + DaisyUI)
+// ============================================================
 
-    fetch: function(url, options) {
-        let headers = new Headers()
-//        headers.set('Authorization', 'Basic ' + btoa(ServerRequest.getCookie("fr_username") + ":" + ServerRequest.getCookie("fr_token")))
-//        headers.set('x-seed', ServerRequest.getCookie("fr_seed"))
-        headers.set('Content-Type', "application/json");
+const ServerRequest = {
+    fetch(url, options) {
+        const headers = new Headers();
+        headers.set('Content-Type', 'application/json');
 
         return fetch(url, {
-            method: options?.method ?? "GET",
+            method: options?.method ?? 'GET',
             headers: headers,
             body: options?.body,
             credentials: 'include',
             redirect: 'manual'
         }).then(response => {
-            if (response.type == 'opaqueredirect') {
-                window.location.href = "/logout"
-                return null
+            if (response.type === 'opaqueredirect') {
+                window.location.href = '/logout';
+                return null;
             }
             if (response.redirected) {
-                window.location.href = response.url
-                return null
+                window.location.href = response.url;
+                return null;
             }
             if (response.status !== 200) {
                 throw new Error('Received HTTP status code: ' + response.status);
             }
-            return response
-        })
-    }
-}
-
-function today() {
-    let date = new Date()
-    const yyyy = date.getFullYear();
-    const mm = String(date.getMonth() + 1).padStart(2, '0');
-    const dd = String(date.getDate()).padStart(2, '0');
-    return `${yyyy}-${mm}-${dd}`;
-}
-
-function formatState(state) {
-    if (state == "ACTIVE") {
-        return `<i class="material-icons tiny">check_circle</i> Active`
-    } else if (state == "LOCKED") {
-        return `<i class="material-icons tiny">logout</i> Logged out`
-    } else if (state == "LOGGED_OUT") {
-        return `<i class="material-icons tiny">lock</i> Locked`
-    } else if (state == "APP_DISABLED") {
-        return `<i class="material-icons tiny">warning</i> App disabled!`
-    } else if (state == "") {
-        return `<i class="material-icons tiny">star</i> <span style="font-style: italic">Automatic</span>`
-    } else {
-        return state
-    }
-}
-
-document.addEventListener("DOMContentLoaded", (event) => {
-    M.AutoInit();
-    
-    // Initialize user dropdown
-    const userDropdown = document.querySelector('.dropdown-trigger');
-    if (userDropdown) {
-        M.Dropdown.init(userDropdown, {
-            alignment: 'right',
-            constrainWidth: false,
-            coverTrigger: false,
-            belowOrigin: true
+            return response;
         });
     }
+};
 
-    Handlebars.registerHelper('ifEquals', function(a, b, options) {
-        if (a == b) {
-            return options.fn(this);
-        } else {
-            return options.inverse(this);
-        }
-    })
+// ---- Utility helpers ----
 
-    Handlebars.registerHelper('ifNotEquals', function(a, b, options) {
-        if (a != b) {
-            return options.fn(this);
-        } else {
-            return options.inverse(this);
-        }
-    })
-
-    Handlebars.registerHelper('ifGt', function(a, b, options) {
-        if (a > b) {
-            return options.fn(this);
-        } else {
-            return options.inverse(this);
-        }
-    })
-
-    Handlebars.registerHelper('formatState', function(options) {
-        let state = options.fn(this);
-        return formatState(state)
-    })
-
-    Handlebars.registerHelper('toLowerCase', function(str) {
-      return str.toLowerCase();
-    });
-
-    Handlebars.registerHelper('br', function(text) {
-        text = Handlebars.Utils.escapeExpression(text);
-        text = text.replace(/(\r\n|\n|\r)/gm, '<br>');
-        return new Handlebars.SafeString(text);
-    });
-
-    Handlebars.registerHelper('formatScreenTime', function(options) {
-        let seconds = options.fn(this);
-
-        // Calculate the hours, minutes, and remaining seconds
-        var hours = Math.floor(seconds / 3600);
-        var minutes = Math.floor((seconds % 3600) / 60);
-        var remainingSeconds = seconds % 60;
-
-        // Pad the minutes and seconds with leading zeros if necessary
-        var formattedHours = hours > 0 ? hours + "h " : "";
-        var formattedMinutes = (minutes < 10 ? "0" : "") + minutes;
-        var formattedSeconds = (remainingSeconds < 10 ? "0" : "") + remainingSeconds;
-
-        // Combine the parts into the final formatted string
-        return formattedHours + formattedMinutes + "m " + formattedSeconds + "s";
-    })
-
-    Handlebars.registerHelper('firstLetter', function(str) {
-        return str && str.length > 0 ? str[0].toUpperCase() : '?';
-    })
-
-    Handlebars.registerHelper('groupNameFrom', function(groups, id) {
-        try {
-            const list = Array.isArray(groups) ? groups : [];
-            const g = list.find(it => it && it.id === id);
-            return g ? g.name : '';
-        } catch (e) {
-            return '';
-        }
-    })
-
-    Handlebars.fetchTemplate = function (...urls) {
-        const fetchPromises = urls.map(url =>
-            fetch(url)
-                .then(response => response.text())
-                .then(template => Handlebars.compile(template))
-        );
-
-        return Promise.all(fetchPromises);
-    }
-
-    document.querySelectorAll('span.format-state').forEach(it => {
-        it.innerHTML = formatState(it.innerHTML)
-    })
-
-    const elements = Array.from(document.querySelectorAll('*[data-source]'))
-    const promises = elements.map(element => {
-        const source = element.dataset['source']
-        return Handlebars.fetchTemplate(source)
-            .then(([template]) => {
-                element.outerHTML = template({})
-                return template
-            })
-    })
-    Promise.all(promises).then(() => {
-        M.AutoInit()
-        
-        // Check user access level and show/hide admin menu items
-        checkUserAccessLevel();
-        
-        document.querySelectorAll('header ul').forEach(ul => {
-            ul.querySelectorAll('li a').forEach(link => {
-                if (link.getAttribute('href') === window.location.pathname.split('/').pop()) {
-                    link.parentElement.classList.add('active');
-                }
-            })
-        })
-
-    })
-})
-
-// Check user access level and show/hide admin menu items
-async function checkUserAccessLevel() {
-    try {
-        const response = await ServerRequest.fetch('/bff/current-user');
-        if (response.ok) {
-            const user = await response.json();
-            if (user.accessLevel === 'ADMIN') {
-                const usersMenuItem = document.getElementById('users-menu-item');
-                if (usersMenuItem) {
-                    usersMenuItem.style.display = 'block';
-                }
-            }
-        }
-    } catch (error) {
-        console.log('Could not check user access level:', error);
-        // Silently fail - user might not be logged in or endpoint might not exist
-    }
+function today() {
+    const d = new Date();
+    return d.getFullYear() + '-' +
+        String(d.getMonth() + 1).padStart(2, '0') + '-' +
+        String(d.getDate()).padStart(2, '0');
 }
+
+function formatScreenTime(seconds) {
+    if (seconds == null || seconds === 0) return '0m 00s';
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+    const fh = h > 0 ? h + 'h ' : '';
+    const fm = (m < 10 ? '0' : '') + m;
+    const fs = (s < 10 ? '0' : '') + s;
+    return fh + fm + 'm ' + fs + 's';
+}
+
+function formatScreenTimeShort(seconds) {
+    if (seconds == null || seconds === 0) return '0s';
+    if (seconds < 60) return seconds + 's';
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    if (h === 0) return m + 'm';
+    return m > 0 ? h + 'h ' + m + 'm' : h + 'h';
+}
+
+function stateIcon(state) {
+    if (state === 'ACTIVE') return 'check_circle';
+    if (state === 'LOCKED') return 'lock';
+    if (state === 'LOGGED_OUT') return 'logout';
+    if (state === 'APP_DISABLED') return 'warning';
+    return 'star';
+}
+
+function stateLabel(state) {
+    if (state === 'ACTIVE') return 'Active';
+    if (state === 'LOCKED') return 'Locked';
+    if (state === 'LOGGED_OUT') return 'Logged out';
+    if (state === 'APP_DISABLED') return 'App disabled!';
+    if (!state || state === '') return 'Automatic';
+    return state;
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function iconSrc(icon) {
+    if (icon && icon.type && icon.data) return 'data:' + icon.type + ';base64,' + icon.data;
+    return 'default-icon.png';
+}
+
+function appIconSrc(base64) {
+    if (base64) return 'data:image/png;base64,' + base64;
+    return 'default-icon.png';
+}
+
+// ---- Toast (Alpine store) ----
+
+document.addEventListener('alpine:init', () => {
+    Alpine.store('toast', {
+        items: [],
+        _counter: 0,
+
+        info(message, duration = 5000) {
+            this._show(message, 'alert-success', duration);
+        },
+        error(message, duration = 5000) {
+            this._show(message, 'alert-error', duration);
+        },
+        _show(message, cls, duration) {
+            const id = ++this._counter;
+            this.items.push({ id, message, cls });
+            setTimeout(() => this.dismiss(id), duration);
+        },
+        dismiss(id) {
+            this.items = this.items.filter(t => t.id !== id);
+        }
+    });
+
+    Alpine.store('user', {
+        username: '',
+        accessLevel: '',
+        loaded: false,
+        async load() {
+            if (this.loaded) return;
+            try {
+                const resp = await ServerRequest.fetch('/bff/current-user');
+                if (resp && resp.ok) {
+                    const data = await resp.json();
+                    this.username = data.username;
+                    this.accessLevel = data.accessLevel;
+                }
+            } catch (_) { /* ignore */ }
+            this.loaded = true;
+        }
+    });
+});
+
+// ---- Header injection ----
+
+document.addEventListener('DOMContentLoaded', () => {
+    const headerEl = document.getElementById('app-header');
+    if (headerEl) {
+        fetch('./header.html')
+            .then(r => r.text())
+            .then(html => {
+                headerEl.innerHTML = html;
+                // Allow Alpine to pick up the new DOM
+                Alpine.initTree(headerEl);
+                // Highlight active nav item
+                headerEl.querySelectorAll('a[href]').forEach(link => {
+                    if (link.getAttribute('href') === '/gui/' + window.location.pathname.split('/').pop()) {
+                        link.classList.add('active');
+                    }
+                });
+            });
+    }
+});
+
+// Backward-compat Toast global
+const Toast = {
+    info(msg, dur) { Alpine.store('toast').info(msg, dur); },
+    error(msg, dur) { Alpine.store('toast').error(msg, dur); }
+};

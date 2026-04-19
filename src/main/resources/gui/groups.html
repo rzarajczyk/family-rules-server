@@ -1,559 +1,608 @@
 <!DOCTYPE html>
-<html>
+<html data-theme="light">
 <head>
-    <!--Import Google Icon Font-->
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-    <!--Import materialize.css-->
-
-    <link type="text/css" rel="stylesheet"
-          href="https://cdn.jsdelivr.net/npm/@materializecss/materialize@2.1.1/dist/css/materialize.min.css"
-          media="screen,projection"/>
-    <link type="text/css" rel="stylesheet" href="theme.css" media="screen,projection"/>
-    <link type="text/css" rel="stylesheet" href="common.css" media="screen,projection"/>
-    <link type="text/css" rel="stylesheet" href="fr-row.css" media="screen,projection"/>
-    <link type="text/css" rel="stylesheet" href="components.css" media="screen,projection"/>
-    <style>
-        .input-field {
-            margin-top: 2em;
-        }
-        
-        .app-group-tile {
-            background: white;
-            border-radius: 8px;
-            padding: 20px;
-            margin: 10px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            min-height: 200px;
-        }
-        
-        .app-group-tile h5 {
-            margin-top: 0;
-            color: var(--md-sys-color-primary);
-        }
-        
-        .app-group-stats {
-            display: flex;
-            justify-content: space-between;
-            margin: 15px 0;
-        }
-        
-        .stat-item {
-            text-align: center;
-        }
-        
-        .stat-value {
-            font-size: 1.5em;
-            font-weight: bold;
-            color: var(--md-sys-color-primary);
-        }
-        
-        .stat-label {
-            font-size: 0.9em;
-            color: var(--md-sys-color-on-surface-variant);
-        }
-        
-        .app-group-tile-remove-btn {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: none;
-            border: none;
-            color: var(--md-sys-color-error);
-            cursor: pointer;
-            padding: 5px;
-        }
-        
-        .app-group-tile-remove-btn:hover {
-            background-color: rgba(0,0,0,0.1);
-            border-radius: 50%;
-        }
-        
-        .app-group-actions {
-            margin-bottom: 1rem;
-        }
-
-        @media only screen and (max-width: 600.99px) {
-            .app-group-actions button {
-                width: 100%;
-                text-align: center;
-                display: block;
-            }
-        }
-        
-        .app-group-details {
-            padding: 1rem 0;
-        }
-        
-        .app-group-summary {
-            margin-bottom: 1rem;
-            padding-bottom: 1rem;
-            border-bottom: 1px solid var(--md-sys-color-outline-variant);
-        }
-        
-        .app-group-summary p {
-            margin: 0.25rem 0;
-        }
-        
-        .app-group-total-time {
-            color: var(--md-sys-color-primary);
-            font-weight: 500;
-        }
-        
-        .app-group-apps-list {
-            margin-top: 0.5rem;
-        }
-        
-        .app-group-apps-list .collection {
-            margin: 0;
-        }
-        
-        .app-group-apps-list .collection-item {
-            display: flex;
-            align-items: center;
-            padding: 0.75rem 1rem;
-            border-bottom: 1px solid var(--md-sys-color-outline-variant);
-        }
-        
-        .app-group-apps-list .collection-item:last-child {
-            border-bottom: none;
-        }
-        
-        .app-group-apps-list .app-info {
-            display: flex;
-            align-items: center;
-            flex: 1;
-        }
-        
-        .app-group-apps-list .app-icon {
-            width: 40px;
-            height: 40px;
-            margin-right: 1rem;
-        }
-        
-        .app-group-apps-list .app-details {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            gap: 0.25rem;
-        }
-        
-        .app-group-apps-list .app-name {
-            font-weight: 500;
-            color: var(--md-sys-color-on-surface);
-            cursor: pointer;
-            transition: color 0.2s;
-        }
-        
-        .app-group-apps-list .app-name:hover {
-            color: var(--md-sys-color-primary);
-        }
-        
-        .app-group-apps-list .app-device-info {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        
-        .app-group-apps-list .app-device {
-            color: var(--md-sys-color-on-surface-variant);
-            font-size: 0.9rem;
-        }
-        
-        .app-group-apps-list .app-percentage {
-            color: var(--md-sys-color-primary);
-            font-weight: 500;
-            font-size: 0.9rem;
-        }
-        
-        .app-group-apps-list .secondary-content {
-            color: var(--md-sys-color-primary);
-            font-weight: 500;
-            margin-left: 1rem;
-        }
-        
-        .app-group-no-apps {
-            text-align: center;
-            padding: 2rem;
-            color: var(--md-sys-color-on-surface-variant);
-        }
-        
-        .app-group-no-apps p {
-            margin: 0.5rem 0;
-        }
-        
-        @media only screen and (max-width: 768px) {
-            .app-group-apps-list .collection-item {
-                flex-direction: column;
-                align-items: flex-start;
-                padding: 1rem;
-            }
-            
-            .app-group-apps-list .app-info {
-                width: 100%;
-                margin-bottom: 0.5rem;
-            }
-            
-            .app-group-apps-list .secondary-content {
-                margin-left: 0;
-                margin-top: 0.5rem;
-                align-self: flex-end;
-            }
-        }
-        
-        /* All Apps Modal Styles */
-        #all-apps-modal {
-            max-height: 90%;
-            width: 60%;
-        }
-        
-        @media only screen and (max-width: 992px) {
-            #all-apps-modal {
-                width: 80%;
-            }
-        }
-        
-        @media only screen and (max-width: 600px) {
-            #all-apps-modal {
-                width: 95%;
-            }
-        }
-        
-        #all-apps-modal .modal-content {
-            padding: 24px;
-            max-height: calc(90vh - 56px);
-            overflow-y: auto;
-        }
-        
-        #all-apps-modal h4 {
-            color: var(--md-sys-color-primary);
-            margin-top: 0;
-            margin-bottom: 1.5rem;
-        }
-        
-        .modal-device-section {
-            margin-bottom: 2rem;
-        }
-        
-        .modal-device-section h6 {
-            color: var(--md-sys-color-on-surface);
-            font-weight: 500;
-            margin: 0 0 0.75rem 0;
-            padding-bottom: 0.5rem;
-            border-bottom: 2px solid var(--md-sys-color-primary);
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        
-        .modal-device-section h6 i {
-            font-size: 20px;
-        }
-        
-        .modal-app-item {
-            display: flex;
-            align-items: center;
-            padding: 1rem 0.75rem;
-            transition: background-color 0.2s;
-            cursor: pointer;
-        }
-        
-        .modal-app-item:hover {
-            background-color: rgba(0, 0, 0, 0.02);
-        }
-        
-        .modal-app-item label {
-            width: 100%;
-            cursor: pointer;
-            margin: 0;
-        }
-        
-        .modal-app-info {
-            align-items: center;
-            flex: 1;
-            margin-left: 0.5rem;
-            width: 100%;
-        }
-        
-        .modal-app-icon {
-            width: 16px;
-            height: 16px;
-            margin-right: 0.75rem;
-            margin-top: 2px;
-            float: left;
-        }
-        
-        .modal-app-details {
-        }
-        
-        .modal-app-name {
-            font-weight: bold;
-            display: block;
-            margin-bottom: 0.125rem;
-        }
-        
-        .modal-app-path {
-            font-size: 0.8rem;
-            font-family: monospace;
-            word-break: break-all;
-        }
-        
-        .modal-no-apps {
-            text-align: center;
-            padding: 2rem;
-            color: var(--md-sys-color-on-surface-variant);
-        }
-        
-        #modal-save-btn[disabled] {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-        
-        /* Group States Modal Styles */
-        #group-states-modal {
-            max-height: 90%;
-            width: 60%;
-        }
-        
-        @media only screen and (max-width: 992px) {
-            #group-states-modal {
-                width: 80%;
-            }
-        }
-        
-        @media only screen and (max-width: 600px) {
-            #group-states-modal {
-                width: 95%;
-            }
-        }
-        
-        .group-state-item {
-            padding: 1rem;
-            margin: 0.5rem 0;
-            border: 1px solid var(--md-sys-color-outline-variant);
-            border-radius: 8px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            transition: background-color 0.2s;
-        }
-        
-        .group-state-item:hover {
-            background-color: rgba(0, 0, 0, 0.02);
-        }
-        
-        .group-state-info {
-            flex: 1;
-        }
-        
-        .group-state-name {
-            font-weight: 500;
-            font-size: 1.1rem;
-            margin-bottom: 0.5rem;
-        }
-        
-        .group-state-devices {
-            color: var(--md-sys-color-on-surface-variant);
-            font-size: 0.9rem;
-        }
-        
-        .group-state-device {
-            display: inline-block;
-            margin-right: 1rem;
-            margin-bottom: 0.25rem;
-        }
-        
-        .group-state-actions {
-            display: flex;
-            gap: 0.5rem;
-        }
-        
-        .no-states-message {
-            text-align: center;
-            padding: 2rem;
-            color: var(--md-sys-color-on-surface-variant);
-        }
-        
-        /* Edit State Modal Styles */
-        #edit-state-modal {
-            max-height: 90%;
-            width: 50%;
-        }
-        
-        @media only screen and (max-width: 992px) {
-            #edit-state-modal {
-                width: 70%;
-            }
-        }
-        
-        @media only screen and (max-width: 600px) {
-            #edit-state-modal {
-                width: 95%;
-            }
-        }
-        
-        .device-state-selector {
-            margin-bottom: 1.5rem;
-            padding: 1rem;
-            border: 1px solid var(--md-sys-color-outline-variant);
-            border-radius: 8px;
-        }
-        
-        .device-state-selector h6 {
-            margin-top: 0;
-            margin-bottom: 0.75rem;
-            color: var(--md-sys-color-on-surface);
-            font-size: 1rem;
-        }
-        
-        .device-state-selector select {
-            display: block;
-        }
-
-        .group-letter-avatar {
-            background: linear-gradient(135deg, #1a237e, #283593);
-            color: #ffffff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.75rem;
-            font-weight: 600;
-            letter-spacing: 0;
-            user-select: none;
-        }
-    </style>
-    <!--Let browser know website is optimized for mobile-->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-
-    <link rel="icon" type="image/png" href="icon.png">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Family Rules - Groups</title>
+    <link rel="icon" type="image/png" href="icon.png">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4/dist/full.min.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js"></script>
+    <script src="common.js"></script>
 </head>
-<body>
-<header data-source="./header.handlebars"></header>
+<body class="min-h-screen bg-base-200">
 
-<div class="container">
-    <div class="row">
-        <div class="col s12">
-            <form>
-                <div class="input-field">
-                    <input id="datepicker" type="text" class="datepicker no-autoinit">
-                    <label for="datepicker">Date</label>
-                </div>
-            </form>
+<!-- Toast -->
+<div x-data class="toast toast-top toast-end z-[9999]">
+    <template x-for="t in $store.toast.items" :key="t.id">
+        <div class="alert shadow-lg" :class="t.cls">
+            <span x-text="t.message"></span>
+            <button class="btn btn-ghost btn-xs" @click="$store.toast.dismiss(t.id)"><span class="material-icons text-sm">close</span></button>
         </div>
-    </div>
-    <div id="loading"></div>
-    
-    <div class="row">
-        <div class="col s12">
-            <ul class="collapsible no-autoinit popout" id="app-groups" style="display: none;">
-            </ul>
-        </div>
-    </div>
+    </template>
 </div>
 
-<!-- All Apps Modal -->
-<div id="all-apps-modal" class="modal modal-fixed-footer">
-    <div class="modal-content">
-        <h4 id="modal-group-name"></h4>
-        <div id="modal-loading" style="display: none;">
-            <div class="center-align" style="padding: 2rem;">
-                <div class="preloader-wrapper small active">
-                    <div class="spinner-layer spinner-blue-only">
-                        <div class="circle-clipper left"><div class="circle"></div></div>
-                        <div class="circle-clipper right"><div class="circle"></div></div>
+<div class="drawer">
+    <input id="main-drawer" type="checkbox" class="drawer-toggle">
+    <div class="drawer-content flex flex-col">
+        <div id="app-header"></div>
+
+        <div class="container mx-auto p-4 max-w-4xl" x-data="groupsPage()" x-init="init()">
+
+            <!-- Date picker -->
+            <div class="form-control mb-4 max-w-xs">
+                <label class="label"><span class="label-text">Date</span></label>
+                <input type="date" class="input input-bordered" x-model="selectedDate" @change="update()">
+            </div>
+
+            <!-- Loading -->
+            <div x-show="loading" class="flex flex-col items-center py-12">
+                <span class="loading loading-spinner loading-lg text-primary"></span>
+                <p class="mt-2 text-base-content/60">Loading...</p>
+            </div>
+
+            <!-- Error -->
+            <div x-show="errorMsg" class="flex flex-col items-center py-12 gap-4">
+                <span class="material-icons text-error text-5xl">error</span>
+                <p class="text-base-content/60" x-text="errorMsg"></p>
+                <button class="btn btn-primary" @click="update()"><span class="material-icons text-sm">refresh</span> Retry</button>
+            </div>
+
+            <!-- Groups list -->
+            <div x-show="!loading && !errorMsg" class="flex flex-col gap-3">
+                <template x-if="groups.length === 0 && !loading && !errorMsg">
+                    <div class="text-center py-8 text-base-content/50">No app groups created yet</div>
+                </template>
+
+                <template x-for="group in groups" :key="group.id">
+                    <div class="collapse collapse-arrow bg-base-100 shadow-sm">
+                        <input type="checkbox">
+                        <!-- Header -->
+                        <div class="collapse-title pr-10">
+                            <div class="flex items-center gap-3 flex-wrap">
+                                <div class="w-12 h-12 rounded-full flex-shrink-0 flex items-center justify-center text-white font-semibold text-xl"
+                                     style="background: linear-gradient(135deg, #1a237e, #283593);"
+                                     x-text="group.name.charAt(0).toUpperCase()"></div>
+                                <span class="font-semibold" x-text="group.name"></span>
+                                <span class="badge badge-primary badge-sm" x-text="formatScreenTimeShort(group.totalScreenTime)"></span>
+                                <!-- Current group state badge -->
+                                <template x-if="group.currentGroupState && group.currentGroupState.kind === 'named'">
+                                    <span class="badge badge-warning badge-sm gap-1">
+                                        <span class="material-icons text-xs">tune</span>
+                                        <span x-text="group.currentGroupState.label"></span>
+                                    </span>
+                                </template>
+                                <template x-if="group.currentGroupState && group.currentGroupState.kind === 'automatic'">
+                                    <span class="badge badge-success badge-sm gap-1">
+                                        <span class="material-icons text-xs">auto_awesome</span>
+                                        Automatic
+                                    </span>
+                                </template>
+                                <template x-if="group.currentGroupState && group.currentGroupState.kind === 'different'">
+                                    <span class="badge badge-ghost badge-sm gap-1">
+                                        <span class="material-icons text-xs">device_unknown</span>
+                                        Different
+                                    </span>
+                                </template>
+                                <template x-if="group.online">
+                                    <span class="badge badge-error badge-sm animate-pulse">
+                                        <span class="material-icons text-xs">online_prediction</span>
+                                    </span>
+                                </template>
+                            </div>
+                        </div>
+                        <!-- Body -->
+                        <div class="collapse-content">
+                            <!-- Summary -->
+                            <div class="mb-3 pb-3 border-b border-base-200">
+                                <p class="font-semibold"><span x-text="group.appsCount"></span> apps across <span x-text="group.devicesCount"></span> devices</p>
+                                <p class="text-primary font-medium">Total usage: <span x-text="formatScreenTimeShort(group.totalScreenTime)"></span></p>
+                            </div>
+
+                            <!-- App usage list -->
+                            <template x-if="group.apps && group.apps.length > 0">
+                                <div class="mb-4">
+                                    <template x-for="app in group.apps.filter(a => a.screenTime)" :key="app.packageName + '-' + app.deviceName">
+                                        <div class="flex items-center gap-3 py-2 border-b border-base-200 last:border-0">
+                                            <img :src="appIconSrc(app.iconBase64)" class="w-8 h-8 flex-shrink-0 rounded" alt="">
+                                            <div class="flex-1 min-w-0">
+                                                <span class="cursor-pointer hover:text-primary text-sm block truncate"
+                                                      :class="app._showPath && 'italic text-base-content/50'"
+                                                      @click="app._showPath = !app._showPath"
+                                                      x-text="app._showPath ? app.packageName : app.name"></span>
+                                                <div class="flex items-center gap-2 text-xs text-base-content/60">
+                                                    <span x-text="app.deviceName"></span>
+                                                    <span class="text-primary font-medium" x-text="app.percentage + '%'"></span>
+                                                </div>
+                                            </div>
+                                            <div class="flex items-center gap-1 flex-shrink-0">
+                                                <template x-if="app.online">
+                                                    <span class="text-error animate-pulse"><span class="material-icons text-xs">online_prediction</span></span>
+                                                </template>
+                                                <span class="text-sm font-medium" x-text="formatScreenTimeShort(app.screenTime)"></span>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
+                            </template>
+                            <template x-if="!group.apps || group.apps.length === 0">
+                                <div class="text-center py-4 text-base-content/50">
+                                    <p><em>No detailed app information available for this group.</em></p>
+                                    <p class="text-sm">This group contains <span x-text="group.appsCount"></span> apps across <span x-text="group.devicesCount"></span> devices.</p>
+                                </div>
+                            </template>
+
+                            <!-- Action buttons -->
+                            <div class="flex flex-wrap gap-2 mt-2">
+                                <button class="btn btn-sm btn-ghost" @click="showAllAppsModal(group.id)">
+                                    <span class="material-icons text-sm">apps</span> <span class="hidden sm:inline">Select Apps</span>
+                                </button>
+                                <button class="btn btn-sm btn-ghost" @click="showGroupStatesModal(group.id)">
+                                    <span class="material-icons text-sm">settings</span> <span class="hidden sm:inline">Define States</span>
+                                </button>
+                                <button class="btn btn-sm btn-ghost" @click="showEditGroupModal(group)">
+                                    <span class="material-icons text-sm">edit</span> <span class="hidden sm:inline">Edit</span>
+                                </button>
+                                <button class="btn btn-sm btn-ghost" @click="deleteGroup(group.id)">
+                                    <span class="material-icons text-sm">delete</span> <span class="hidden sm:inline">Delete</span>
+                                </button>
+                                <div class="flex-1"></div>
+                                <button class="btn btn-sm btn-outline btn-primary"
+                                        :disabled="!group.hasStates"
+                                        @click="showApplyGroupStateModal(group)">Change group state</button>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+            </div>
+
+            <!-- All Apps Modal -->
+            <dialog class="modal" :class="allAppsModal.open && 'modal-open'">
+                <div class="modal-box w-11/12 max-w-3xl">
+                    <h3 class="font-bold text-lg mb-4" x-text="allAppsModal.groupName"></h3>
+                    <!-- Loading -->
+                    <div x-show="allAppsModal.loading" class="flex flex-col items-center py-8">
+                        <span class="loading loading-spinner loading-lg text-primary"></span>
+                        <p class="mt-2 text-base-content/60">Loading apps...</p>
+                    </div>
+                    <!-- Content -->
+                    <div x-show="!allAppsModal.loading">
+                        <template x-if="allAppsModal.devices.length === 0">
+                            <p class="text-center py-8 text-base-content/50">No apps found on any device</p>
+                        </template>
+                        <template x-for="device in allAppsModal.devices" :key="device.deviceId">
+                            <div class="mb-6">
+                                <h4 class="font-medium flex items-center gap-2 pb-2 mb-2 border-b-2 border-primary">
+                                    <span class="material-icons text-sm">phone_android</span>
+                                    <span x-text="device.deviceName"></span>
+                                </h4>
+                                <template x-if="device.apps.length === 0">
+                                    <p class="py-2 text-base-content/50">No apps on this device</p>
+                                </template>
+                                <template x-for="app in device.apps" :key="device.deviceId + ':' + app.packageName">
+                                    <label class="flex items-center gap-3 py-2 cursor-pointer hover:bg-base-200 rounded px-2">
+                                        <input type="checkbox" class="checkbox checkbox-sm"
+                                               :checked="app.inGroup"
+                                               @change="app.inGroup = $event.target.checked">
+                                        <img :src="appIconSrc(app.iconBase64)" class="w-5 h-5 flex-shrink-0" alt="">
+                                        <div class="flex-1 min-w-0">
+                                            <span class="font-medium text-sm block" x-text="app.name"></span>
+                                            <span class="text-xs font-mono text-base-content/50 block truncate" x-text="app.packageName"></span>
+                                        </div>
+                                    </label>
+                                </template>
+                            </div>
+                        </template>
+                    </div>
+                    <div class="modal-action">
+                        <button class="btn" @click="allAppsModal.open = false">Cancel</button>
+                        <button class="btn btn-primary" :disabled="allAppsModal.saving" @click="saveAllAppsChanges()">
+                            <span x-show="allAppsModal.saving" class="loading loading-spinner loading-xs"></span>
+                            <span x-text="allAppsModal.saving ? 'Saving...' : 'Save Changes'"></span>
+                        </button>
                     </div>
                 </div>
-                <p>Loading apps...</p>
-            </div>
-        </div>
-        <div id="modal-apps-content">
-            <!-- Apps will be loaded here -->
-        </div>
-    </div>
-    <div class="modal-footer">
-        <a href="#!" class="modal-close waves-effect waves-light btn-flat">Cancel</a>
-        <a href="#!" id="modal-save-btn" class="waves-effect waves-light btn">Save Changes</a>
-    </div>
-</div>
+                <form method="dialog" class="modal-backdrop" @click="allAppsModal.open = false"></form>
+            </dialog>
 
-<!-- Group States Modal -->
-<div id="group-states-modal" class="modal modal-fixed-footer">
-    <div class="modal-content">
-        <h4 id="states-modal-title">Define Group States</h4>
-        <div id="states-modal-loading" style="display: none;">
-            <div class="center-align" style="padding: 2rem;">
-                <div class="preloader-wrapper small active">
-                    <div class="spinner-layer spinner-blue-only">
-                        <div class="circle-clipper left"><div class="circle"></div></div>
-                        <div class="circle-clipper right"><div class="circle"></div></div>
+            <!-- Group States Modal -->
+            <dialog class="modal" :class="statesModal.open && 'modal-open'">
+                <div class="modal-box w-11/12 max-w-3xl">
+                    <h3 class="font-bold text-lg mb-4">Define Group States</h3>
+                    <!-- Loading -->
+                    <div x-show="statesModal.loading" class="flex flex-col items-center py-8">
+                        <span class="loading loading-spinner loading-lg text-primary"></span>
+                        <p class="mt-2 text-base-content/60">Loading states...</p>
+                    </div>
+                    <!-- Content -->
+                    <div x-show="!statesModal.loading">
+                        <template x-if="statesModal.states.length === 0">
+                            <p class="text-center py-8 text-base-content/50">No group states defined yet. Click "Add New State" to create one.</p>
+                        </template>
+                        <template x-for="state in statesModal.states" :key="state.id">
+                            <div class="flex items-center justify-between p-4 my-2 border border-base-300 rounded-lg hover:bg-base-200">
+                                <div class="flex-1">
+                                    <div class="font-medium text-lg mb-1" x-text="state.name"></div>
+                                    <div class="text-sm text-base-content/60">
+                                        <template x-for="[deviceId, deviceState] in Object.entries(state.deviceStates)" :key="deviceId">
+                                            <span class="inline-block mr-3 mb-1">
+                                                <strong x-text="deviceNameFor(deviceId)"></strong>:
+                                                <span x-text="deviceState === null ? 'Automatic' : deviceState.deviceState"></span>
+                                            </span>
+                                        </template>
+                                        <template x-if="Object.keys(state.deviceStates).length === 0">
+                                            <em>No devices configured</em>
+                                        </template>
+                                    </div>
+                                </div>
+                                <div class="flex gap-2">
+                                    <button class="btn btn-sm" @click="editGroupState(state)">
+                                        <span class="material-icons text-sm">edit</span>
+                                    </button>
+                                    <button class="btn btn-sm btn-error" @click="deleteGroupState(state.id)">
+                                        <span class="material-icons text-sm">delete</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                    <div class="modal-action">
+                        <button class="btn" @click="statesModal.open = false">Close</button>
+                        <button class="btn btn-primary" @click="openEditStateModal(null)">Add New State</button>
                     </div>
                 </div>
-                <p>Loading states...</p>
-            </div>
-        </div>
-        <div id="states-modal-content">
-            <!-- States will be loaded here -->
+                <form method="dialog" class="modal-backdrop" @click="statesModal.open = false"></form>
+            </dialog>
+
+            <!-- Edit State Modal -->
+            <dialog class="modal" :class="editStateModal.open && 'modal-open'">
+                <div class="modal-box w-11/12 max-w-lg">
+                    <h3 class="font-bold text-lg mb-4" x-text="editStateModal.stateId ? 'Edit Group State' : 'New Group State'"></h3>
+                    <div class="form-control mb-4">
+                        <label class="label"><span class="label-text">State Name</span></label>
+                        <input type="text" class="input input-bordered" x-model="editStateModal.name" required>
+                    </div>
+                    <h4 class="font-medium mb-2">Device States</h4>
+                    <template x-if="statesModal.devices.length === 0">
+                        <p class="text-base-content/50">No devices available</p>
+                    </template>
+                    <template x-for="device in statesModal.devices" :key="'es-' + device.deviceId">
+                        <div class="p-3 mb-3 border border-base-300 rounded-lg">
+                            <h5 class="font-medium mb-2" x-text="device.deviceName"></h5>
+                            <select class="select select-bordered w-full"
+                                    :data-device-id="device.deviceId"
+                                    x-model="editStateModal.deviceStates[device.deviceId]">
+                                <option value="">-- Do not change --</option>
+                                <option value="__AUTOMATIC__">Automatic</option>
+                                <template x-for="st in device.availableStates" :key="st.deviceState">
+                                    <option :value="st.deviceState" x-text="st.title || st.deviceState"></option>
+                                </template>
+                            </select>
+                        </div>
+                    </template>
+                    <div class="modal-action">
+                        <button class="btn" @click="editStateModal.open = false">Cancel</button>
+                        <button class="btn btn-primary" @click="saveGroupState()">Save</button>
+                    </div>
+                </div>
+                <form method="dialog" class="modal-backdrop" @click="editStateModal.open = false"></form>
+            </dialog>
+
+            <!-- Apply Group State Modal -->
+            <dialog class="modal" :class="applyModal.open && 'modal-open'">
+                <div class="modal-box w-11/12 max-w-lg">
+                    <h3 class="font-bold text-lg mb-2">Apply Group State: <b x-text="applyModal.groupName"></b></h3>
+                    <p class="text-sm text-base-content/60 mb-4">Select a group state to apply. This will set all devices in the group according to the selected state configuration.</p>
+                    <template x-for="state in applyModal.states" :key="state.id">
+                        <a class="flex items-center gap-3 p-4 my-2 border border-base-300 rounded-lg hover:bg-primary/10 cursor-pointer"
+                           @click="applyGroupState(state.id)">
+                            <span class="material-icons text-primary">settings</span>
+                            <div class="flex-1">
+                                <div class="font-medium" x-text="state.name"></div>
+                                <div class="flex flex-wrap gap-1 mt-1">
+                                    <template x-for="[deviceId, deviceState] in Object.entries(state.deviceStates)" :key="deviceId">
+                                        <span class="badge badge-sm gap-1">
+                                            <span x-text="applyDeviceNameFor(deviceId)"></span>:
+                                            <span x-text="deviceState === null ? 'Automatic' : deviceState.deviceState"></span>
+                                        </span>
+                                    </template>
+                                </div>
+                            </div>
+                        </a>
+                    </template>
+                    <div class="modal-action">
+                        <button class="btn" @click="applyModal.open = false">Cancel</button>
+                    </div>
+                </div>
+                <form method="dialog" class="modal-backdrop" @click="applyModal.open = false"></form>
+            </dialog>
+
+            <!-- Edit Group Modal -->
+            <dialog class="modal" :class="editGroupModal.open && 'modal-open'">
+                <div class="modal-box">
+                    <h3 class="font-bold text-lg mb-4">Edit Group</h3>
+                    <div class="form-control mb-3">
+                        <label class="label"><span class="label-text">Group Name</span></label>
+                        <input type="text" class="input input-bordered" x-model="editGroupModal.name" required>
+                    </div>
+                    <div class="form-control mb-3">
+                        <label class="label"><span class="label-text">Description</span></label>
+                        <textarea class="textarea textarea-bordered" x-model="editGroupModal.description"></textarea>
+                    </div>
+                    <div class="modal-action">
+                        <button class="btn" @click="editGroupModal.open = false">Cancel</button>
+                        <button class="btn btn-primary" @click="saveEditGroup()">Save</button>
+                    </div>
+                </div>
+                <form method="dialog" class="modal-backdrop" @click="editGroupModal.open = false"></form>
+            </dialog>
+
         </div>
     </div>
-    <div class="modal-footer">
-        <a href="#!" class="modal-close waves-effect waves-light btn-flat">Close</a>
-        <a href="#!" id="states-add-btn" class="waves-effect waves-light btn">Add New State</a>
+
+    <!-- Sidebar -->
+    <div class="drawer-side z-50">
+        <label for="main-drawer" aria-label="close sidebar" class="drawer-overlay"></label>
+        <ul x-data class="menu bg-base-200 min-h-full w-64 p-4 text-base-content">
+            <li><a href="/gui/index.html"><span class="material-icons">home</span> Home</a></li>
+            <li><a href="/gui/devices.html"><span class="material-icons">devices</span> Devices</a></li>
+            <li><a href="/gui/groups.html"><span class="material-icons">group_work</span> App Groups</a></li>
+            <li class="border-t my-2"></li>
+            <li x-show="$store.user.accessLevel === 'ADMIN'" x-cloak>
+                <a href="/gui/users.html"><span class="material-icons">people</span> ADMIN: Users</a>
+            </li>
+            <li class="border-t my-2"></li>
+            <li><a href="/gui/settings.html"><span class="material-icons">settings</span> Settings</a></li>
+            <li><a href="/logout"><span class="material-icons">logout</span> Logout</a></li>
+        </ul>
     </div>
 </div>
 
-<!-- Edit/Create Group State Modal -->
-<div id="edit-state-modal" class="modal modal-fixed-footer">
-    <div class="modal-content">
-        <h4 id="edit-state-modal-title">Edit Group State</h4>
-        <div class="input-field">
-            <input id="state-name-input" type="text" required>
-            <label for="state-name-input">State Name</label>
-        </div>
-        <h6>Device States</h6>
-        <div id="device-states-list">
-            <!-- Device state selections will be loaded here -->
-        </div>
-    </div>
-    <div class="modal-footer">
-        <a href="#!" class="modal-close waves-effect waves-light btn-flat">Cancel</a>
-        <a href="#!" id="edit-state-save-btn" class="waves-effect waves-light btn">Save</a>
-    </div>
-</div>
+<script>
+function groupsPage() {
+    return {
+        selectedDate: today(),
+        groups: [],
+        loading: false,
+        errorMsg: '',
 
-<!-- Apply Group State Modal -->
-<div id="apply-group-state-modal" class="modal modal-fixed-footer">
-    <div class="modal-content"></div>
-    <div class="modal-footer">
-        <a href="#!" class="modal-close waves-effect btn-flat">Cancel</a>
-    </div>
-</div>
+        // Modals
+        allAppsModal: { open: false, groupId: '', groupName: '', devices: [], initialState: new Map(), loading: false, saving: false },
+        statesModal: { open: false, groupId: '', states: [], devices: [], loading: false },
+        editStateModal: { open: false, stateId: null, name: '', deviceStates: {} },
+        applyModal: { open: false, groupId: '', groupName: '', states: [], devices: [] },
+        editGroupModal: { open: false, groupId: '', name: '', description: '' },
 
-<!-- Edit Group Modal -->
-<div id="edit-group-modal" class="modal">
-    <div class="modal-content">
-        <h4>Edit Group</h4>
-        <div class="input-field">
-            <input id="edit-group-name-input" type="text" required>
-            <label for="edit-group-name-input">Group Name</label>
-        </div>
-        <div class="input-field">
-            <textarea id="edit-group-description-input" class="materialize-textarea"></textarea>
-            <label for="edit-group-description-input">Description</label>
-        </div>
-    </div>
-    <div class="modal-footer">
-        <a href="#!" class="modal-close waves-effect waves-light btn-flat">Cancel</a>
-        <a href="#!" id="edit-group-save-btn" class="waves-effect waves-light btn">Save</a>
-    </div>
-</div>
+        init() { this.update(); },
 
-<!--JavaScript at end of body for optimized loading-->
-<script type="text/javascript"
-        src="https://cdn.jsdelivr.net/npm/@materializecss/materialize@2.1.0/dist/js/materialize.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/handlebars@latest/dist/handlebars.js"></script>
-<script src="components.js"></script>
-<script src="common.js"></script>
-<script src="groups.js"></script>
+        async update() {
+            this.loading = true;
+            this.errorMsg = '';
+            try {
+                const resp = await ServerRequest.fetch('/bff/app-groups/statistics?date=' + this.selectedDate);
+                const data = await resp.json();
+                // Fetch hasStates for each group in parallel
+                const groups = data.groups || [];
+                await Promise.all(groups.map(async (group) => {
+                    try {
+                        const sr = await ServerRequest.fetch('/bff/app-groups/' + group.id + '/states');
+                        const sd = await sr.json();
+                        group.hasStates = sd.states && sd.states.length > 0;
+                    } catch (_) {
+                        group.hasStates = false;
+                    }
+                    // Add _showPath to apps
+                    (group.apps || []).forEach(app => { app._showPath = false; });
+                }));
+                this.groups = groups;
+            } catch (e) {
+                this.errorMsg = 'Failed to load app groups data. Please try again.';
+            } finally {
+                this.loading = false;
+            }
+        },
 
+        // --- Delete group ---
+        async deleteGroup(groupId) {
+            if (!confirm('Are you sure you want to delete this app group? This will remove all apps from this group.')) return;
+            try {
+                await ServerRequest.fetch('/bff/app-groups/' + groupId, { method: 'DELETE' });
+                this.update();
+            } catch (_) { Toast.error('Failed to delete group'); }
+        },
+
+        // --- Edit group ---
+        showEditGroupModal(group) {
+            this.editGroupModal = {
+                open: true,
+                groupId: group.id,
+                name: group.name,
+                description: group.description || ''
+            };
+        },
+
+        async saveEditGroup() {
+            const m = this.editGroupModal;
+            if (!m.name.trim()) return;
+            try {
+                await ServerRequest.fetch('/bff/app-groups/' + m.groupId, {
+                    method: 'PUT',
+                    body: JSON.stringify({ newName: m.name.trim(), description: m.description })
+                });
+                m.open = false;
+                this.update();
+            } catch (_) { Toast.error('Failed to update group'); }
+        },
+
+        // --- All Apps Modal ---
+        async showAllAppsModal(groupId) {
+            const group = this.groups.find(g => g.id === groupId);
+            this.allAppsModal = { open: true, groupId, groupName: group?.name || '', devices: [], initialState: new Map(), loading: true, saving: false };
+            try {
+                const resp = await ServerRequest.fetch('/bff/app-groups/' + groupId + '/all-apps');
+                const data = await resp.json();
+                const devices = data.devices || [];
+                // Store initial state
+                const initial = new Map();
+                devices.forEach(d => d.apps.forEach(app => {
+                    initial.set(d.deviceId + ':' + app.packageName, app.inGroup);
+                }));
+                this.allAppsModal.devices = devices;
+                this.allAppsModal.initialState = initial;
+            } catch (_) {
+                Toast.error('Failed to load apps');
+                this.allAppsModal.open = false;
+            } finally {
+                this.allAppsModal.loading = false;
+            }
+        },
+
+        async saveAllAppsChanges() {
+            const m = this.allAppsModal;
+            const changes = new Map();
+            m.devices.forEach(d => d.apps.forEach(app => {
+                const key = d.deviceId + ':' + app.packageName;
+                const was = m.initialState.get(key);
+                if (was !== app.inGroup) {
+                    if (!changes.has(d.deviceId)) changes.set(d.deviceId, { deviceId: d.deviceId, appsToAdd: [], appsToRemove: [] });
+                    if (app.inGroup) changes.get(d.deviceId).appsToAdd.push(app.packageName);
+                    else changes.get(d.deviceId).appsToRemove.push(app.packageName);
+                }
+            }));
+            if (changes.size === 0) { m.open = false; return; }
+            m.saving = true;
+            try {
+                await ServerRequest.fetch('/bff/app-groups/' + m.groupId + '/members', {
+                    method: 'PUT',
+                    body: JSON.stringify({ devices: Array.from(changes.values()) })
+                });
+                m.open = false;
+                this.update();
+            } catch (_) {
+                Toast.error('Failed to save changes');
+            } finally {
+                m.saving = false;
+            }
+        },
+
+        // --- Group States Modal ---
+        async showGroupStatesModal(groupId) {
+            this.statesModal = { open: true, groupId, states: [], devices: [], loading: true };
+            try {
+                const [sr, dr] = await Promise.all([
+                    ServerRequest.fetch('/bff/app-groups/' + groupId + '/states'),
+                    ServerRequest.fetch('/bff/app-groups/' + groupId + '/devices-for-states')
+                ]);
+                const [sd, dd] = await Promise.all([sr.json(), dr.json()]);
+                this.statesModal.states = sd.states || [];
+                this.statesModal.devices = dd.devices || [];
+            } catch (_) {
+                Toast.error('Failed to load group states');
+                this.statesModal.open = false;
+            } finally {
+                this.statesModal.loading = false;
+            }
+        },
+
+        deviceNameFor(deviceId) {
+            const d = this.statesModal.devices.find(d => d.deviceId === deviceId);
+            return d ? d.deviceName : 'Unknown Device';
+        },
+
+        // --- Edit/Create State ---
+        openEditStateModal(state) {
+            const deviceStates = {};
+            this.statesModal.devices.forEach(d => {
+                if (state && state.deviceStates) {
+                    if (d.deviceId in state.deviceStates) {
+                        const ds = state.deviceStates[d.deviceId];
+                        deviceStates[d.deviceId] = ds === null ? '__AUTOMATIC__' : (ds ? ds.deviceState : '');
+                    } else {
+                        deviceStates[d.deviceId] = '';
+                    }
+                } else {
+                    deviceStates[d.deviceId] = '';
+                }
+            });
+            this.editStateModal = {
+                open: true,
+                stateId: state ? state.id : null,
+                name: state ? state.name : '',
+                deviceStates
+            };
+        },
+
+        editGroupState(state) {
+            this.openEditStateModal(state);
+        },
+
+        async saveGroupState() {
+            const m = this.editStateModal;
+            if (!m.name.trim()) { Toast.error('Please enter a state name'); return; }
+            const deviceStates = {};
+            for (const [deviceId, val] of Object.entries(m.deviceStates)) {
+                if (val === '__AUTOMATIC__') deviceStates[deviceId] = null;
+                else if (val !== '') deviceStates[deviceId] = { deviceState: val, extra: null };
+            }
+            const body = JSON.stringify({ name: m.name.trim(), deviceStates });
+            try {
+                if (m.stateId) {
+                    await ServerRequest.fetch('/bff/app-groups/' + this.statesModal.groupId + '/states/' + m.stateId, { method: 'PUT', body });
+                } else {
+                    await ServerRequest.fetch('/bff/app-groups/' + this.statesModal.groupId + '/states', { method: 'POST', body });
+                }
+                m.open = false;
+                this.showGroupStatesModal(this.statesModal.groupId);
+            } catch (_) { Toast.error('Failed to save group state'); }
+        },
+
+        async deleteGroupState(stateId) {
+            if (!confirm('Are you sure you want to delete this group state?')) return;
+            try {
+                await ServerRequest.fetch('/bff/app-groups/' + this.statesModal.groupId + '/states/' + stateId, { method: 'DELETE' });
+                this.showGroupStatesModal(this.statesModal.groupId);
+            } catch (_) { Toast.error('Failed to delete group state'); }
+        },
+
+        // --- Apply Group State ---
+        async showApplyGroupStateModal(group) {
+            try {
+                const [sr, dr] = await Promise.all([
+                    ServerRequest.fetch('/bff/app-groups/' + group.id + '/states'),
+                    ServerRequest.fetch('/bff/app-groups/' + group.id + '/devices-for-states')
+                ]);
+                const [sd, dd] = await Promise.all([sr.json(), dr.json()]);
+                this.applyModal = {
+                    open: true,
+                    groupId: group.id,
+                    groupName: group.name,
+                    states: sd.states || [],
+                    devices: dd.devices || []
+                };
+            } catch (_) { Toast.error('Failed to load group states'); }
+        },
+
+        applyDeviceNameFor(deviceId) {
+            const d = this.applyModal.devices.find(d => d.deviceId === deviceId);
+            return d ? d.deviceName : 'Unknown Device';
+        },
+
+        async applyGroupState(stateId) {
+            try {
+                const resp = await ServerRequest.fetch('/bff/app-groups/' + this.applyModal.groupId + '/apply-state/' + stateId, { method: 'POST' });
+                const data = await resp.json();
+                if (data.success) {
+                    Toast.info('Group state applied to ' + data.appliedDevices + ' device(s)');
+                    this.applyModal.open = false;
+                    this.update();
+                } else {
+                    Toast.error('Failed to apply group state');
+                }
+            } catch (_) { Toast.error('Error applying group state'); }
+        }
+    };
+}
+</script>
 </body>
 </html>

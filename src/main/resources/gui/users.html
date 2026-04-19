@@ -1,174 +1,241 @@
 <!DOCTYPE html>
-<html lang="en">
+<html data-theme="light">
 <head>
-    <!--Import Google Icon Font-->
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-    <!--Import materialize.css-->
-    <link type="text/css" rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@materializecss/materialize@2.1.0/dist/css/materialize.css" media="screen,projection"/>
-    <!--Import theme.css-->
-    <link type="text/css" rel="stylesheet" href="theme.css" media="screen,projection"/>
-    <!--Import common.css-->
-    <link type="text/css" rel="stylesheet" href="common.css" media="screen,projection"/>
-    <link type="text/css" rel="stylesheet" href="components.css" media="screen,projection"/>
-    
-    <style>
-        .user-card {
-            margin-bottom: 1rem;
-        }
-        
-        .access-level-badge {
-            display: inline-block;
-            padding: 0.25rem 0.5rem;
-            border-radius: 0.25rem;
-            font-size: 0.75rem;
-            font-weight: 500;
-            text-transform: uppercase;
-        }
-        
-        .access-level-admin {
-            background-color: #f44336;
-            color: white;
-        }
-        
-        .access-level-parent {
-            background-color: #ff9800;
-            color: white;
-        }
-        
-        .user-info {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-        
-        .user-avatar {
-            width: 48px;
-            height: 48px;
-            border-radius: 50%;
-            background-color: var(--md-sys-color-primary-container-light);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--md-sys-color-on-primary-container-light);
-            font-size: 1.5rem;
-            font-weight: 500;
-        }
-        
-        .user-details {
-            flex: 1;
-        }
-        
-        .user-name {
-            font-size: 1.25rem;
-            font-weight: 500;
-            margin: 0;
-            color: var(--md-sys-color-on-surface-light);
-        }
-        
-        .user-access-level {
-            margin-top: 0.25rem;
-        }
-        
-        .user-actions {
-            display: flex;
-            gap: 0.5rem;
-            align-items: center;
-        }
-        
-        .user-actions .btn {
-            padding: 0 0.75rem;
-            height: 2rem;
-            line-height: 2rem;
-            font-size: 0.75rem;
-        }
-        
-        .user-actions .btn-floating {
-            width: 2rem;
-            height: 2rem;
-            line-height: 2rem;
-        }
-        
-        .user-actions .btn-floating i {
-            font-size: 1rem;
-        }
-
-
-    </style>
-    <!--Let browser know website is optimized for mobile-->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-
-    <link rel="icon" type="image/png" href="icon.png">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Family Rules - Users</title>
+    <link rel="icon" type="image/png" href="icon.png">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4/dist/full.min.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js"></script>
+    <script src="common.js"></script>
 </head>
-<body>
-<header data-source="./header.handlebars"></header>
+<body class="min-h-screen bg-base-200">
 
-<div class="container">
-    <div class="section">
-        <div class="row">
-            <div class="col s12 m8">
-                <h4>User Management</h4>
-                <p class="flow-text">Manage system users and their access levels.</p>
-            </div>
-            <div class="col s12 m4">
-                <button class="btn waves-effect waves-light right" onclick="openAddUserModal()">
-                    <i class="material-icons left">person_add</i>
-                    Add User
+<!-- Toast container -->
+<div x-data class="toast toast-top toast-end z-[9999]">
+    <template x-for="t in $store.toast.items" :key="t.id">
+        <div class="alert shadow-lg" :class="t.cls">
+            <span x-text="t.message"></span>
+            <button class="btn btn-ghost btn-xs" @click="$store.toast.dismiss(t.id)">
+                <span class="material-icons text-sm">close</span>
+            </button>
+        </div>
+    </template>
+</div>
+
+<!-- Drawer layout -->
+<div class="drawer">
+    <input id="main-drawer" type="checkbox" class="drawer-toggle">
+    <div class="drawer-content flex flex-col">
+        <div id="app-header"></div>
+
+        <div class="container mx-auto p-4 max-w-3xl" x-data="usersPage()" x-init="load()">
+
+            <!-- Title row -->
+            <div class="flex items-center justify-between mb-6">
+                <div>
+                    <h1 class="text-2xl font-bold">User Management</h1>
+                    <p class="text-base-content/60">Manage system users and their access levels.</p>
+                </div>
+                <button class="btn btn-primary" @click="showAddModal = true">
+                    <span class="material-icons text-sm">person_add</span> Add User
                 </button>
             </div>
+
+            <!-- Loading -->
+            <div x-show="loading" class="flex flex-col items-center py-12">
+                <span class="loading loading-spinner loading-lg text-primary"></span>
+                <p class="mt-2 text-base-content/60">Loading...</p>
+            </div>
+
+            <!-- Error -->
+            <div x-show="errorMsg" class="flex flex-col items-center py-12 gap-4">
+                <span class="material-icons text-error text-5xl">error</span>
+                <h5 class="text-lg font-semibold">Loading error</h5>
+                <p class="text-base-content/60" x-text="errorMsg"></p>
+                <button class="btn btn-primary" @click="load()">
+                    <span class="material-icons text-sm">refresh</span> Retry
+                </button>
+            </div>
+
+            <!-- Users list -->
+            <div x-show="!loading && !errorMsg" class="flex flex-col gap-3">
+                <template x-for="user in users" :key="user.username">
+                    <div class="card bg-base-100 shadow-sm">
+                        <div class="card-body p-4 flex-row items-center gap-4">
+                            <!-- Avatar -->
+                            <div class="avatar placeholder">
+                                <div class="bg-primary text-primary-content rounded-full w-12">
+                                    <span class="text-xl" x-text="user.username.charAt(0).toUpperCase()"></span>
+                                </div>
+                            </div>
+                            <!-- Info -->
+                            <div class="flex-1">
+                                <h3 class="font-semibold text-lg" x-text="user.username"></h3>
+                                <span class="badge badge-sm"
+                                      :class="user.accessLevel === 'ADMIN' ? 'badge-error' : 'badge-warning'"
+                                      x-text="user.accessLevel"></span>
+                            </div>
+                            <!-- Actions -->
+                            <div class="flex gap-2">
+                                <button class="btn btn-sm btn-warning" @click="resetPassword(user.username)">
+                                    <span class="material-icons text-sm">lock_reset</span>
+                                    <span class="hidden sm:inline">Reset Password</span>
+                                </button>
+                                <button class="btn btn-sm btn-error btn-circle" @click="deleteUser(user.username)">
+                                    <span class="material-icons text-sm">delete</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+
+                <!-- Empty state -->
+                <div x-show="users.length === 0" class="text-center py-12 text-base-content/60">
+                    <span class="material-icons text-5xl">people</span>
+                    <h5 class="text-lg mt-2">No Users Found</h5>
+                </div>
+            </div>
+
+            <!-- Add User Modal -->
+            <dialog class="modal" :class="showAddModal && 'modal-open'">
+                <div class="modal-box">
+                    <h3 class="font-bold text-lg mb-4">Add New User</h3>
+                    <div class="form-control mb-3">
+                        <label class="label"><span class="label-text">Username</span></label>
+                        <input type="text" class="input input-bordered" x-model="newUser.username" placeholder="Username">
+                    </div>
+                    <div class="form-control mb-3">
+                        <label class="label"><span class="label-text">Password</span></label>
+                        <input type="password" class="input input-bordered" x-model="newUser.password" placeholder="Password">
+                    </div>
+                    <div class="form-control mb-4">
+                        <label class="label cursor-pointer justify-start gap-3">
+                            <input type="checkbox" class="checkbox" x-model="newUser.admin">
+                            <span class="label-text">Grant ADMIN rights</span>
+                        </label>
+                    </div>
+                    <div class="modal-action">
+                        <button class="btn" @click="showAddModal = false">Cancel</button>
+                        <button class="btn btn-primary" @click="submitAddUser()">
+                            <span class="material-icons text-sm">person_add</span> Create User
+                        </button>
+                    </div>
+                </div>
+                <form method="dialog" class="modal-backdrop" @click="showAddModal = false"></form>
+            </dialog>
         </div>
     </div>
-    
-    <div id="loading"></div>
-    
-    <div id="users-container" style="display: none;">
-        <!-- Users will be loaded here -->
+
+    <!-- Sidebar -->
+    <div class="drawer-side z-50">
+        <label for="main-drawer" aria-label="close sidebar" class="drawer-overlay"></label>
+        <ul x-data class="menu bg-base-200 min-h-full w-64 p-4 text-base-content">
+            <li><a href="/gui/index.html"><span class="material-icons">home</span> Home</a></li>
+            <li><a href="/gui/devices.html"><span class="material-icons">devices</span> Devices</a></li>
+            <li><a href="/gui/groups.html"><span class="material-icons">group_work</span> App Groups</a></li>
+            <li class="border-t my-2"></li>
+            <li x-show="$store.user.accessLevel === 'ADMIN'" x-cloak>
+                <a href="/gui/users.html"><span class="material-icons">people</span> ADMIN: Users</a>
+            </li>
+            <li class="border-t my-2"></li>
+            <li><a href="/gui/settings.html"><span class="material-icons">settings</span> Settings</a></li>
+            <li><a href="/logout"><span class="material-icons">logout</span> Logout</a></li>
+        </ul>
     </div>
 </div>
 
-<!-- Add User Modal -->
-<div id="addUserModal" class="modal">
-    <div class="modal-content">
-        <h4>Add New User</h4>
-        <form id="addUserForm">
-            <div class="row">
-                <div class="input-field col s12">
-                    <input id="username" type="text" class="validate" required>
-                    <label for="username">Username</label>
-                </div>
-            </div>
-            <div class="row">
-                <div class="input-field col s12">
-                    <input id="password" type="password" class="validate" required minlength="6">
-                    <label for="password">Password</label>
-                </div>
-            </div>
-            <div class="row">
-                <div class="col s12">
-                    <label>
-                        <input type="checkbox" id="adminRights" />
-                        <span>Grant ADMIN rights</span>
-                    </label>
-                </div>
-            </div>
-        </form>
-    </div>
-    <div class="modal-footer">
-        <button class="btn-flat" onclick="closeAddUserModal()">Cancel</button>
-        <button class="btn waves-effect waves-light" onclick="submitAddUser()">
-            <i class="material-icons left">person_add</i>
-            Create User
-        </button>
-    </div>
-</div>
+<script>
+function usersPage() {
+    return {
+        users: [],
+        loading: false,
+        errorMsg: '',
+        showAddModal: false,
+        newUser: { username: '', password: '', admin: false },
 
-<!--JavaScript at end of body for optimized loading-->
-<script type="text/javascript"
-        src="https://cdn.jsdelivr.net/npm/@materializecss/materialize@2.1.0/dist/js/materialize.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/handlebars@latest/dist/handlebars.js"></script>
-<script src="components.js"></script>
-<script src="common.js"></script>
-<script src="users.js"></script>
+        async load() {
+            this.loading = true;
+            this.errorMsg = '';
+            try {
+                const resp = await ServerRequest.fetch('/bff/users');
+                if (!resp.ok) {
+                    if (resp.status === 403) throw new Error('Access denied. Admin privileges required.');
+                    throw new Error('Failed to load users: ' + resp.status);
+                }
+                const data = await resp.json();
+                this.users = data.users;
+            } catch (e) {
+                this.errorMsg = e.message;
+            } finally {
+                this.loading = false;
+            }
+        },
 
+        async deleteUser(username) {
+            if (!confirm(`Are you sure you want to delete user "${username}"? This action cannot be undone.`)) return;
+            try {
+                const resp = await ServerRequest.fetch('/bff/users/' + encodeURIComponent(username), { method: 'DELETE' });
+                if (!resp.ok) {
+                    const err = await resp.json();
+                    throw new Error(err.message || 'Failed to delete user');
+                }
+                const result = await resp.json();
+                Toast.info(result.message);
+                this.load();
+            } catch (e) {
+                Toast.error(e.message);
+            }
+        },
+
+        async resetPassword(username) {
+            const newPw = prompt(`Enter new password for user "${username}":`);
+            if (!newPw) return;
+            try {
+                const resp = await ServerRequest.fetch('/bff/users/' + encodeURIComponent(username) + '/reset-password', {
+                    method: 'POST',
+                    body: JSON.stringify({ newPassword: newPw })
+                });
+                if (!resp.ok) {
+                    const err = await resp.json();
+                    throw new Error(err.message || 'Failed to reset password');
+                }
+                const result = await resp.json();
+                Toast.info(result.message);
+            } catch (e) {
+                Toast.error(e.message);
+            }
+        },
+
+        async submitAddUser() {
+            if (!this.newUser.username.trim()) { Toast.error('Username is required'); return; }
+            if (!this.newUser.password) { Toast.error('Password is required'); return; }
+            try {
+                const resp = await ServerRequest.fetch('/bff/users', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        username: this.newUser.username.trim(),
+                        password: this.newUser.password,
+                        accessLevel: this.newUser.admin ? 'ADMIN' : 'PARENT'
+                    })
+                });
+                if (!resp.ok) {
+                    const err = await resp.json();
+                    throw new Error(err.message || 'Failed to create user');
+                }
+                const result = await resp.json();
+                Toast.info(result.message);
+                this.showAddModal = false;
+                this.newUser = { username: '', password: '', admin: false };
+                this.load();
+            } catch (e) {
+                Toast.error(e.message);
+            }
+        }
+    };
+}
+</script>
 </body>
 </html>
