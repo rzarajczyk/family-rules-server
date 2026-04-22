@@ -8,6 +8,7 @@ import pl.zarajczyk.familyrules.domain.port.AppGroupRepository
 import pl.zarajczyk.familyrules.domain.port.DeviceDetailsUpdateDto
 import pl.zarajczyk.familyrules.domain.port.DeviceStateDto
 import pl.zarajczyk.familyrules.domain.port.ValueUpdate.Companion.set
+import pl.zarajczyk.familyrules.util.webPToWebPBase64
 import java.util.*
 
 @RestController
@@ -130,7 +131,7 @@ class BffAppGroupsController(
                             deviceId = it.deviceId,
                             screenTime = it.screenTime,
                             percentage = it.percentage,
-                            iconBase64 = it.iconBase64,
+                            iconBase64 = it.iconWebp?.let { webPToWebPBase64(it) },
                             online = it.online
                         )
                     }
@@ -195,7 +196,7 @@ class BffAppGroupsController(
                 AppInGroupInfo(
                     packageName = packageName,
                     name = appInfo.appName,
-                    iconBase64 = appInfo.iconBase64Png,
+                    iconBase64 = appInfo.iconWebp?.let { webPToWebPBase64(it) },
                     inGroup = packageName in appsInGroup
                 )
             }.sortedBy { it.name.lowercase() }

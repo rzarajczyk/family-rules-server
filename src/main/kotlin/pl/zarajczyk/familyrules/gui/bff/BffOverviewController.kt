@@ -8,6 +8,7 @@ import org.springframework.web.server.ResponseStatusException
 import pl.zarajczyk.familyrules.domain.*
 import pl.zarajczyk.familyrules.domain.port.*
 import pl.zarajczyk.familyrules.domain.port.ValueUpdate.Companion.set
+import pl.zarajczyk.familyrules.util.webPToWebPBase64
 
 @RestController
 class BffOverviewController(
@@ -72,7 +73,7 @@ class BffOverviewController(
                             path = appTechnicalId,
                             usageSeconds = v,
                             appName = knownApp?.appName,
-                            iconBase64 = knownApp?.iconBase64Png,
+                            iconBase64 = knownApp?.iconWebp?.let { webPToWebPBase64(it) },
                             appGroups = appGroupIndex[deviceIdStr to appTechnicalId] ?: emptyList(),
                             online = appTechnicalId in screenTimeDto.onlineApps
                         )

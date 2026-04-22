@@ -4,6 +4,7 @@ import org.springframework.security.core.Authentication
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RestController
 import pl.zarajczyk.familyrules.domain.*
+import pl.zarajczyk.familyrules.util.webPToPngBase64
 
 @RestController
 class V2AppGroupController(
@@ -26,7 +27,7 @@ class V2AppGroupController(
                 MembershipAppResponse(
                     appPath = appTechnicalId,
                     appName = known?.appName ?: appTechnicalId,
-                    iconBase64Png = known?.iconBase64Png,
+                    iconBase64Png = null,
                     deviceName = deviceDetails.deviceName,
                     deviceId = deviceDetails.deviceId.toString()
                 )
@@ -57,7 +58,7 @@ class V2AppGroupController(
             AppUsageReportResponse(
                 appPath = it.packageName,
                 appName = it.name,
-                iconBase64Png = it.iconBase64,
+                iconBase64Png = it.iconWebp?.let { webp -> webPToPngBase64(webp) },
                 deviceName = it.deviceName,
                 deviceId = it.deviceId,
                 uptimeSeconds = it.screenTime

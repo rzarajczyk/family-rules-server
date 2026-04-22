@@ -10,6 +10,7 @@ import pl.zarajczyk.familyrules.domain.port.DeviceDetailsUpdateDto
 import pl.zarajczyk.familyrules.domain.port.DevicesRepository
 import pl.zarajczyk.familyrules.domain.port.ValueUpdate
 import pl.zarajczyk.familyrules.domain.port.ValueUpdate.Companion.set
+import pl.zarajczyk.familyrules.util.pngBase64ToWebP
 
 @RestController
 class V2ClientInfoController(
@@ -44,7 +45,7 @@ class V2ClientInfoController(
 
     private fun App.toDto() = AppDto(
         appName = appName,
-        iconBase64Png = iconBase64Png
+        iconWebp = iconBase64Png?.let { pngBase64ToWebP(it) }
     )
 }
 

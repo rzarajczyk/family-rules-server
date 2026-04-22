@@ -44,7 +44,7 @@ enum class DeviceStateArgument { APP_GROUP }
 
 data class AppDto(
     val appName: String,
-    val iconBase64Png: String?
+    val iconWebp: ByteArray?
 )
 
 data class ClientInfoDto(

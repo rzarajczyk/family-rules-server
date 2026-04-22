@@ -88,7 +88,7 @@ function iconSrc(icon) {
 }
 
 function appIconSrc(base64) {
-    if (base64) return 'data:image/png;base64,' + base64;
+    if (base64) return 'data:image/webp;base64,' + base64;
     return 'default-icon.png';
 }
 

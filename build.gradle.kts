@@ -35,6 +35,8 @@ dependencies {
     implementation("com.google.auth:google-auth-library-oauth2-http:1.19.0")
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.5.0")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
+    implementation("com.sksamuel.scrimage:scrimage-core:4.1.3")
+    implementation("com.sksamuel.scrimage:scrimage-webp:4.1.3")
 
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 

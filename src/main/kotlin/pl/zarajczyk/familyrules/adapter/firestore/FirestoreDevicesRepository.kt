@@ -1,5 +1,6 @@
 package pl.zarajczyk.familyrules.adapter.firestore
 
+import com.google.cloud.firestore.Blob
 import com.google.cloud.firestore.DocumentSnapshot
 import com.google.cloud.firestore.FieldValue
 import com.google.cloud.firestore.Firestore
@@ -7,7 +8,6 @@ import com.google.cloud.firestore.QueryDocumentSnapshot
 import com.google.cloud.firestore.SetOptions
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.springframework.stereotype.Service
@@ -45,7 +45,7 @@ class FirestoreDevicesRepository(
             "clientTimezoneOffsetSeconds" to details.clientTimezoneOffsetSeconds,
             "iconData" to details.iconData,
             "iconType" to details.iconType,
-            "knownApps" to details.knownApps.encodeKnownApps(),
+            "apps" to details.knownApps.toNativeAppsMap(),
             "reportIntervalSeconds" to details.reportIntervalSeconds,
             "deviceStates" to details.availableDeviceStates.encodeDeviceStates(),
             "appGroups" to details.appGroups.encodeAppGroups()
@@ -66,15 +66,13 @@ class FirestoreDevicesRepository(
     private fun AppGroupsDto.encodeAppGroups(): String =
         json.encodeToString(this)
 
-    private fun Map<String, AppDto>.encodeKnownApps(): String =
-        json.encodeToString(
-            this.mapValues {
-                FirestoreKnownApp(
-                    appName = it.value.appName,
-                    iconBase64 = it.value.iconBase64Png
-                )
-            }
-        )
+    private fun Map<String, AppDto>.toNativeAppsMap(): Map<String, Any?> =
+        this.mapValues { (_, app) ->
+            mapOf(
+                "name" to app.appName,
+                "icon" to app.iconWebp?.let { Blob.fromBytes(it) }
+            )
+        }
 
     override fun getAll(userRef: UserRef): List<DeviceRef> =
         (userRef as FirestoreUserRef).doc
@@ -105,7 +103,7 @@ class FirestoreDevicesRepository(
             iconData = doc.getString("iconData"),
             iconType = doc.getString("iconType"),
             reportIntervalSeconds = doc.getLongOrThrow("reportIntervalSeconds"),
-            knownApps = doc.getKnownAppsOrThrow("knownApps"),
+            knownApps = doc.getNativeApps(),
             availableDeviceStates = doc.getAvailableDeviceStates("deviceStates"),
             appGroups = doc.getAppGroups("appGroups"),
             autoAddGroupIds = doc.getAutoAddGroupIds("autoAddGroupIds"),
@@ -132,7 +130,7 @@ class FirestoreDevicesRepository(
             details.clientTimezoneOffsetSeconds.ifPresent { "clientTimezoneOffsetSeconds" to it },
             details.iconData.ifPresent { "iconData" to it },
             details.iconType.ifPresent { "iconType" to it },
-            details.knownApps.ifPresent { "knownApps" to it.encodeKnownApps() },
+            details.knownApps.ifPresent { "apps" to it.toNativeAppsMap() },
             details.reportIntervalSeconds.ifPresent { "reportIntervalSeconds" to it },
             details.availableDeviceStates.ifPresent { "deviceStates" to it.encodeDeviceStates() },
             details.appGroups.ifPresent { "appGroups" to it.encodeAppGroups() },
@@ -149,9 +147,16 @@ class FirestoreDevicesRepository(
             DeviceStateDto(it, getString(extraFieldName))
         }
 
-    private fun QueryDocumentSnapshot.getKnownAppsOrThrow(fieldName: String) =
-        json.decodeFromString<Map<String, FirestoreKnownApp>>(getStringOrThrow(fieldName))
-            .mapValues { AppDto(it.value.appName, it.value.iconBase64) }
+    @Suppress("UNCHECKED_CAST")
+    private fun QueryDocumentSnapshot.getNativeApps(): Map<String, AppDto> {
+        val nativeApps = get("apps") as? Map<*, *> ?: return emptyMap()
+        return nativeApps.entries.mapNotNull { (k, v) ->
+            val entry = v as? Map<*, *> ?: return@mapNotNull null
+            val name = entry["name"] as? String ?: return@mapNotNull null
+            val iconBlob = entry["icon"] as? Blob
+            (k as String) to AppDto(appName = name, iconWebp = iconBlob?.toBytes())
+        }.toMap()
+    }
 
     private fun QueryDocumentSnapshot.getAvailableDeviceStates(fieldName: String) =
         json.decodeFromString<List<DeviceStateTypeDto>>(getString(fieldName) ?: "[]").ensureActiveIsPresent()
@@ -313,12 +318,6 @@ class FirestoreDevicesRepository(
         userDoc.update("lastActivity", timestamp).get()
     }
 }
-
-@Serializable
-class FirestoreKnownApp(
-    val appName: String,
-    val iconBase64: String?
-)
 
 class FirestoreDeviceRef(
     val document: QueryDocumentSnapshot,

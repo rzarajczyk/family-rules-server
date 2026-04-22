@@ -99,7 +99,7 @@ class AppGroupService(private val appGroupRepository: AppGroupRepository, privat
                         // Get app name and icon from known apps or use the path
                         val knownApp = instance.knownApps[appTechnicalId]
                         val appName = knownApp?.appName ?: appTechnicalId
-                        val appIcon = knownApp?.iconBase64Png
+                        val appIcon = knownApp?.iconWebp
                         val isOnline = appTechnicalId in screenTimeDto.onlineApps
 
                         appDetails.add(
@@ -110,7 +110,7 @@ class AppGroupService(private val appGroupRepository: AppGroupRepository, privat
                                 deviceId = instance.deviceId.toString(),
                                 screenTime = appScreenTimeSeconds,
                                 percentage = 0.0, // Will be calculated below
-                                iconBase64 = appIcon,
+                                iconWebp = appIcon,
                                 online = isOnline
                             )
                         )
@@ -257,6 +257,6 @@ data class AppGroupAppReport(
     val deviceId: String,
     val screenTime: Long,
     val percentage: Double,
-    val iconBase64: String? = null,
+    val iconWebp: ByteArray? = null,
     val online: Boolean = false
 )

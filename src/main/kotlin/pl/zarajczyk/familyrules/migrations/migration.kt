@@ -1,15 +1,19 @@
 package pl.zarajczyk.familyrules.migrations
 
 import com.google.auth.oauth2.GoogleCredentials
+import com.google.cloud.firestore.Blob
 import com.google.cloud.firestore.DocumentSnapshot
 import com.google.cloud.firestore.Firestore
 import com.google.cloud.firestore.FirestoreOptions
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 import java.io.File
 import java.io.FileInputStream
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
+import java.util.Base64
 import kotlin.system.exitProcess
 
 fun main(args: Array<String>) {
@@ -186,7 +190,8 @@ private fun createFirestore(projectId: String, credentials: GoogleCredentials): 
 // ---------------------------------------------------------------------------
 
 fun migrate(firestore: Firestore) {
-    cleanupOldScreenTimeEntries(firestore)
+//    cleanupOldScreenTimeEntries(firestore)
+    migrateKnownAppsToNativeMap(firestore)
 }
 
 /**
@@ -196,18 +201,30 @@ fun migrate(firestore: Firestore) {
  * The document ID is an ISO-8601 local date string, e.g. "2024-03-15".
  * Any document whose ID parses to a date before 2026-03-01 is deleted.
  */
-private fun cleanupOldScreenTimeEntries(firestore: Firestore) {
-    println("=== Migration: cleanup old screenTime entries ===")
+/**
+ * Migration: Convert knownApps (JSON string) to apps (native Firestore map with Blob icons).
+ *
+ * For each instance document:
+ * - Reads the "knownApps" JSON string field.
+ * - Writes a native Firestore map to the "apps" field:
+ *     { packageName → { "name": appName, "icon": Blob(rawPngBytes) } }
+ * - Overwrites "knownApps" with an empty JSON object "{}" so the old server
+ *   continues to function without crashing (reads an empty map).
+ *
+ * Icons are stored as raw PNG bytes in this migration. The new server will
+ * recompress to WebP on the next client-info POST from each device.
+ */
+private fun migrateKnownAppsToNativeMap(firestore: Firestore) {
+    println("=== Migration: knownApps JSON string → apps native Firestore map ===")
 
-    val cutoff = LocalDate.of(2026, 3, 1)
-    println("  Deleting screenTime entries with date before $cutoff")
+    val migrationJson = Json { ignoreUnknownKeys = true }
 
     val users = firestore.collection("users").get().get().documents
     println("  Found ${users.size} user(s)")
 
-    var totalEntries = 0
-    var deletedEntries = 0
-    var skippedEntries = 0
+    var totalInstances = 0
+    var migratedInstances = 0
+    var skippedInstances = 0
 
     users.forEach { userDoc ->
         val username = userDoc.getString("username") ?: userDoc.id
@@ -217,36 +234,111 @@ private fun cleanupOldScreenTimeEntries(firestore: Firestore) {
         println("    Found ${instances.size} instance(s)")
 
         instances.forEach { instanceDoc ->
+            totalInstances++
             val instanceName = instanceDoc.getString("instanceName") ?: instanceDoc.id
+            val knownAppsJson = instanceDoc.getString("knownApps")
 
-            val screenTimeDocs = instanceDoc.reference.collection("screenTimes").get().get().documents
-            println("    - Instance '$instanceName': ${screenTimeDocs.size} screenTime entry(s)")
-
-            screenTimeDocs.forEach { screenTimeDoc ->
-                totalEntries++
-                val dateId = screenTimeDoc.id
-                val date = try {
-                    LocalDate.parse(dateId)
-                } catch (_: Exception) {
-                    println("      Skipping unrecognised document ID: '$dateId'")
-                    skippedEntries++
-                    return@forEach
-                }
-
-                if (date < cutoff) {
-                    screenTimeDoc.reference.delete().get()
-                    println("      Deleted: $dateId")
-                    deletedEntries++
-                } else {
-                    skippedEntries++
-                }
+            if (knownAppsJson == null) {
+                println("    - Instance '$instanceName': no knownApps field, skipping")
+                skippedInstances++
+                return@forEach
             }
+
+            val knownApps = try {
+                migrationJson.decodeFromString<Map<String, MigrationKnownApp>>(knownAppsJson)
+            } catch (e: Exception) {
+                println("    - Instance '$instanceName': failed to parse knownApps — ${e.message}, skipping")
+                skippedInstances++
+                return@forEach
+            }
+
+            val nativeApps: Map<String, Any?> = knownApps.mapValues { (_, app) ->
+                val iconBlob = app.iconBase64?.let { base64 ->
+                    try {
+                        Blob.fromBytes(Base64.getDecoder().decode(base64))
+                    } catch (_: Exception) {
+                        null
+                    }
+                }
+                mapOf("name" to app.appName, "icon" to iconBlob)
+            }
+
+            instanceDoc.reference.update(
+                mapOf(
+                    "apps" to nativeApps,
+                    "knownApps" to "{}"
+                )
+            ).get()
+
+            println("    - Instance '$instanceName': migrated ${knownApps.size} app(s)")
+            migratedInstances++
         }
     }
 
     println()
     println("  Summary:")
-    println("  - Total screenTime entries: $totalEntries")
-    println("  - Deleted (before $cutoff): $deletedEntries")
-    println("  - Kept / skipped:           $skippedEntries")
+    println("  - Total instances:   $totalInstances")
+    println("  - Migrated:          $migratedInstances")
+    println("  - Skipped:           $skippedInstances")
 }
+
+@Serializable
+private data class MigrationKnownApp(
+    val appName: String,
+    val iconBase64: String? = null
+)
+
+//private fun cleanupOldScreenTimeEntries(firestore: Firestore) {
+//    println("=== Migration: cleanup old screenTime entries ===")
+//
+//    val cutoff = LocalDate.of(2026, 3, 1)
+//    println("  Deleting screenTime entries with date before $cutoff")
+//
+//    val users = firestore.collection("users").get().get().documents
+//    println("  Found ${users.size} user(s)")
+//
+//    var totalEntries = 0
+//    var deletedEntries = 0
+//    var skippedEntries = 0
+//
+//    users.forEach { userDoc ->
+//        val username = userDoc.getString("username") ?: userDoc.id
+//        println("  Processing user: $username")
+//
+//        val instances = userDoc.reference.collection("instances").get().get().documents
+//        println("    Found ${instances.size} instance(s)")
+//
+//        instances.forEach { instanceDoc ->
+//            val instanceName = instanceDoc.getString("instanceName") ?: instanceDoc.id
+//
+//            val screenTimeDocs = instanceDoc.reference.collection("screenTimes").get().get().documents
+//            println("    - Instance '$instanceName': ${screenTimeDocs.size} screenTime entry(s)")
+//
+//            screenTimeDocs.forEach { screenTimeDoc ->
+//                totalEntries++
+//                val dateId = screenTimeDoc.id
+//                val date = try {
+//                    LocalDate.parse(dateId)
+//                } catch (_: Exception) {
+//                    println("      Skipping unrecognised document ID: '$dateId'")
+//                    skippedEntries++
+//                    return@forEach
+//                }
+//
+//                if (date < cutoff) {
+//                    screenTimeDoc.reference.delete().get()
+//                    println("      Deleted: $dateId")
+//                    deletedEntries++
+//                } else {
+//                    skippedEntries++
+//                }
+//            }
+//        }
+//    }
+//
+//    println()
+//    println("  Summary:")
+//    println("  - Total screenTime entries: $totalEntries")
+//    println("  - Deleted (before $cutoff): $deletedEntries")
+//    println("  - Kept / skipped:           $skippedEntries")
+//}
