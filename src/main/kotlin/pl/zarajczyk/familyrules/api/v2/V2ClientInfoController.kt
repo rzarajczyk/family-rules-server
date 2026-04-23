@@ -15,13 +15,11 @@ import pl.zarajczyk.familyrules.util.pngBase64ToWebP
 @RestController
 class V2ClientInfoController(
     private val devicesService: DevicesService,
-    private val autoAddAppsService: AutoAddAppsService
 ) {
 
     @PostMapping(value = ["/api/v2/launch", "/api/v2/client-info"])
     fun clientInfo(@RequestBody request: ClientInfoRequest, authentication: Authentication): ClientInfoResponse {
         val device = devicesService.get(authentication)
-        val oldKnownApps = device.getDetails().knownApps
         val newKnownApps = request.knownApps?.mapValues { it.value.toDto() } ?: emptyMap()
         device.update(DeviceDetailsUpdateDto(
             clientVersion = set(request.version),
@@ -31,7 +29,6 @@ class V2ClientInfoController(
             availableDeviceStates = set(request.availableStates.map { it.toDto() })
 
         ))
-        autoAddAppsService.handleKnownAppsUpdate(device, oldKnownApps, newKnownApps)
         return ClientInfoResponse()
     }
 

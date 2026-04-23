@@ -12,7 +12,8 @@ import pl.zarajczyk.familyrules.domain.port.DeviceStateDto
 @Component
 class V2ReportController(
     private val stateService: StateService,
-    private val devicesService: DevicesService
+    private val devicesService: DevicesService,
+    private val autoAddAppsService: AutoAddAppsService,
 ) {
 
     @RestController
@@ -33,8 +34,9 @@ class V2ReportController(
             
             // Update user's lastActivity timestamp (blind write — no prior fetch)
             device.updateOwnerLastActivity(System.currentTimeMillis())
-            
+
             val response = stateService.calculateCurrentDeviceState(device).finalState.toReportResponse()
+            autoAddAppsService.handleReportedApps(device, report.applicationsSeconds.keys)
             return response
         }
     }

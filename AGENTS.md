@@ -35,7 +35,12 @@ All commands use the Gradle wrapper (`./gradlew`). There is no npm, TypeScript, 
 
 There is no dedicated lint command. The project uses `kotlin.code.style=official` (JetBrains official style) configured in `gradle.properties`, but no ktlint or detekt is set up.
 
-Integration tests require Docker to be running (Testcontainers spins up a Firestore emulator container).
+Use Java 21 for builds and tests. Java 25 is currently not supported in this project: Gradle/Kotlin fails very early with `java.lang.IllegalArgumentException: 25.0.2` inside `org.jetbrains.kotlin.com.intellij.util.lang.JavaVersion.parse`.
+
+Integration tests require a container runtime for Testcontainers. In this workspace, use Podman rather than Docker:
+- ensure `podman machine` is running before `./gradlew test`
+- `docker` CLI is not installed here; Testcontainers works through the Podman-provided Docker API socket
+- if tests fail with Docker/Testcontainers connection errors, run `podman machine start` and retry
 
 ---
 

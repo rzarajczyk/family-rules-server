@@ -13,15 +13,14 @@ class AutoAddAppsService(
     private val logger = LoggerFactory.getLogger(javaClass)
 
     /**
-     * Detects newly installed apps (present in [newKnownApps] but not in [oldKnownApps])
-     * and automatically adds them to all app groups that this device is enrolled in for auto-adding.
+     * Detects newly seen apps from report payload and automatically adds them to
+     * all app groups that this device is enrolled in for auto-adding.
      */
-    fun handleKnownAppsUpdate(
+    fun handleReportedApps(
         device: Device,
-        oldKnownApps: Map<String, AppDto>,
-        newKnownApps: Map<String, AppDto>
+        reportedAppIds: Set<String>
     ) {
-        val newAppIds: Set<AppTechnicalId> = newKnownApps.keys - oldKnownApps.keys
+        val newAppIds: Set<AppTechnicalId> = reportedAppIds - device.getDetails().knownApps.keys
         if (newAppIds.isEmpty()) return
 
         val autoAddGroupIds = device.getDetails().autoAddGroupIds
