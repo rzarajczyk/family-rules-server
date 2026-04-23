@@ -1,15 +1,19 @@
 package pl.zarajczyk.familyrules
 
+import com.google.cloud.firestore.Firestore
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.extensions.spring.SpringExtension
+import io.kotest.matchers.collections.shouldContainAll
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.collections.shouldContain
 import kotlinx.datetime.Instant
+import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import kotlinx.datetime.minus
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
@@ -51,6 +55,9 @@ class V2ReportControllerIntegrationSpec : FunSpec() {
 
     @Autowired
     private lateinit var devicesRepository: DevicesRepository
+
+    @Autowired
+    private lateinit var firestore: Firestore
 
     companion object {
         @Container
@@ -128,6 +135,10 @@ class V2ReportControllerIntegrationSpec : FunSpec() {
             onlinePeriods.isNotEmpty() shouldBe true
             val expectedBucket = histogramBucketFor(screenTimes.updatedAt)
             onlinePeriods shouldContain expectedBucket
+
+            val bucketData = getAppBucketData(firestore, deviceId, today, expectedBucket)
+            bucketData["com.example.app1"] shouldBe 600L
+            bucketData["com.example.app2"] shouldBe 300L
         }
 
         test("should track lastUpdatedApps for initially reported apps") {
@@ -311,6 +322,97 @@ class V2ReportControllerIntegrationSpec : FunSpec() {
             screenTimes.lastUpdatedApps shouldBe emptySet()
         }
 
+        test("should accumulate per-app bucket deltas from cached current totals") {
+            val apiV2Basic = Base64.getEncoder().encodeToString("$deviceId:$token".toByteArray())
+
+            val firstReport = """
+                {
+                  "screenTime": 1000,
+                  "applications": {
+                    "com.example.app1": 500,
+                    "com.example.app2": 300,
+                    "com.example.app3": 200
+                  }
+                }
+            """.trimIndent()
+
+            mockMvc.perform(
+                post("/api/v2/report")
+                    .header("Authorization", "Basic $apiV2Basic")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(firstReport)
+            )
+                .andExpect(status().isOk)
+
+            val secondReport = """
+                {
+                  "screenTime": 1500,
+                  "applications": {
+                    "com.example.app1": 700,
+                    "com.example.app2": 300,
+                    "com.example.app3": 500
+                  }
+                }
+            """.trimIndent()
+
+            mockMvc.perform(
+                post("/api/v2/report")
+                    .header("Authorization", "Basic $apiV2Basic")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(secondReport)
+            )
+                .andExpect(status().isOk)
+
+            val bucketTotals = getAllAppBucketTotals(firestore, deviceId, today())
+            bucketTotals.keys shouldContainAll setOf("com.example.app1", "com.example.app2", "com.example.app3")
+            bucketTotals["com.example.app1"] shouldBe 700L
+            bucketTotals["com.example.app2"] shouldBe 300L
+            bucketTotals["com.example.app3"] shouldBe 500L
+        }
+
+        test("should start app bucket histogram from scratch on a new day") {
+            val device = devicesService.get(deviceId)
+            val yesterday = today().minus(1, DateTimeUnit.DAY)
+            val today = today()
+
+            device.saveScreenTimeReport(
+                yesterday,
+                1000,
+                mapOf(
+                    "com.example.app1" to 700L,
+                    "com.example.app2" to 300L,
+                ),
+                activeApps = null,
+            )
+
+            val yesterdayBucket = histogramBucketFor(devicesRepository.getScreenReport(devicesRepository.get(deviceId)!!, yesterday)!!.updatedAt)
+
+            device.saveScreenTimeReport(
+                today,
+                200,
+                mapOf(
+                    "com.example.app1" to 200L,
+                ),
+                activeApps = null,
+            )
+
+            val todayReport = devicesRepository.getScreenReport(devicesRepository.get(deviceId)!!, today)!!
+            val todayBucket = histogramBucketFor(todayReport.updatedAt)
+
+            val yesterdayTotals = getAllAppBucketTotals(firestore, deviceId, yesterday)
+            yesterdayTotals["com.example.app1"] shouldBe 700L
+            yesterdayTotals["com.example.app2"] shouldBe 300L
+
+            val todayBucketData = getAppBucketData(firestore, deviceId, today, todayBucket)
+            todayBucketData shouldBe mapOf("com.example.app1" to 200L)
+
+            val yesterdayBucketData = getAppBucketData(firestore, deviceId, yesterday, yesterdayBucket)
+            yesterdayBucketData shouldBe mapOf(
+                "com.example.app1" to 700L,
+                "com.example.app2" to 300L,
+            )
+        }
+
         test("should return 400 on invalid JSON") {
             val apiV2Basic = Base64.getEncoder().encodeToString("$deviceId:$token".toByteArray())
             val invalidJson = "{"
@@ -335,6 +437,62 @@ class V2ReportControllerIntegrationSpec : FunSpec() {
                     .content(reportBody)
             )
                 .andExpect(status().isUnauthorized)
+        }
+    }
+}
+
+@Suppress("UNCHECKED_CAST")
+private fun getAppBucketData(
+    firestore: Firestore,
+    deviceId: UUID,
+    day: kotlinx.datetime.LocalDate,
+    bucket: String,
+): Map<String, Long> {
+    val appBuckets = getAppBuckets(firestore, deviceId, day)
+    val bucketData = appBuckets[bucket] ?: emptyMap()
+    return bucketData
+}
+
+private fun getAllAppBucketTotals(
+    firestore: Firestore,
+    deviceId: UUID,
+    day: kotlinx.datetime.LocalDate,
+): Map<String, Long> {
+    return getAppBuckets(firestore, deviceId, day)
+        .values
+        .flatMap { it.entries }
+        .groupBy({ it.key }, { it.value })
+        .mapValues { (_, values) -> values.sum() }
+}
+
+@Suppress("UNCHECKED_CAST")
+private fun getAppBuckets(
+    firestore: Firestore,
+    deviceId: UUID,
+    day: kotlinx.datetime.LocalDate,
+): Map<String, Map<String, Long>> {
+    val instanceDoc = firestore.collectionGroup("instances")
+        .whereEqualTo("instanceId", deviceId.toString())
+        .get()
+        .get()
+        .documents
+        .first()
+
+    val dayDoc = instanceDoc.reference
+        .collection("screenTimes")
+        .document(day.toString())
+        .get()
+        .get()
+
+    val appBuckets = dayDoc.get("appBuckets") as? Map<String, Any?> ?: emptyMap()
+    return appBuckets.mapValues { (_, rawBucketData) ->
+        val bucketData = rawBucketData as? Map<String, Any?> ?: emptyMap()
+        bucketData.entries.associate { (encodedAppId, value) ->
+            encodedAppId.decodeAppBucketKey() to when (value) {
+                is Long -> value
+                is Number -> value.toLong()
+                else -> 0L
+            }
         }
     }
 }

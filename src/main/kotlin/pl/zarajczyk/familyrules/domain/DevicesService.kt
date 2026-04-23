@@ -94,11 +94,12 @@ interface Device {
     fun updateOwnerLastActivity(lastActivityMillis: Long)
 }
 
-data class RefBasedDevice(
+class RefBasedDevice(
     val deviceRef: DeviceRef,
     private val devicesRepository: DevicesRepository,
     private val usersService: UsersService
 ) : Device {
+    private var cachedDetails: DeviceDetailsDto = deviceRef.details
 
     override fun asRef(): DeviceRef {
         return deviceRef
@@ -123,7 +124,7 @@ data class RefBasedDevice(
     }
 
     override fun getDetails(): DeviceDetailsDto {
-        return deviceRef.details
+        return cachedDetails
     }
 
     override fun getScreenTimeReport(day: LocalDate): ScreenReport {
@@ -171,21 +172,32 @@ data class RefBasedDevice(
         applicationsSeconds: Map<String, Long>,
         activeApps: Set<String>?,
     ) {
+        val details = getDetails()
+        val previousApplicationTimes = if (details.currentDay == day.toString()) {
+            details.currentApplicationTimes ?: emptyMap()
+        } else {
+            emptyMap()
+        }
+
+        val currentAppBucketDeltas = applicationsSeconds
+            .mapNotNull { (appId, seconds) ->
+                val delta = seconds - (previousApplicationTimes[appId] ?: 0L)
+                if (delta > 0L) appId to delta else null
+            }
+            .toMap()
+
         val lastUpdatedApps: Set<String> = if (activeApps != null) {
             activeApps
         } else {
-            val previousReport = devicesRepository.getScreenReport(deviceRef, day) ?: ScreenReportDto.empty()
-            applicationsSeconds
-                .filter { (appId, seconds) -> seconds > (previousReport.applicationsSeconds[appId] ?: 0L) }
-                .keys
+            currentAppBucketDeltas.keys
         }
 
         val now = Clock.System.now()
 
         val onlinePeriodBucket = now.toBucket()
 
-        val previousOnlinePeriods: Set<String> = if (getDetails().currentDay == day.toString()) {
-            getDetails().currentOnlinePeriods ?: emptySet()
+        val previousOnlinePeriods: Set<String> = if (details.currentDay == day.toString()) {
+            details.currentOnlinePeriods ?: emptySet()
         } else {
             emptySet()
         }
@@ -200,7 +212,8 @@ data class RefBasedDevice(
                 updatedAt = now,
                 currentOnlinePeriodBucket = onlinePeriodBucket,
                 currentOnlinePeriods = currentOnlinePeriods,
-                lastUpdatedApps = lastUpdatedApps
+                lastUpdatedApps = lastUpdatedApps,
+                currentAppBucketDeltas = currentAppBucketDeltas,
             )
         )
 
@@ -213,8 +226,18 @@ data class RefBasedDevice(
                 updatedAt = now,
                 currentOnlinePeriodBucket = onlinePeriodBucket,
                 currentOnlinePeriods = currentOnlinePeriods,
-                lastUpdatedApps = lastUpdatedApps
+                lastUpdatedApps = lastUpdatedApps,
+                currentAppBucketDeltas = currentAppBucketDeltas,
             )
+        )
+
+        cachedDetails = cachedDetails.copy(
+            currentDay = day.toString(),
+            currentScreenTime = screenTimeSeconds,
+            currentApplicationTimes = applicationsSeconds,
+            currentUpdatedAt = now,
+            currentLastUpdatedApps = lastUpdatedApps,
+            currentOnlinePeriods = currentOnlinePeriods,
         )
     }
 

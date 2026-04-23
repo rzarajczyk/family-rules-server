@@ -2,6 +2,7 @@ package pl.zarajczyk.familyrules.adapter.firestore
 
 import com.google.cloud.firestore.Blob
 import com.google.cloud.firestore.DocumentSnapshot
+import com.google.cloud.firestore.FieldPath
 import com.google.cloud.firestore.FieldValue
 import com.google.cloud.firestore.Firestore
 import com.google.cloud.firestore.QueryDocumentSnapshot
@@ -195,16 +196,47 @@ class FirestoreDevicesRepository(
             .collection("screenTimes")
             .document(day.toString())
 
-        screenTimeRef.set(
-            mapOf(
-                "screenTime" to screenReportDto.screenTimeSeconds,
-                "applicationTimes" to screenReportDto.applicationsSeconds.encodeApplicationTimes(),
-                "updatedAt" to screenReportDto.updatedAt.toString(),
-                "lastUpdatedApps" to screenReportDto.lastUpdatedApps.encodeLastUpdatedApps(),
-                "onlinePeriods" to FieldValue.arrayUnion(screenReportDto.currentOnlinePeriodBucket)
-            ),
-            SetOptions.merge()
-        ).get()
+        val isFirstReportForDay = device.details.currentDay != day.toString() || device.details.currentApplicationTimes == null
+
+        if (isFirstReportForDay) {
+            val initialAppBuckets = if (screenReportDto.currentAppBucketDeltas.isEmpty()) {
+                emptyMap()
+            } else {
+                // appBuckets is stored as bucket -> encodedAppId -> seconds so app ids remain safe in Firestore field paths.
+                mapOf(
+                    screenReportDto.currentOnlinePeriodBucket to screenReportDto.currentAppBucketDeltas
+                        .mapKeys { (appId, _) -> appId.encodeAppBucketKey() }
+                )
+            }
+
+            screenTimeRef.set(
+                mapOf(
+                    "screenTime" to screenReportDto.screenTimeSeconds,
+                    "applicationTimes" to screenReportDto.applicationsSeconds.encodeApplicationTimes(),
+                    "updatedAt" to screenReportDto.updatedAt.toString(),
+                    "lastUpdatedApps" to screenReportDto.lastUpdatedApps.encodeLastUpdatedApps(),
+                    "onlinePeriods" to FieldValue.arrayUnion(screenReportDto.currentOnlinePeriodBucket),
+                    "appBuckets" to initialAppBuckets,
+                ),
+                SetOptions.merge()
+            ).get()
+            return
+        }
+
+        val updates = mutableMapOf<String, Any>(
+            "screenTime" to screenReportDto.screenTimeSeconds,
+            "applicationTimes" to screenReportDto.applicationsSeconds.encodeApplicationTimes(),
+            "updatedAt" to screenReportDto.updatedAt.toString(),
+            "lastUpdatedApps" to screenReportDto.lastUpdatedApps.encodeLastUpdatedApps(),
+            "onlinePeriods" to FieldValue.arrayUnion(screenReportDto.currentOnlinePeriodBucket),
+        )
+
+        screenReportDto.currentAppBucketDeltas.forEach { (appId, deltaSeconds) ->
+            val encodedAppId = appId.encodeAppBucketKey()
+            updates["appBuckets.${screenReportDto.currentOnlinePeriodBucket}.$encodedAppId"] = FieldValue.increment(deltaSeconds)
+        }
+
+        screenTimeRef.update(updates).get()
     }
 
     private fun Map<String, Long>.encodeApplicationTimes() = json.encodeToString(this)

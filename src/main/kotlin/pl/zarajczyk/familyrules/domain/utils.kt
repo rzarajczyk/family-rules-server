@@ -32,6 +32,10 @@ fun String.sha256() = MessageDigest
     .getInstance("SHA-256")
     .digest(toByteArray()).joinToString("") { "%02x".format(it) }
 
+fun String.encodeAppBucketKey(): String = Base64.getUrlEncoder().withoutPadding().encodeToString(toByteArray())
+
+fun String.decodeAppBucketKey(): String = Base64.getUrlDecoder().decode(this).decodeToString()
+
 fun today() = Clock.System.todayIn(TimeZone.currentSystemDefault())
 
 data class BasicAuth(

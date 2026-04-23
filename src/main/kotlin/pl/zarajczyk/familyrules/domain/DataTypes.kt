@@ -27,7 +27,8 @@ data class SetScreenReportDto(
     val updatedAt: Instant,
     val currentOnlinePeriodBucket: String,
     val currentOnlinePeriods: Set<String>,
-    val lastUpdatedApps: Set<String>
+    val lastUpdatedApps: Set<String>,
+    val currentAppBucketDeltas: Map<String, Long>
 )
 
 @Serializable
@@ -54,5 +55,4 @@ data class ClientInfoDto(
     val knownApps: Map<String, AppDto>,
     val states: List<DeviceStateTypeDto>
 )
-
 
