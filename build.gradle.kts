@@ -1,9 +1,9 @@
 plugins {
-    id("org.springframework.boot") version "3.3.1"
-    id("io.spring.dependency-management") version "1.1.5"
-    id("org.jetbrains.kotlin.plugin.serialization") version "2.0.20"
-    kotlin("jvm") version "1.9.24"
-    kotlin("plugin.spring") version "1.9.24"
+    id("org.springframework.boot") version "3.5.13"
+    id("io.spring.dependency-management") version "1.1.7"
+    id("org.jetbrains.kotlin.plugin.serialization") version "2.3.21"
+    kotlin("jvm") version "2.3.21"
+    kotlin("plugin.spring") version "2.3.21"
     application
 }
 
