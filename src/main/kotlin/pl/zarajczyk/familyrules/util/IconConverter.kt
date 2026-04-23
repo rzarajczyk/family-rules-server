@@ -13,7 +13,8 @@ import javax.imageio.ImageIO
  * Used at the API boundary when icons are received from the Android client.
  */
 fun pngBase64ToWebP(pngBase64: String): ByteArray {
-    val pngBytes = Base64.getDecoder().decode(pngBase64)
+    // Use MIME decoder — tolerates whitespace/newlines that some Android clients embed.
+    val pngBytes = Base64.getMimeDecoder().decode(pngBase64)
     val image = ImmutableImage.loader().fromBytes(pngBytes)
     return image.bytes(WebpWriter.DEFAULT.withQ(75))
 }

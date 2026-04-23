@@ -1,19 +1,40 @@
 package pl.zarajczyk.familyrules.migrations
 
+// =============================================================================
+// HOW TO USE THIS MIGRATION TOOL
+// =============================================================================
+//
+// This file is a reusable framework for one-off Firestore migrations.
+// There is NO migration history kept here — old migrations are deleted once
+// they have been run. When a new migration is needed:
+//
+//   1. Implement the `migrate(firestore)` function below.
+//      Import whatever helpers you need; add private helper functions at the bottom.
+//
+//   2. Run the migration locally:
+//        export FIRESTORE_PROJECT_ID=<gcp-project-id>
+//        export GOOGLE_APPLICATION_CREDENTIALS=<path-to-service-account.json>
+//        ./gradlew migrate
+//
+//      The tool automatically backs up the entire Firestore to a local JSON file
+//      (firestore-backup-<timestamp>.json) before running, so you can recover if
+//      something goes wrong.
+//
+//   3. After confirming success, remove the migration logic from `migrate()`,
+//      leaving it empty again (or replace it with the next migration).
+//      Commit the clean file — do NOT accumulate old migrations here.
+//
+// =============================================================================
+
 import com.google.auth.oauth2.GoogleCredentials
-import com.google.cloud.firestore.Blob
 import com.google.cloud.firestore.DocumentSnapshot
 import com.google.cloud.firestore.Firestore
 import com.google.cloud.firestore.FirestoreOptions
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
 import java.io.File
 import java.io.FileInputStream
 import java.time.Instant
-import java.time.LocalDate
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
-import java.util.Base64
 import kotlin.system.exitProcess
 
 fun main(args: Array<String>) {
@@ -57,15 +78,23 @@ fun main(args: Array<String>) {
         println("Migration failed: ${e.message}")
         println()
         println("Your pre-migration data was saved to: ${backupFile.absolutePath}")
-        println("To restore, run:")
-        println("  ./gradlew restore --args=\"${backupFile.absolutePath}\"")
         e.printStackTrace()
         exitProcess(1)
     }
 }
 
 // ---------------------------------------------------------------------------
-// Local JSON backup
+// TODO: implement the current migration here.
+//       Delete this function body (and any helpers below) once the migration
+//       has been successfully run. Do NOT leave old migration code around.
+// ---------------------------------------------------------------------------
+
+fun migrate(firestore: Firestore) {
+    // implement migration here
+}
+
+// ---------------------------------------------------------------------------
+// Framework: backup + Firestore client — do not modify
 // ---------------------------------------------------------------------------
 
 /**
@@ -95,7 +124,6 @@ private fun backupToLocalFile(firestore: Firestore): File {
     val allDocs = mutableMapOf<String, Map<String, Any?>>()
     collectDocuments(firestore, allDocs)
 
-    // Serialize to JSON manually — no extra library needed; values are Firestore primitives
     val json = buildString {
         appendLine("{")
         allDocs.entries.forEachIndexed { i, (path, fields) ->
@@ -116,24 +144,15 @@ private fun backupToLocalFile(firestore: Firestore): File {
     return backupFile
 }
 
-/** Recursively collects all documents from the "users" root collection. */
-private fun collectDocuments(
-    firestore: Firestore,
-    result: MutableMap<String, Map<String, Any?>>
-) {
+private fun collectDocuments(firestore: Firestore, result: MutableMap<String, Map<String, Any?>>) {
     val users = firestore.collection("users").get().get().documents
     for (doc in users) {
         collectDocument(doc, result)
     }
 }
 
-private fun collectDocument(
-    doc: DocumentSnapshot,
-    result: MutableMap<String, Map<String, Any?>>
-) {
+private fun collectDocument(doc: DocumentSnapshot, result: MutableMap<String, Map<String, Any?>>) {
     result[doc.reference.path] = doc.data ?: emptyMap()
-
-    // Recurse into known subcollections
     for (subcollection in doc.reference.listCollections()) {
         for (child in subcollection.get().get().documents) {
             collectDocument(child, result)
@@ -141,9 +160,12 @@ private fun collectDocument(
     }
 }
 
-// ---------------------------------------------------------------------------
-// Minimal JSON serialiser (Firestore values only — no external dependency)
-// ---------------------------------------------------------------------------
+private fun createFirestore(projectId: String, credentials: GoogleCredentials): Firestore =
+    FirestoreOptions.newBuilder()
+        .setProjectId(projectId)
+        .setCredentials(credentials)
+        .build()
+        .service
 
 @Suppress("UNCHECKED_CAST")
 private fun jsonValue(value: Any?): String = when (value) {
@@ -160,7 +182,6 @@ private fun jsonValue(value: Any?): String = when (value) {
         val items = value.joinToString(", ") { jsonValue(it) }
         "[$items]"
     }
-    // Firestore Timestamp, GeoPoint, etc. — fall back to toString()
     else -> jsonString(value.toString())
 }
 
@@ -173,172 +194,3 @@ private fun jsonString(s: String): String {
         .replace("\t", "\\t")
     return "\"$escaped\""
 }
-
-// ---------------------------------------------------------------------------
-// Firestore client
-// ---------------------------------------------------------------------------
-
-private fun createFirestore(projectId: String, credentials: GoogleCredentials): Firestore =
-    FirestoreOptions.newBuilder()
-        .setProjectId(projectId)
-        .setCredentials(credentials)
-        .build()
-        .service
-
-// ---------------------------------------------------------------------------
-// Migrations
-// ---------------------------------------------------------------------------
-
-fun migrate(firestore: Firestore) {
-//    cleanupOldScreenTimeEntries(firestore)
-    migrateKnownAppsToNativeMap(firestore)
-}
-
-/**
- * Migration 3: Delete screenTime entries older than March 2026.
- *
- * Collection path: users/{username}/instances/{deviceId}/screenTimes/{date}
- * The document ID is an ISO-8601 local date string, e.g. "2024-03-15".
- * Any document whose ID parses to a date before 2026-03-01 is deleted.
- */
-/**
- * Migration: Convert knownApps (JSON string) to apps (native Firestore map with Blob icons).
- *
- * For each instance document:
- * - Reads the "knownApps" JSON string field.
- * - Writes a native Firestore map to the "apps" field:
- *     { packageName → { "name": appName, "icon": Blob(rawPngBytes) } }
- * - Overwrites "knownApps" with an empty JSON object "{}" so the old server
- *   continues to function without crashing (reads an empty map).
- *
- * Icons are stored as raw PNG bytes in this migration. The new server will
- * recompress to WebP on the next client-info POST from each device.
- */
-private fun migrateKnownAppsToNativeMap(firestore: Firestore) {
-    println("=== Migration: knownApps JSON string → apps native Firestore map ===")
-
-    val migrationJson = Json { ignoreUnknownKeys = true }
-
-    val users = firestore.collection("users").get().get().documents
-    println("  Found ${users.size} user(s)")
-
-    var totalInstances = 0
-    var migratedInstances = 0
-    var skippedInstances = 0
-
-    users.forEach { userDoc ->
-        val username = userDoc.getString("username") ?: userDoc.id
-        println("  Processing user: $username")
-
-        val instances = userDoc.reference.collection("instances").get().get().documents
-        println("    Found ${instances.size} instance(s)")
-
-        instances.forEach { instanceDoc ->
-            totalInstances++
-            val instanceName = instanceDoc.getString("instanceName") ?: instanceDoc.id
-            val knownAppsJson = instanceDoc.getString("knownApps")
-
-            if (knownAppsJson == null) {
-                println("    - Instance '$instanceName': no knownApps field, skipping")
-                skippedInstances++
-                return@forEach
-            }
-
-            val knownApps = try {
-                migrationJson.decodeFromString<Map<String, MigrationKnownApp>>(knownAppsJson)
-            } catch (e: Exception) {
-                println("    - Instance '$instanceName': failed to parse knownApps — ${e.message}, skipping")
-                skippedInstances++
-                return@forEach
-            }
-
-            val nativeApps: Map<String, Any?> = knownApps.mapValues { (_, app) ->
-                val iconBlob = app.iconBase64?.let { base64 ->
-                    try {
-                        Blob.fromBytes(Base64.getDecoder().decode(base64))
-                    } catch (_: Exception) {
-                        null
-                    }
-                }
-                mapOf("name" to app.appName, "icon" to iconBlob)
-            }
-
-            instanceDoc.reference.update(
-                mapOf(
-                    "apps" to nativeApps,
-                    "knownApps" to "{}"
-                )
-            ).get()
-
-            println("    - Instance '$instanceName': migrated ${knownApps.size} app(s)")
-            migratedInstances++
-        }
-    }
-
-    println()
-    println("  Summary:")
-    println("  - Total instances:   $totalInstances")
-    println("  - Migrated:          $migratedInstances")
-    println("  - Skipped:           $skippedInstances")
-}
-
-@Serializable
-private data class MigrationKnownApp(
-    val appName: String,
-    val iconBase64: String? = null
-)
-
-//private fun cleanupOldScreenTimeEntries(firestore: Firestore) {
-//    println("=== Migration: cleanup old screenTime entries ===")
-//
-//    val cutoff = LocalDate.of(2026, 3, 1)
-//    println("  Deleting screenTime entries with date before $cutoff")
-//
-//    val users = firestore.collection("users").get().get().documents
-//    println("  Found ${users.size} user(s)")
-//
-//    var totalEntries = 0
-//    var deletedEntries = 0
-//    var skippedEntries = 0
-//
-//    users.forEach { userDoc ->
-//        val username = userDoc.getString("username") ?: userDoc.id
-//        println("  Processing user: $username")
-//
-//        val instances = userDoc.reference.collection("instances").get().get().documents
-//        println("    Found ${instances.size} instance(s)")
-//
-//        instances.forEach { instanceDoc ->
-//            val instanceName = instanceDoc.getString("instanceName") ?: instanceDoc.id
-//
-//            val screenTimeDocs = instanceDoc.reference.collection("screenTimes").get().get().documents
-//            println("    - Instance '$instanceName': ${screenTimeDocs.size} screenTime entry(s)")
-//
-//            screenTimeDocs.forEach { screenTimeDoc ->
-//                totalEntries++
-//                val dateId = screenTimeDoc.id
-//                val date = try {
-//                    LocalDate.parse(dateId)
-//                } catch (_: Exception) {
-//                    println("      Skipping unrecognised document ID: '$dateId'")
-//                    skippedEntries++
-//                    return@forEach
-//                }
-//
-//                if (date < cutoff) {
-//                    screenTimeDoc.reference.delete().get()
-//                    println("      Deleted: $dateId")
-//                    deletedEntries++
-//                } else {
-//                    skippedEntries++
-//                }
-//            }
-//        }
-//    }
-//
-//    println()
-//    println("  Summary:")
-//    println("  - Total screenTime entries: $totalEntries")
-//    println("  - Deleted (before $cutoff): $deletedEntries")
-//    println("  - Kept / skipped:           $skippedEntries")
-//}
