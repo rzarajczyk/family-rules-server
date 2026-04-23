@@ -305,6 +305,66 @@ class BffOverviewControllerIntegrationSpec : FunSpec() {
                 }
             }
 
+            test("should expose per-app usage histogram through dedicated endpoint") {
+                val deviceDetails = devicesService.setupNewDevice(testUsername, "Histogram Device", "TEST")
+                val device = devicesService.get(deviceDetails.deviceId)
+
+                device.saveScreenTimeReport(
+                    today(),
+                    1000,
+                    mapOf(
+                        "com.example.app1" to 600L,
+                        "com.example.app2" to 400L,
+                    ),
+                    activeApps = null,
+                )
+
+                device.saveScreenTimeReport(
+                    today(),
+                    1500,
+                    mapOf(
+                        "com.example.app1" to 900L,
+                        "com.example.app2" to 400L,
+                        "com.example.app3" to 200L,
+                    ),
+                    activeApps = null,
+                )
+
+                val result = mockMvc.perform(
+                    get("/bff/app-usage-histogram")
+                        .param("instanceId", deviceDetails.deviceId.toString())
+                        .param("date", today().toString())
+                        .param("appPath", "com.example.app1")
+                        .with(user(testUsername))
+                )
+                    .andExpect(status().isOk)
+                    .andExpect(jsonPath("$.usagePeriods").isArray)
+                    .andReturn()
+
+                val response = objectMapper.readTree(result.response.contentAsString)
+                val usagePeriods = response.get("usagePeriods")
+                usagePeriods.size() shouldBe 1
+                usagePeriods[0].asText().matches(Regex("\\d{2}:\\d{2}")) shouldBe true
+            }
+
+            test("should return empty histogram for app without tracked usage buckets") {
+                val deviceDetails = devicesService.setupNewDevice(testUsername, "Empty Histogram Device", "TEST")
+
+                val result = mockMvc.perform(
+                    get("/bff/app-usage-histogram")
+                        .param("instanceId", deviceDetails.deviceId.toString())
+                        .param("date", today().toString())
+                        .param("appPath", "com.example.missing")
+                        .with(user(testUsername))
+                )
+                    .andExpect(status().isOk)
+                    .andExpect(jsonPath("$.usagePeriods").isArray)
+                    .andReturn()
+
+                val response = objectMapper.readTree(result.response.contentAsString)
+                response.get("usagePeriods").size() shouldBe 0
+            }
+
             test("should redirect to login page for unauthenticated request") {
                 mockMvc.perform(
                     get("/bff/status")

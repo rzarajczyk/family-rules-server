@@ -107,6 +107,11 @@
                                             <template x-if="app.online">
                                                 <span class="text-error animate-pulse"><span class="material-icons text-xs">online_prediction</span></span>
                                             </template>
+                                            <button class="btn btn-ghost btn-xs"
+                                                    @click="showAppUsageClock(device, app)"
+                                                    title="Show app usage histogram">
+                                                <span class="material-icons text-sm">bar_chart</span>
+                                            </button>
                                             <span class="text-sm font-medium" x-text="formatScreenTime(app.usageSeconds)"></span>
                                         </div>
                                     </div>
@@ -230,7 +235,7 @@
             <!-- Usage Clock Modal -->
             <dialog class="modal" :class="clockModal.open && 'modal-open'">
                 <div class="modal-box max-w-lg">
-                    <h3 class="font-bold text-lg text-center mb-4" x-text="'Screen Time - ' + clockModal.instanceName"></h3>
+                    <h3 class="font-bold text-lg text-center mb-4" x-text="clockModal.title"></h3>
                     <div class="flex justify-center">
                         <svg id="usage-clock" viewBox="0 0 500 500" class="w-full max-w-[480px]"></svg>
                     </div>
@@ -290,7 +295,7 @@ function devicesPage() {
             iconFile: null, iconType: '', iconData: '',
             availableGroups: [], selectedShowGroups: [], selectedBlockGroups: []
         },
-        clockModal: { open: false, instanceName: '' },
+        clockModal: { open: false, title: '' },
         groupDropdown: { open: false, x: 0, y: 0, groups: [], instanceId: '', appPath: '' },
 
         init() { this.update(); },
@@ -470,8 +475,28 @@ function devicesPage() {
                 Toast.info('No usage data available for this date');
                 return;
             }
-            this.clockModal = { open: true, instanceName: device.instanceName };
+            this.clockModal = { open: true, title: 'Screen Time - ' + device.instanceName };
             this.$nextTick(() => drawClock(device.onlinePeriods, this.selectedDate));
+        },
+
+        async showAppUsageClock(device, app) {
+            try {
+                const resp = await ServerRequest.fetch(
+                    '/bff/app-usage-histogram?instanceId=' + encodeURIComponent(device.instanceId)
+                    + '&date=' + encodeURIComponent(this.selectedDate)
+                    + '&appPath=' + encodeURIComponent(app.path)
+                );
+                const data = await resp.json();
+                if (!data.usagePeriods || data.usagePeriods.length === 0) {
+                    Toast.info('No usage histogram available for this app on this date');
+                    return;
+                }
+                const appLabel = app.appName || app.name;
+                this.clockModal = { open: true, title: 'Screen Time - ' + device.instanceName + ' / ' + appLabel };
+                this.$nextTick(() => drawClock(data.usagePeriods, this.selectedDate));
+            } catch (_) {
+                Toast.error('Failed to load app usage histogram');
+            }
         },
 
         // --- App group management ---

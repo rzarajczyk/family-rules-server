@@ -119,6 +119,19 @@ class BffOverviewController(
         )
     }
 
+    @GetMapping("/bff/app-usage-histogram")
+    fun getAppUsageHistogram(
+        @RequestParam("instanceId") deviceId: DeviceId,
+        @RequestParam("date") date: String,
+        @RequestParam("appPath") appPath: String,
+    ): AppUsageHistogramResponse {
+        val device = devicesService.get(deviceId)
+        val day = LocalDate.parse(date)
+        return AppUsageHistogramResponse(
+            usagePeriods = device.getAppUsageHistogram(day, appPath).sorted()
+        )
+    }
+
 
     @GetMapping("/bff/instance-edit-info")
     fun getInstanceEditInfo(
@@ -272,6 +285,10 @@ data class AppUsage(
     val iconBase64: String? = null,
     val online: Boolean,
     val appGroups: List<AppGroupWithColor> = emptyList()
+)
+
+data class AppUsageHistogramResponse(
+    val usagePeriods: List<String>
 )
 
 data class ForcedInstanceState(

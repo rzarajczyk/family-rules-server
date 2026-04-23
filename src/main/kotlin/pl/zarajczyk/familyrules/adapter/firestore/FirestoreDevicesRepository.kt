@@ -292,20 +292,49 @@ class FirestoreDevicesRepository(
         val screenTimeSeconds = dayDoc.getLongOrThrow("screenTime")
         val updatedAt = dayDoc.getStringOrThrow("updatedAt").let { Instant.parse(it) }
         val applicationTimes = dayDoc.getApplicationTimes("applicationTimes")
+        val appUsageBuckets = dayDoc.getAppUsageBuckets("appBuckets")
         val onlinePeriods = dayDoc.getOnlinePeriods("onlinePeriods")
         val lastUpdatedApps = dayDoc.getLastUpdatedApps("lastUpdatedApps")
 
         return ScreenReportDto(
             screenTimeSeconds = screenTimeSeconds,
             applicationsSeconds = applicationTimes,
+            appUsageBuckets = appUsageBuckets,
             updatedAt = updatedAt,
             onlinePeriods = onlinePeriods,
             lastUpdatedApps = lastUpdatedApps
         )
     }
 
+    override fun getAppUsageHistogram(device: DeviceRef, day: LocalDate, appTechnicalId: String): Set<String> {
+        val screenReport = getScreenReport(device, day) ?: return emptySet()
+        return screenReport.appUsageBuckets[appTechnicalId] ?: emptySet()
+    }
+
     private fun DocumentSnapshot.getApplicationTimes(fieldName: String): Map<String, Long> =
         json.decodeFromString(getStringOrThrow(fieldName))
+
+    @Suppress("UNCHECKED_CAST")
+    private fun DocumentSnapshot.getAppUsageBuckets(fieldName: String): Map<String, Set<String>> {
+        val rawBuckets = get(fieldName) as? Map<String, Any?> ?: return emptyMap()
+        val appBuckets = mutableMapOf<String, MutableSet<String>>()
+
+        rawBuckets.forEach { (bucketKey, rawBucketData) ->
+            val bucketData = rawBucketData as? Map<String, Any?> ?: return@forEach
+            bucketData.forEach { (encodedAppId, rawValue) ->
+                val seconds = when (rawValue) {
+                    is Long -> rawValue
+                    is Number -> rawValue.toLong()
+                    else -> 0L
+                }
+                if (seconds <= 0L) return@forEach
+                val appId = encodedAppId.decodeAppBucketKey()
+                appBuckets.getOrPut(appId) { mutableSetOf() }.add(bucketKey)
+            }
+        }
+
+        return appBuckets.mapValues { (_, buckets) -> buckets.toSet() }
+    }
 
     @Suppress("UNCHECKED_CAST")
     private fun DocumentSnapshot.getOnlinePeriods(fieldName: String): Set<String> =

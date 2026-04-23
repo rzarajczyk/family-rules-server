@@ -26,6 +26,7 @@ interface DevicesRepository {
     fun setScreenReport(device: DeviceRef, day: LocalDate, screenReportDto: SetScreenReportDto)
     fun setCurrentScreenReport(device: DeviceRef, day: LocalDate, screenReportDto: SetScreenReportDto)
     fun getScreenReport(device: DeviceRef, day: LocalDate): ScreenReportDto?
+    fun getAppUsageHistogram(device: DeviceRef, day: LocalDate, appTechnicalId: String): Set<String>
 }
 
 interface DeviceRef {

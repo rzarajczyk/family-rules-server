@@ -6,6 +6,7 @@ import kotlinx.serialization.Serializable
 data class ScreenReportDto(
     val screenTimeSeconds: Long,
     val applicationsSeconds: Map<String, Long>,
+    val appUsageBuckets: Map<String, Set<String>>,
     val updatedAt: Instant,
     val onlinePeriods: Set<String>,
     val lastUpdatedApps: Set<String>
@@ -14,6 +15,7 @@ data class ScreenReportDto(
         fun empty() = ScreenReportDto(
             screenTimeSeconds = 0,
             applicationsSeconds = emptyMap(),
+            appUsageBuckets = emptyMap(),
             updatedAt = Instant.DISTANT_PAST,
             onlinePeriods = emptySet(),
             lastUpdatedApps = emptySet()
@@ -55,4 +57,3 @@ data class ClientInfoDto(
     val knownApps: Map<String, AppDto>,
     val states: List<DeviceStateTypeDto>
 )
-

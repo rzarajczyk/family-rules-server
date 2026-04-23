@@ -89,6 +89,8 @@ interface Device {
 
     fun getScreenTimeReport(day: LocalDate): ScreenReport
 
+    fun getAppUsageHistogram(day: LocalDate, appTechnicalId: String): Set<String>
+
     fun saveScreenTimeReport(day: LocalDate, screenTimeSeconds: Long, applicationsSeconds: Map<String, Long>, activeApps: Set<String>?)
 
     fun updateOwnerLastActivity(lastActivityMillis: Long)
@@ -136,6 +138,7 @@ class RefBasedDevice(
             return ScreenReport(
                 screenTimeSeconds = details.currentScreenTime ?: 0L,
                 applicationsSeconds = details.currentApplicationTimes,
+                appUsageBuckets = emptyMap(),
                 updatedAt = updatedAt,
                 onlinePeriods = details.currentOnlinePeriods ?: emptySet(),
                 lastUpdatedApps = details.currentLastUpdatedApps ?: emptySet(),
@@ -149,12 +152,17 @@ class RefBasedDevice(
         )
     }
 
+    override fun getAppUsageHistogram(day: LocalDate, appTechnicalId: String): Set<String> {
+        return devicesRepository.getAppUsageHistogram(deviceRef, day, appTechnicalId)
+    }
+
     private fun ScreenReportDto.toDomain(reportIntervalSeconds: Long): ScreenReport {
         val isOnline = updatedAt.isOnline(reportIntervalSeconds)
         val onlineApps = if (isOnline) lastUpdatedApps else emptySet()
         return ScreenReport(
             screenTimeSeconds = screenTimeSeconds,
             applicationsSeconds = applicationsSeconds,
+            appUsageBuckets = appUsageBuckets,
             updatedAt = updatedAt,
             onlinePeriods = onlinePeriods,
             lastUpdatedApps = lastUpdatedApps,
@@ -258,6 +266,7 @@ class RefBasedDevice(
 data class ScreenReport(
     val screenTimeSeconds: Long,
     val applicationsSeconds: Map<String, Long>,
+    val appUsageBuckets: Map<String, Set<String>>,
     val updatedAt: Instant,
     val onlinePeriods: Set<String>,
     val lastUpdatedApps: Set<String>,
