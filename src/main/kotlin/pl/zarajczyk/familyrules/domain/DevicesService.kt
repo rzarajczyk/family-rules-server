@@ -91,6 +91,8 @@ interface Device {
 
     fun getAppUsageHistogram(day: LocalDate, appTechnicalId: String): Set<String>
 
+    fun getAppUsageBuckets(day: LocalDate): Map<String, Set<String>>
+
     fun saveScreenTimeReport(day: LocalDate, screenTimeSeconds: Long, applicationsSeconds: Map<String, Long>, activeApps: Set<String>?)
 
     fun updateOwnerLastActivity(lastActivityMillis: Long)
@@ -154,6 +156,10 @@ class RefBasedDevice(
 
     override fun getAppUsageHistogram(day: LocalDate, appTechnicalId: String): Set<String> {
         return devicesRepository.getAppUsageHistogram(deviceRef, day, appTechnicalId)
+    }
+
+    override fun getAppUsageBuckets(day: LocalDate): Map<String, Set<String>> {
+        return devicesRepository.getScreenReport(deviceRef, day)?.appUsageBuckets ?: emptyMap()
     }
 
     private fun ScreenReportDto.toDomain(reportIntervalSeconds: Long): ScreenReport {

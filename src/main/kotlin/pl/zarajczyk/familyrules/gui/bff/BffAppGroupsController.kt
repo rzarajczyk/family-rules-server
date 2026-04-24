@@ -93,6 +93,30 @@ class BffAppGroupsController(
     }
 
 
+    @GetMapping("/bff/app-groups/{groupId}/usage-histogram")
+    fun getAppGroupUsageHistogram(
+        @PathVariable groupId: String,
+        @RequestParam("date") date: String,
+        authentication: Authentication
+    ): AppGroupUsageHistogramResponse {
+        val user = usersService.get(authentication.name)
+        val appGroup = appGroupService.get(user, groupId)
+        val day = LocalDate.parse(date)
+        val devices = devicesService.getAllDevices(user)
+
+        val buckets = mutableSetOf<String>()
+        devices.forEach { device ->
+            val members = appGroup.getMembers(device)
+            if (members.isEmpty()) return@forEach
+            val appBuckets = device.getAppUsageBuckets(day)
+            members.forEach { appId ->
+                appBuckets[appId]?.let { buckets.addAll(it) }
+            }
+        }
+
+        return AppGroupUsageHistogramResponse(usagePeriods = buckets.sorted())
+    }
+
     @GetMapping("/bff/app-groups/statistics")
     fun getAppGroupStatistics(
         @RequestParam("date") date: String,
@@ -418,4 +442,8 @@ data class UpdateAutoAddDevicesRequest(
 
 data class UpdateAutoAddDevicesResponse(
     val success: Boolean
+)
+
+data class AppGroupUsageHistogramResponse(
+    val usagePeriods: List<String>
 )

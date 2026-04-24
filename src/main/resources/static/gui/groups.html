@@ -157,6 +157,9 @@
                                 <button class="btn btn-sm btn-ghost" @click="deleteGroup(group.id)">
                                     <span class="material-icons text-sm">delete</span> <span class="hidden sm:inline">Delete</span>
                                 </button>
+                                <button class="btn btn-sm btn-ghost" @click="showGroupUsageClock(group)">
+                                    <span class="material-icons text-sm">bar_chart</span> <span class="hidden sm:inline">Usage</span>
+                                </button>
                                 <div class="flex-1"></div>
                                 <button class="btn btn-sm btn-outline btn-primary"
                                         :disabled="!group.hasStates"
@@ -680,6 +683,24 @@ function groupsPage() {
         applyDeviceNameFor(deviceId) {
             const d = this.applyModal.devices.find(d => d.deviceId === deviceId);
             return d ? d.deviceName : 'Unknown Device';
+        },
+
+        // --- Group usage clock ---
+        async showGroupUsageClock(group) {
+            try {
+                const resp = await ServerRequest.fetch(
+                    '/bff/app-groups/' + encodeURIComponent(group.id) + '/usage-histogram?date=' + encodeURIComponent(this.selectedDate)
+                );
+                const data = await resp.json();
+                if (!data.usagePeriods || data.usagePeriods.length === 0) {
+                    Toast.info('No usage histogram available for this group on this date');
+                    return;
+                }
+                this.clockModal = { open: true, title: 'Screen Time - ' + group.name };
+                this.$nextTick(() => drawClock(data.usagePeriods, this.selectedDate));
+            } catch (_) {
+                Toast.error('Failed to load group usage histogram');
+            }
         },
 
         // --- App usage clock ---
