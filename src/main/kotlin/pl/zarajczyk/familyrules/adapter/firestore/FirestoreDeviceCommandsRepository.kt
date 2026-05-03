@@ -29,6 +29,18 @@ class FirestoreDeviceCommandsRepository(
         return doc.toCommandDto()
     }
 
+    override fun getLatest(device: DeviceRef, commandName: String): DeviceCommandDto? {
+        return commandsCollection(device)
+            .whereEqualTo("commandName", commandName)
+            .orderBy("createdAt", com.google.cloud.firestore.Query.Direction.DESCENDING)
+            .limit(1)
+            .get()
+            .get()
+            .documents
+            .firstOrNull()
+            ?.toCommandDto()
+    }
+
     override fun getPending(device: DeviceRef): List<DeviceCommandDto> {
         return commandsCollection(device)
             .get()
@@ -109,6 +121,10 @@ class FirestoreDeviceCommandsRepository(
 
     override fun hasPending(device: DeviceRef): Boolean {
         return getPending(device).isNotEmpty()
+    }
+
+    override fun delete(device: DeviceRef, commandId: String) {
+        commandDocument(device, commandId).delete().get()
     }
 
     private fun commandsCollection(device: DeviceRef) =

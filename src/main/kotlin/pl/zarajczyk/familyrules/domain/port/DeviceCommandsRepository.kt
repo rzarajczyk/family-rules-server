@@ -8,11 +8,13 @@ import pl.zarajczyk.familyrules.domain.DeviceId
 interface DeviceCommandsRepository {
     fun create(device: DeviceRef, command: DeviceCommandDto)
     fun get(device: DeviceRef, commandId: String): DeviceCommandDto?
+    fun getLatest(device: DeviceRef, commandName: String): DeviceCommandDto?
     fun getPending(device: DeviceRef): List<DeviceCommandDto>
     fun markDelivered(device: DeviceRef, commandIds: Collection<String>, deliveredAt: Instant)
     fun acknowledge(device: DeviceRef, acknowledgements: List<CommandAckDto>)
     fun storeResults(device: DeviceRef, results: List<CommandResultDto>)
     fun hasPending(device: DeviceRef): Boolean
+    fun delete(device: DeviceRef, commandId: String)
 }
 
 data class DeviceCommandDto(

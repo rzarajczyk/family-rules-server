@@ -267,6 +267,10 @@
                     <div x-show="logsModal.loading" class="flex flex-col items-center py-10 gap-3">
                         <span class="loading loading-spinner loading-lg text-primary"></span>
                         <p class="text-base-content/70">Waiting for device response...</p>
+                        <p class="text-sm text-base-content/60">
+                            Requested at: <span x-text="logsModal.requestedAtLabel"></span>
+                        </p>
+                        <p class="text-sm text-base-content/60">You can close this window now.</p>
                     </div>
 
                     <div x-show="logsModal.error" class="alert alert-error mb-4">
@@ -282,6 +286,8 @@
                     </div>
 
                     <div class="modal-action">
+                        <button class="btn btn-error btn-outline" x-show="logsModal.status === 'PENDING'" @click="cancelLogsRequest()">Cancel</button>
+                        <button class="btn btn-warning btn-outline" x-show="logsModal.status === 'RECEIVED'" @click="clearLogsRequest()">Clear</button>
                         <button class="btn" @click="closeLogsModal()">Close</button>
                     </div>
                 </div>
@@ -323,6 +329,8 @@
 </div>
 
 <script>
+const REQUEST_LOGS_STORAGE_KEY = 'family-rules-request-logs';
+
 function devicesPage() {
     return {
         selectedDate: today(),
@@ -339,20 +347,23 @@ function devicesPage() {
             iconFile: null, iconType: '', iconData: '',
             availableGroups: [], selectedShowGroups: [], selectedBlockGroups: []
         },
-        clockModal: { open: false, title: '' },
-        logsModal: {
-            open: false,
-            instanceId: '',
-            instanceName: '',
-            commandId: '',
-            loading: false,
-            statusLabel: '',
-            logsText: '',
-            truncated: false,
-            error: '',
-            pollToken: 0
-        },
-        groupDropdown: { open: false, x: 0, y: 0, groups: [], instanceId: '', appPath: '' },
+            clockModal: { open: false, title: '' },
+            logsModal: {
+                open: false,
+                instanceId: '',
+                instanceName: '',
+                commandId: '',
+                status: 'EMPTY',
+                requestedAt: '',
+                requestedAtLabel: '',
+                loading: false,
+                statusLabel: '',
+                logsText: '',
+                truncated: false,
+                error: '',
+                pollToken: 0
+            },
+            groupDropdown: { open: false, x: 0, y: 0, groups: [], instanceId: '', appPath: '' },
 
         init() { this.update(); },
 
@@ -533,24 +544,22 @@ function devicesPage() {
         async requestLogs(device) {
             if (!this.canRequestLogs(device)) return;
             try {
-                const resp = await ServerRequest.fetch('/bff/instance-commands?instanceId=' + encodeURIComponent(device.instanceId), {
-                    method: 'POST',
-                    body: JSON.stringify({ commandName: 'SEND_LOGS' })
-                });
-                const data = await resp.json();
-                this.logsModal = {
-                    open: true,
-                    instanceId: device.instanceId,
-                    instanceName: device.instanceName,
-                    commandId: data.commandId,
-                    loading: true,
-                    statusLabel: 'Queued',
-                    logsText: '',
-                    truncated: false,
-                    error: '',
-                    pollToken: Date.now()
-                };
-                this.pollLogsCommand(this.logsModal.pollToken);
+                const current = await this.fetchLatestLogsRequest(device.instanceId);
+                if (current.status === 'EMPTY') {
+                    const resp = await ServerRequest.fetch('/bff/instance-commands?instanceId=' + encodeURIComponent(device.instanceId), {
+                        method: 'POST',
+                        body: JSON.stringify({ commandName: 'SEND_LOGS' })
+                    });
+                    const created = await resp.json();
+                    this.openLogsModal(device, created);
+                    this.ensureLogsPolling(created.commandId);
+                    return;
+                }
+
+                this.openLogsModal(device, current);
+                if (current.status === 'PENDING') {
+                    this.ensureLogsPolling(current.commandId);
+                }
             } catch (_) {
                 Toast.error('Failed to request logs');
             }
@@ -558,47 +567,95 @@ function devicesPage() {
 
         closeLogsModal() {
             this.logsModal.open = false;
-            this.logsModal.pollToken = 0;
         },
 
-        async pollLogsCommand(pollToken) {
-            if (!this.logsModal.open || this.logsModal.pollToken !== pollToken) return;
-            try {
-                const resp = await ServerRequest.fetch(
-                    '/bff/instance-commands/' + encodeURIComponent(this.logsModal.commandId)
-                    + '?instanceId=' + encodeURIComponent(this.logsModal.instanceId)
-                );
-                const data = await resp.json();
-
-                if (!this.logsModal.open || this.logsModal.pollToken !== pollToken) return;
-
-                if (data.status === 'QUEUED') {
-                    this.logsModal.statusLabel = 'Queued';
-                } else if (data.status === 'ACKNOWLEDGED') {
-                    this.logsModal.statusLabel = 'Received by device';
-                } else if (data.status === 'COMPLETED') {
-                    this.logsModal.loading = false;
-                    this.logsModal.statusLabel = 'Completed';
-                    this.logsModal.logsText = data.responsePayload?.logsText || '';
-                    this.logsModal.truncated = data.responsePayload?.truncated === 'true';
-                    return;
-                } else if (data.status === 'FAILED') {
-                    this.logsModal.loading = false;
-                    this.logsModal.statusLabel = 'Failed';
-                    this.logsModal.error = data.responsePayload?.receivedCommandName
+        openLogsModal(device, data) {
+            const status = data.status || 'EMPTY';
+            this.logsModal = {
+                open: true,
+                instanceId: device.instanceId,
+                instanceName: device.instanceName,
+                commandId: data.commandId || '',
+                status,
+                requestedAt: data.createdAt || '',
+                requestedAtLabel: this.formatDateTime(data.createdAt || ''),
+                loading: status === 'PENDING',
+                statusLabel: status === 'PENDING' ? 'Pending' : (status === 'RECEIVED' ? 'Received' : ''),
+                logsText: data.responsePayload?.logsText || '',
+                truncated: data.responsePayload?.truncated === 'true',
+                error: status === 'RECEIVED' && data.resultStatus === 'FAILED'
+                    ? (data.responsePayload?.receivedCommandName
                         ? 'Device does not support command: ' + data.responsePayload.receivedCommandName
-                        : 'Device failed to provide logs';
+                        : 'Device failed to provide logs')
+                    : '',
+                pollToken: data.commandId || ''
+            };
+        },
+
+        ensureLogsPolling(commandId) {
+            setTimeout(() => this.pollLogsCommand(commandId), 0);
+        },
+
+        async pollLogsCommand(commandId) {
+            if (!this.logsModal.open || this.logsModal.commandId !== commandId || this.logsModal.status !== 'PENDING') return;
+            try {
+                const updated = await this.fetchLatestLogsRequest(this.logsModal.instanceId);
+                if (!updated) return;
+                this.openLogsModal({ instanceId: this.logsModal.instanceId, instanceName: this.logsModal.instanceName }, updated);
+                if (updated.status !== 'PENDING') {
                     return;
                 }
             } catch (_) {
-                if (this.logsModal.open && this.logsModal.pollToken === pollToken) {
-                    this.logsModal.loading = false;
-                    this.logsModal.error = 'Failed while waiting for device response';
-                    return;
-                }
+                this.logsModal.loading = false;
+                this.logsModal.error = 'Failed while waiting for device response';
+                return;
             }
 
-            setTimeout(() => this.pollLogsCommand(pollToken), 3000);
+            setTimeout(() => this.pollLogsCommand(commandId), 3000);
+        },
+
+        formatDateTime(isoString) {
+            try {
+                return new Date(isoString).toLocaleString();
+            } catch (_) {
+                return isoString;
+            }
+        },
+
+        async fetchLatestLogsRequest(instanceId) {
+            const resp = await ServerRequest.fetch(
+                '/bff/instance-commands?instanceId=' + encodeURIComponent(instanceId)
+                + '&commandName=' + encodeURIComponent('SEND_LOGS')
+            );
+            return await resp.json();
+        },
+
+        async cancelLogsRequest() {
+            try {
+                await ServerRequest.fetch(
+                    '/bff/instance-commands?instanceId=' + encodeURIComponent(this.logsModal.instanceId)
+                    + '&commandName=' + encodeURIComponent('SEND_LOGS'),
+                    { method: 'DELETE' }
+                );
+                this.closeLogsModal();
+                Toast.info('Log request cancelled');
+            } catch (_) {
+                Toast.error('Failed to cancel log request');
+            }
+        },
+
+        async clearLogsRequest() {
+            try {
+                await ServerRequest.fetch(
+                    '/bff/instance-commands?instanceId=' + encodeURIComponent(this.logsModal.instanceId)
+                    + '&commandName=' + encodeURIComponent('SEND_LOGS'),
+                    { method: 'DELETE' }
+                );
+                this.closeLogsModal();
+                Toast.info('Log response cleared');
+            } catch (_) {
+                Toast.error('Failed to clear log response');
+            }
         },
 
         // --- Usage clock ---

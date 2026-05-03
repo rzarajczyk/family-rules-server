@@ -16,6 +16,7 @@ import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.header
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
@@ -121,6 +122,7 @@ class BffDeviceCommandsControllerIntegrationSpec : FunSpec() {
             )
                 .andExpect(status().isOk)
                 .andExpect(jsonPath("$.commandId").exists())
+                .andExpect(jsonPath("$.status").value("PENDING"))
                 .andReturn()
 
             val commandId = objectMapper.readTree(createResult.response.contentAsString).get("commandId").asText()
@@ -136,14 +138,56 @@ class BffDeviceCommandsControllerIntegrationSpec : FunSpec() {
             ))
 
             mockMvc.perform(
-                get("/bff/instance-commands/$commandId")
+                get("/bff/instance-commands")
                     .param("instanceId", deviceId.toString())
+                    .param("commandName", "SEND_LOGS")
                     .with(user(username))
             )
                 .andExpect(status().isOk)
-                .andExpect(jsonPath("$.status").value("COMPLETED"))
+                .andExpect(jsonPath("$.status").value("RECEIVED"))
+                .andExpect(jsonPath("$.createdAt").exists())
                 .andExpect(jsonPath("$.responseType").value("SEND_LOGS_V1"))
                 .andExpect(jsonPath("$.responsePayload.logsText").value("hello"))
+        }
+
+        test("should return empty when no request exists and support clear") {
+            val device = devicesService.get(deviceId)
+            device.update(DeviceDetailsUpdateDto(supportedServerCommands = set(listOf("SEND_LOGS"))))
+
+            mockMvc.perform(
+                get("/bff/instance-commands")
+                    .param("instanceId", deviceId.toString())
+                    .param("commandName", "SEND_LOGS")
+                    .with(user(username))
+            )
+                .andExpect(status().isOk)
+                .andExpect(jsonPath("$.status").value("EMPTY"))
+
+            mockMvc.perform(
+                post("/bff/instance-commands")
+                    .param("instanceId", deviceId.toString())
+                    .with(user(username))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{ "commandName": "SEND_LOGS" }""")
+            )
+                .andExpect(status().isOk)
+
+            mockMvc.perform(
+                delete("/bff/instance-commands")
+                    .param("instanceId", deviceId.toString())
+                    .param("commandName", "SEND_LOGS")
+                    .with(user(username))
+            )
+                .andExpect(status().isOk)
+
+            mockMvc.perform(
+                get("/bff/instance-commands")
+                    .param("instanceId", deviceId.toString())
+                    .param("commandName", "SEND_LOGS")
+                    .with(user(username))
+            )
+                .andExpect(status().isOk)
+                .andExpect(jsonPath("$.status").value("EMPTY"))
         }
 
         test("should forbid access from another user") {

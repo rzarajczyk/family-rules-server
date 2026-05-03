@@ -45,6 +45,14 @@ class DeviceCommandsService(
         return command
     }
 
+    fun getOrEnqueue(device: Device, commandName: String): DeviceCommandDto {
+        val latest = deviceCommandsRepository.getLatest(device.asRef(), commandName)
+        if (latest != null && (latest.status == CommandLifecycleStatus.QUEUED || latest.status == CommandLifecycleStatus.ACKNOWLEDGED || latest.status == CommandLifecycleStatus.COMPLETED || latest.status == CommandLifecycleStatus.FAILED)) {
+            return latest
+        }
+        return enqueue(device, commandName)
+    }
+
     fun getPendingCommands(device: Device): List<DeviceCommandDto> {
         if (!device.getDetails().hasPendingServerCommands) return emptyList()
         return deviceCommandsRepository.getPending(device.asRef())
@@ -69,6 +77,14 @@ class DeviceCommandsService(
 
     fun getForDevice(device: Device, commandId: String): DeviceCommandDto =
         deviceCommandsRepository.get(device.asRef(), commandId) ?: throw CommandNotFoundException(commandId)
+
+    fun getLatestForDevice(device: Device, commandName: String): DeviceCommandDto? =
+        deviceCommandsRepository.getLatest(device.asRef(), commandName)
+
+    fun delete(device: Device, commandId: String) {
+        deviceCommandsRepository.delete(device.asRef(), commandId)
+        refreshPendingFlag(device)
+    }
 
     private fun refreshPendingFlag(device: Device) {
         val hasPending = deviceCommandsRepository.hasPending(device.asRef())
