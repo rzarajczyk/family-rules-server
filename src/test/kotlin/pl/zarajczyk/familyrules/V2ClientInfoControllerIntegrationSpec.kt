@@ -97,6 +97,7 @@ class V2ClientInfoControllerIntegrationSpec : FunSpec() {
                       "version": "v9.9.9",
                       "timezoneOffsetSeconds": 7200,
                       "reportIntervalSeconds": 30,
+                      "supportedServerCommands": ["SEND_LOGS"],
                       "availableStates": [
                         {
                           "deviceState": "ACTIVE",
@@ -130,6 +131,7 @@ class V2ClientInfoControllerIntegrationSpec : FunSpec() {
                 dto.reportIntervalSeconds shouldBe 30
                 dto.knownApps.keys.shouldContainAll(listOf("com.example.app1", "com.example.app2"))
                 dto.knownApps["com.example.app1"]!!.appName shouldBe "App One"
+                dto.supportedServerCommands shouldBe listOf("SEND_LOGS")
 
                 val states = dto.availableDeviceStates
                 states shouldNotBe null

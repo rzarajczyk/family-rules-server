@@ -51,7 +51,7 @@ class DevicesService(
             iconType = null,
             reportIntervalSeconds = 60,
             knownApps = emptyMap(),
-            availableDeviceStates = emptyList()
+            availableDeviceStates = emptyList(),
         )
 
         devicesRepository.createDevice(userRef, details, token.sha256())
@@ -117,6 +117,7 @@ class RefBasedDevice(
 
     override fun update(update: DeviceDetailsUpdateDto) {
         devicesRepository.update(deviceRef, update)
+        cachedDetails = devicesRepository.get(getId())?.details ?: cachedDetails
     }
 
     override fun delete() {

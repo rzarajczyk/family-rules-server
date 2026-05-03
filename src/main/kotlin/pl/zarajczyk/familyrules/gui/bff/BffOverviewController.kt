@@ -88,6 +88,7 @@ class BffOverviewController(
                 online = screenTimeDto.online,
                 icon = deviceDetails.getIcon(),
                 availableAppGroups = appGroupsDetails.values.toList(),
+                supportedServerCommands = deviceDetails.supportedServerCommands,
             )
         })
     } catch (_: InvalidPassword) {
@@ -115,7 +116,8 @@ class BffOverviewController(
             forcedDeviceState = details.forcedDeviceState,
             clientType = details.clientType,
             clientVersion = details.clientVersion,
-            clientTimezoneOffsetSeconds = details.clientTimezoneOffsetSeconds
+            clientTimezoneOffsetSeconds = details.clientTimezoneOffsetSeconds,
+            supportedServerCommands = details.supportedServerCommands,
         )
     }
 
@@ -244,6 +246,7 @@ data class InstanceInfoResponse(
     val clientType: String,
     val clientVersion: String,
     val clientTimezoneOffsetSeconds: Long,
+    val supportedServerCommands: List<String>,
 )
 
 data class DeviceStateDescriptionResponse(
@@ -270,6 +273,7 @@ data class Instance(
     val forcedDeviceState: DeviceStateDescriptionResponse?,
     val online: Boolean,
     val availableAppGroups: List<AppGroupDetails>,
+    val supportedServerCommands: List<String>,
 )
 
 data class Icon(

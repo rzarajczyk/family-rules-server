@@ -30,8 +30,10 @@ import org.testcontainers.gcloud.FirestoreEmulatorContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import pl.zarajczyk.familyrules.domain.*
+import pl.zarajczyk.familyrules.domain.port.DeviceDetailsUpdateDto
 import pl.zarajczyk.familyrules.domain.port.DevicesRepository
 import pl.zarajczyk.familyrules.domain.port.UsersRepository
+import pl.zarajczyk.familyrules.domain.port.ValueUpdate.Companion.set
 import java.util.Base64
 import java.util.UUID
 
@@ -53,8 +55,11 @@ class V2ReportControllerIntegrationSpec : FunSpec() {
     @Autowired
     private lateinit var devicesService: DevicesService
 
-    @Autowired
-    private lateinit var devicesRepository: DevicesRepository
+        @Autowired
+        private lateinit var devicesRepository: DevicesRepository
+
+        @Autowired
+        private lateinit var deviceCommandsService: DeviceCommandsService
 
     @Autowired
     private lateinit var firestore: Firestore
@@ -424,6 +429,25 @@ class V2ReportControllerIntegrationSpec : FunSpec() {
                     .content(invalidJson)
             )
                 .andExpect(status().isBadRequest)
+        }
+
+        test("should return queued server commands in report response") {
+            val apiV2Basic = Base64.getEncoder().encodeToString("$deviceId:$token".toByteArray())
+            val device = devicesService.get(deviceId)
+            device.update(DeviceDetailsUpdateDto(
+                supportedServerCommands = set(listOf("SEND_LOGS"))
+            ))
+            val command = deviceCommandsService.enqueue(device, "SEND_LOGS")
+
+            mockMvc.perform(
+                post("/api/v2/report")
+                    .header("Authorization", "Basic $apiV2Basic")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{ "screenTime": 10, "applications": {} }""")
+            )
+                .andExpect(status().isOk)
+                .andExpect(jsonPath("$.serverCommands[0].commandId").value(command.commandId))
+                .andExpect(jsonPath("$.serverCommands[0].commandName").value("SEND_LOGS"))
         }
 
     test("should fail with 401 when Authorization header missing or malformed") {

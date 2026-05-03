@@ -26,7 +26,8 @@ class V2ClientInfoController(
             clientTimezoneOffsetSeconds = set(request.timezoneOffsetSeconds ?: 0L),
             reportIntervalSeconds = set(request.reportIntervalSeconds ?: 60L),
             knownApps = set(newKnownApps),
-            availableDeviceStates = set(request.availableStates.map { it.toDto() })
+            availableDeviceStates = set(request.availableStates.map { it.toDto() }),
+            supportedServerCommands = set(request.supportedServerCommands ?: emptyList())
 
         ))
         return ClientInfoResponse()
@@ -60,7 +61,8 @@ data class ClientInfoRequest(
     val availableStates: List<DeviceStateTypeRequest>,
     val timezoneOffsetSeconds: Long?,
     val reportIntervalSeconds: Long?,
-    val knownApps: Map<String, App>?
+    val knownApps: Map<String, App>?,
+    val supportedServerCommands: List<String>? = null,
 )
 
 data class ClientInfoResponse(

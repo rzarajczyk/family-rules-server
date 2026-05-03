@@ -49,7 +49,9 @@ class FirestoreDevicesRepository(
             "apps" to details.knownApps.toNativeAppsMap(),
             "reportIntervalSeconds" to details.reportIntervalSeconds,
             "deviceStates" to details.availableDeviceStates.encodeDeviceStates(),
-            "appGroups" to details.appGroups.encodeAppGroups()
+            "supportedServerCommands" to json.encodeToString(details.supportedServerCommands),
+            "appGroups" to details.appGroups.encodeAppGroups(),
+            "hasPendingServerCommands" to details.hasPendingServerCommands,
         )
 
         val doc = (user as FirestoreUserRef).doc
@@ -106,8 +108,10 @@ class FirestoreDevicesRepository(
             reportIntervalSeconds = doc.getLongOrThrow("reportIntervalSeconds"),
             knownApps = doc.getNativeApps(),
             availableDeviceStates = doc.getAvailableDeviceStates("deviceStates"),
+            supportedServerCommands = doc.getSupportedServerCommands("supportedServerCommands"),
             appGroups = doc.getAppGroups("appGroups"),
             autoAddGroupIds = doc.getAutoAddGroupIds("autoAddGroupIds"),
+            hasPendingServerCommands = doc.getBoolean("hasPendingServerCommands") ?: false,
             currentDay = doc.getString("currentDay"),
             currentScreenTime = doc.getLong("currentScreenTime"),
             currentApplicationTimes = doc.getNativeApplicationTimes("currentApplicationTimes"),
@@ -134,8 +138,10 @@ class FirestoreDevicesRepository(
             details.knownApps.ifPresent { "apps" to it.toNativeAppsMap() },
             details.reportIntervalSeconds.ifPresent { "reportIntervalSeconds" to it },
             details.availableDeviceStates.ifPresent { "deviceStates" to it.encodeDeviceStates() },
+            details.supportedServerCommands.ifPresent { "supportedServerCommands" to json.encodeToString(it) },
             details.appGroups.ifPresent { "appGroups" to it.encodeAppGroups() },
-            details.autoAddGroupIds.ifPresent { "autoAddGroupIds" to json.encodeToString(it) }
+            details.autoAddGroupIds.ifPresent { "autoAddGroupIds" to json.encodeToString(it) },
+            details.hasPendingServerCommands.ifPresent { "hasPendingServerCommands" to it },
         ).toMap()
 
         val doc = (device as FirestoreDeviceRef).document
@@ -170,6 +176,13 @@ class FirestoreDevicesRepository(
         }
 
     private fun QueryDocumentSnapshot.getAutoAddGroupIds(fieldName: String): List<String> =
+        try {
+            json.decodeFromString<List<String>>(getString(fieldName) ?: "[]")
+        } catch (_: Exception) {
+            emptyList()
+        }
+
+    private fun QueryDocumentSnapshot.getSupportedServerCommands(fieldName: String): List<String> =
         try {
             json.decodeFromString<List<String>>(getString(fieldName) ?: "[]")
         } catch (_: Exception) {
