@@ -132,6 +132,13 @@
                                 <button class="btn btn-sm btn-ghost" @click="showUsageClock(device)">
                                     <span class="material-icons text-sm">bar_chart</span> <span class="hidden sm:inline">Usage</span>
                                 </button>
+                                <button class="btn btn-sm btn-ghost"
+                                        :class="!canRequestLogs(device) && 'btn-disabled opacity-50'"
+                                        :disabled="!canRequestLogs(device)"
+                                        :title="canRequestLogs(device) ? 'Request logs from device' : 'Supported only on newer client versions'"
+                                        @click="requestLogs(device)">
+                                    <span class="material-icons text-sm">article</span> <span class="hidden sm:inline">Request logs</span>
+                                </button>
                                 <div class="flex-1"></div>
                                 <button class="btn btn-sm btn-outline btn-primary" @click="showChangeState(device.instanceId)">Change device state</button>
                             </div>
@@ -244,6 +251,43 @@
                 <form method="dialog" class="modal-backdrop" @click="clockModal.open = false"></form>
             </dialog>
 
+            <!-- Request Logs Modal -->
+            <dialog class="modal" :class="logsModal.open && 'modal-open'">
+                <div class="modal-box max-w-4xl">
+                    <div class="flex items-start justify-between gap-4 mb-4">
+                        <div>
+                            <h3 class="font-bold text-lg">Device logs: <b x-text="logsModal.instanceName"></b></h3>
+                            <p class="text-sm text-base-content/60" x-show="logsModal.statusLabel" x-text="logsModal.statusLabel"></p>
+                        </div>
+                        <button class="btn btn-sm btn-ghost" @click="closeLogsModal()">
+                            <span class="material-icons text-sm">close</span>
+                        </button>
+                    </div>
+
+                    <div x-show="logsModal.loading" class="flex flex-col items-center py-10 gap-3">
+                        <span class="loading loading-spinner loading-lg text-primary"></span>
+                        <p class="text-base-content/70">Waiting for device response...</p>
+                    </div>
+
+                    <div x-show="logsModal.error" class="alert alert-error mb-4">
+                        <span x-text="logsModal.error"></span>
+                    </div>
+
+                    <div x-show="logsModal.truncated" class="alert alert-warning mb-4">
+                        <span>Only the newest part of the logs was uploaded.</span>
+                    </div>
+
+                    <div x-show="logsModal.logsText !== ''" class="bg-base-200 rounded-lg p-3 max-h-[60vh] overflow-auto">
+                        <pre class="whitespace-pre-wrap break-words text-xs leading-5" x-text="logsModal.logsText"></pre>
+                    </div>
+
+                    <div class="modal-action">
+                        <button class="btn" @click="closeLogsModal()">Close</button>
+                    </div>
+                </div>
+                <form method="dialog" class="modal-backdrop" @click="closeLogsModal()"></form>
+            </dialog>
+
             <!-- Add group dropdown (positioned absolutely) -->
             <div x-show="groupDropdown.open" x-transition
                  class="fixed z-50 bg-base-100 border border-base-300 rounded-lg shadow-lg min-w-[160px] max-h-52 overflow-y-auto"
@@ -296,6 +340,18 @@ function devicesPage() {
             availableGroups: [], selectedShowGroups: [], selectedBlockGroups: []
         },
         clockModal: { open: false, title: '' },
+        logsModal: {
+            open: false,
+            instanceId: '',
+            instanceName: '',
+            commandId: '',
+            loading: false,
+            statusLabel: '',
+            logsText: '',
+            truncated: false,
+            error: '',
+            pollToken: 0
+        },
         groupDropdown: { open: false, x: 0, y: 0, groups: [], instanceId: '', appPath: '' },
 
         init() { this.update(); },
@@ -467,6 +523,82 @@ function devicesPage() {
                 Toast.info('Deleted');
                 this.update();
             } catch (_) { Toast.error('Failed to delete'); }
+        },
+
+        // --- Request logs ---
+        canRequestLogs(device) {
+            return (device.supportedServerCommands || []).includes('SEND_LOGS');
+        },
+
+        async requestLogs(device) {
+            if (!this.canRequestLogs(device)) return;
+            try {
+                const resp = await ServerRequest.fetch('/bff/instance-commands?instanceId=' + encodeURIComponent(device.instanceId), {
+                    method: 'POST',
+                    body: JSON.stringify({ commandName: 'SEND_LOGS' })
+                });
+                const data = await resp.json();
+                this.logsModal = {
+                    open: true,
+                    instanceId: device.instanceId,
+                    instanceName: device.instanceName,
+                    commandId: data.commandId,
+                    loading: true,
+                    statusLabel: 'Queued',
+                    logsText: '',
+                    truncated: false,
+                    error: '',
+                    pollToken: Date.now()
+                };
+                this.pollLogsCommand(this.logsModal.pollToken);
+            } catch (_) {
+                Toast.error('Failed to request logs');
+            }
+        },
+
+        closeLogsModal() {
+            this.logsModal.open = false;
+            this.logsModal.pollToken = 0;
+        },
+
+        async pollLogsCommand(pollToken) {
+            if (!this.logsModal.open || this.logsModal.pollToken !== pollToken) return;
+            try {
+                const resp = await ServerRequest.fetch(
+                    '/bff/instance-commands/' + encodeURIComponent(this.logsModal.commandId)
+                    + '?instanceId=' + encodeURIComponent(this.logsModal.instanceId)
+                );
+                const data = await resp.json();
+
+                if (!this.logsModal.open || this.logsModal.pollToken !== pollToken) return;
+
+                if (data.status === 'QUEUED') {
+                    this.logsModal.statusLabel = 'Queued';
+                } else if (data.status === 'ACKNOWLEDGED') {
+                    this.logsModal.statusLabel = 'Received by device';
+                } else if (data.status === 'COMPLETED') {
+                    this.logsModal.loading = false;
+                    this.logsModal.statusLabel = 'Completed';
+                    this.logsModal.logsText = data.responsePayload?.logsText || '';
+                    this.logsModal.truncated = data.responsePayload?.truncated === 'true';
+                    return;
+                } else if (data.status === 'FAILED') {
+                    this.logsModal.loading = false;
+                    this.logsModal.statusLabel = 'Failed';
+                    this.logsModal.error = data.responsePayload?.receivedCommandName
+                        ? 'Device does not support command: ' + data.responsePayload.receivedCommandName
+                        : 'Device failed to provide logs';
+                    return;
+                }
+            } catch (_) {
+                if (this.logsModal.open && this.logsModal.pollToken === pollToken) {
+                    this.logsModal.loading = false;
+                    this.logsModal.error = 'Failed while waiting for device response';
+                    return;
+                }
+            }
+
+            setTimeout(() => this.pollLogsCommand(pollToken), 3000);
         },
 
         // --- Usage clock ---

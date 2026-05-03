@@ -387,6 +387,9 @@ class BffOverviewControllerIntegrationSpec : FunSpec() {
             test("should return instance information for valid instanceId") {
                 val deviceName = "Test Device Info"
                 val deviceDetails = devicesService.setupNewDevice(testUsername, deviceName, "ANDROID")
+                devicesService.get(deviceDetails.deviceId).update(DeviceDetailsUpdateDto(
+                    supportedServerCommands = set(listOf("SEND_LOGS"))
+                ))
                 val instanceId = deviceDetails.deviceId.toString()
 
                 val result = mockMvc.perform(
@@ -400,6 +403,7 @@ class BffOverviewControllerIntegrationSpec : FunSpec() {
                     .andExpect(jsonPath("$.clientType").value("ANDROID"))
                     .andExpect(jsonPath("$.clientVersion").exists())
                     .andExpect(jsonPath("$.clientTimezoneOffsetSeconds").exists())
+                    .andExpect(jsonPath("$.supportedServerCommands[0]").value("SEND_LOGS"))
                     .andReturn()
 
                 val response = objectMapper.readTree(result.response.contentAsString)
