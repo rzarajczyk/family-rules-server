@@ -15,6 +15,7 @@ import java.util.UUID
 class DeviceCommandsService(
     private val devicesService: DevicesService,
     private val deviceCommandsRepository: DeviceCommandsRepository,
+    private val deviceCommandResultProcessor: DeviceCommandResultProcessor,
 ) {
 
     fun enqueue(device: Device, commandName: String): DeviceCommandDto {
@@ -71,7 +72,8 @@ class DeviceCommandsService(
 
     fun submitResults(device: Device, results: List<CommandResultDto>) {
         if (results.isEmpty()) return
-        deviceCommandsRepository.storeResults(device.asRef(), results)
+        val processedResults = results.map { deviceCommandResultProcessor.process(device.getId(), it) }
+        deviceCommandsRepository.storeResults(device.asRef(), processedResults)
         refreshPendingFlag(device)
     }
 

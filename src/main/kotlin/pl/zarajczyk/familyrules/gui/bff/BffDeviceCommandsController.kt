@@ -15,6 +15,8 @@ import org.springframework.http.HttpStatus
 import pl.zarajczyk.familyrules.domain.DeviceCommandsService
 import pl.zarajczyk.familyrules.domain.DeviceId
 import pl.zarajczyk.familyrules.domain.DevicesService
+import pl.zarajczyk.familyrules.domain.SendLogsResultStorage
+import pl.zarajczyk.familyrules.domain.StoredSendLogsPayload
 import pl.zarajczyk.familyrules.domain.UsersService
 
 @RestController
@@ -23,6 +25,7 @@ class BffDeviceCommandsController(
     private val deviceCommandsService: DeviceCommandsService,
     private val usersService: UsersService,
     private val objectMapper: ObjectMapper,
+    private val sendLogsResultStorage: SendLogsResultStorage,
 ) {
 
     @PostMapping("/bff/instance-commands")
@@ -70,6 +73,29 @@ class BffDeviceCommandsController(
         deviceCommandsService.delete(device, command.commandId)
     }
 
+    @GetMapping("/bff/instance-commands/log-day")
+    fun getCommandLogDay(
+        @RequestParam("instanceId") deviceId: DeviceId,
+        @RequestParam("commandName") commandName: String,
+        @RequestParam("day") day: String,
+        authentication: Authentication,
+    ): CommandLogDayResponse {
+        val user = usersService.get(authentication.name)
+        val device = devicesService.get(deviceId)
+        if (device.getOwner().getDetails().username != user.getDetails().username) {
+            throw ResponseStatusException(HttpStatus.FORBIDDEN)
+        }
+        val command = deviceCommandsService.getLatestForDevice(device, commandName)
+            ?: throw ResponseStatusException(HttpStatus.NOT_FOUND)
+        val payload = command.responsePayloadJson?.let { objectMapper.readValue(it, StoredSendLogsPayload::class.java) }
+            ?: throw ResponseStatusException(HttpStatus.NOT_FOUND)
+        val logDay = payload.days.firstOrNull { it.day == day } ?: throw ResponseStatusException(HttpStatus.NOT_FOUND)
+        return CommandLogDayResponse(
+            day = day,
+            content = sendLogsResultStorage.read(logDay.objectName),
+        )
+    }
+
     private fun pl.zarajczyk.familyrules.domain.port.DeviceCommandDto.toResponse() = EnqueueCommandResponse(
         commandId = commandId,
         status = toUiStatus(),
@@ -82,7 +108,20 @@ class BffDeviceCommandsController(
         createdAt = createdAt.toString(),
         resultStatus = resultStatus?.name,
         responseType = responseType,
-        responsePayload = responsePayloadJson?.let { objectMapper.readTree(it) },
+        responsePayload = responsePayloadJson?.let { payload ->
+            if (responseType == "SEND_LOGS_V1") {
+                val parsed = objectMapper.readValue(payload, StoredSendLogsPayload::class.java)
+                objectMapper.valueToTree(
+                    mapOf(
+                        "days" to parsed.days.map { mapOf("day" to it.day, "title" to it.title) },
+                        "truncated" to parsed.truncated,
+                        "collectedAt" to parsed.collectedAt,
+                    )
+                )
+            } else {
+                objectMapper.readTree(payload)
+            }
+        },
     )
 
     private fun pl.zarajczyk.familyrules.domain.port.DeviceCommandDto.toUiStatus() = when (status) {
@@ -92,6 +131,11 @@ class BffDeviceCommandsController(
         pl.zarajczyk.familyrules.domain.CommandLifecycleStatus.FAILED -> "RECEIVED"
     }
 }
+
+data class CommandLogDayResponse(
+    val day: String,
+    val content: String,
+)
 
 data class EnqueueCommandRequest(
     val commandName: String,

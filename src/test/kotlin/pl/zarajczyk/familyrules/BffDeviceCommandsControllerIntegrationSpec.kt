@@ -133,7 +133,7 @@ class BffDeviceCommandsControllerIntegrationSpec : FunSpec() {
                     completedAt = kotlinx.datetime.Instant.parse("2026-05-03T12:01:05Z"),
                     status = CommandResultStatus.SUCCEEDED,
                     responseType = "SEND_LOGS_V1",
-                    responsePayloadJson = "{\"logsText\":\"hello\"}",
+                    responsePayloadJson = "{\"logsText\":\"===== logs-export-2026-05-01.txt =====\\nhello day one\\n\\n===== logs-export-2026-05-02.txt =====\\nhello day two\",\"truncated\":false,\"collectedAt\":\"2026-05-03T12:01:00Z\"}",
                 )
             ))
 
@@ -147,7 +147,18 @@ class BffDeviceCommandsControllerIntegrationSpec : FunSpec() {
                 .andExpect(jsonPath("$.status").value("RECEIVED"))
                 .andExpect(jsonPath("$.createdAt").exists())
                 .andExpect(jsonPath("$.responseType").value("SEND_LOGS_V1"))
-                .andExpect(jsonPath("$.responsePayload.logsText").value("hello"))
+                .andExpect(jsonPath("$.responsePayload.days[0].day").value("2026-05-01"))
+                .andExpect(jsonPath("$.responsePayload.days[1].day").value("2026-05-02"))
+
+            mockMvc.perform(
+                get("/bff/instance-commands/log-day")
+                    .param("instanceId", deviceId.toString())
+                    .param("commandName", "SEND_LOGS")
+                    .param("day", "2026-05-02")
+                    .with(user(username))
+            )
+                .andExpect(status().isOk)
+                .andExpect(jsonPath("$.content").value(org.hamcrest.Matchers.containsString("hello day two")))
         }
 
         test("should return empty when no request exists and support clear") {

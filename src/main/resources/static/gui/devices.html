@@ -281,7 +281,23 @@
                         <span>Only the newest part of the logs was uploaded.</span>
                     </div>
 
-                    <div x-show="logsModal.logsText !== ''" class="bg-base-200 rounded-lg p-3 max-h-[60vh] overflow-auto">
+                    <div x-show="logsModal.days.length > 0" class="mb-4">
+                        <div class="tabs tabs-boxed bg-base-200 inline-flex">
+                            <template x-for="day in logsModal.days" :key="day.day">
+                                <button class="tab"
+                                        :class="logsModal.selectedDay === day.day && 'tab-active'"
+                                        @click="selectLogsDay(day.day)"
+                                        x-text="day.title"></button>
+                            </template>
+                        </div>
+                    </div>
+
+                    <div x-show="logsModal.dayLoading" class="flex flex-col items-center py-8 gap-2">
+                        <span class="loading loading-spinner loading-md text-primary"></span>
+                        <p class="text-sm text-base-content/60">Loading selected day...</p>
+                    </div>
+
+                    <div x-show="logsModal.logsText !== '' && !logsModal.dayLoading" class="bg-base-200 rounded-lg p-3 max-h-[60vh] overflow-auto">
                         <pre class="whitespace-pre-wrap break-words text-xs leading-5" x-text="logsModal.logsText"></pre>
                     </div>
 
@@ -329,8 +345,6 @@
 </div>
 
 <script>
-const REQUEST_LOGS_STORAGE_KEY = 'family-rules-request-logs';
-
 function devicesPage() {
     return {
         selectedDate: today(),
@@ -347,23 +361,26 @@ function devicesPage() {
             iconFile: null, iconType: '', iconData: '',
             availableGroups: [], selectedShowGroups: [], selectedBlockGroups: []
         },
-            clockModal: { open: false, title: '' },
-            logsModal: {
-                open: false,
-                instanceId: '',
-                instanceName: '',
-                commandId: '',
-                status: 'EMPTY',
-                requestedAt: '',
-                requestedAtLabel: '',
-                loading: false,
-                statusLabel: '',
-                logsText: '',
-                truncated: false,
-                error: '',
-                pollToken: 0
-            },
-            groupDropdown: { open: false, x: 0, y: 0, groups: [], instanceId: '', appPath: '' },
+        clockModal: { open: false, title: '' },
+        logsModal: {
+            open: false,
+            instanceId: '',
+            instanceName: '',
+            commandId: '',
+            status: 'EMPTY',
+            requestedAt: '',
+            requestedAtLabel: '',
+            loading: false,
+            dayLoading: false,
+            statusLabel: '',
+            days: [],
+            selectedDay: '',
+            logsText: '',
+            truncated: false,
+            error: '',
+            pollToken: 0
+        },
+        groupDropdown: { open: false, x: 0, y: 0, groups: [], instanceId: '', appPath: '' },
 
         init() { this.update(); },
 
@@ -571,6 +588,8 @@ function devicesPage() {
 
         openLogsModal(device, data) {
             const status = data.status || 'EMPTY';
+            const days = data.responsePayload?.days || [];
+            const selectedDay = days[0]?.day || '';
             this.logsModal = {
                 open: true,
                 instanceId: device.instanceId,
@@ -580,9 +599,12 @@ function devicesPage() {
                 requestedAt: data.createdAt || '',
                 requestedAtLabel: this.formatDateTime(data.createdAt || ''),
                 loading: status === 'PENDING',
+                dayLoading: false,
                 statusLabel: status === 'PENDING' ? 'Pending' : (status === 'RECEIVED' ? 'Received' : ''),
-                logsText: data.responsePayload?.logsText || '',
-                truncated: data.responsePayload?.truncated === 'true',
+                days,
+                selectedDay,
+                logsText: '',
+                truncated: data.responsePayload?.truncated === true,
                 error: status === 'RECEIVED' && data.resultStatus === 'FAILED'
                     ? (data.responsePayload?.receivedCommandName
                         ? 'Device does not support command: ' + data.responsePayload.receivedCommandName
@@ -590,6 +612,9 @@ function devicesPage() {
                     : '',
                 pollToken: data.commandId || ''
             };
+            if (status === 'RECEIVED' && selectedDay) {
+                this.selectLogsDay(selectedDay);
+            }
         },
 
         ensureLogsPolling(commandId) {
@@ -655,6 +680,27 @@ function devicesPage() {
                 Toast.info('Log response cleared');
             } catch (_) {
                 Toast.error('Failed to clear log response');
+            }
+        },
+
+        async selectLogsDay(day) {
+            if (!day) return;
+            this.logsModal.selectedDay = day;
+            this.logsModal.dayLoading = true;
+            this.logsModal.error = '';
+            try {
+                const resp = await ServerRequest.fetch(
+                    '/bff/instance-commands/log-day?instanceId=' + encodeURIComponent(this.logsModal.instanceId)
+                    + '&commandName=' + encodeURIComponent('SEND_LOGS')
+                    + '&day=' + encodeURIComponent(day)
+                );
+                const data = await resp.json();
+                this.logsModal.logsText = data.content || '';
+            } catch (_) {
+                this.logsModal.error = 'Failed to load selected day';
+                this.logsModal.logsText = '';
+            } finally {
+                this.logsModal.dayLoading = false;
             }
         },
 

@@ -159,7 +159,9 @@ class V2DeviceCommandsControllerIntegrationSpec : FunSpec() {
             val stored = deviceCommandsService.getForDevice(devicesService.get(deviceId), command.commandId)
             stored.status.name shouldBe "COMPLETED"
             stored.resultStatus shouldBe CommandResultStatus.SUCCEEDED
-            objectMapper.readTree(stored.responsePayloadJson).get("logsText").asText() shouldBe "hello"
+            val payload = objectMapper.readTree(stored.responsePayloadJson)
+            payload.get("days").size() shouldBe 1
+            payload.get("days")[0].get("day").asText() shouldBe "day-1"
         }
     }
 }

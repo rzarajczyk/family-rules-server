@@ -8,6 +8,9 @@ import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Primary
 import org.springframework.context.annotation.Profile
+import pl.zarajczyk.familyrules.domain.DeviceId
+import pl.zarajczyk.familyrules.domain.SendLogsResultStorage
+import pl.zarajczyk.familyrules.domain.StoredSendLogsPayload
 import pl.zarajczyk.familyrules.domain.webhook.WebhookClient
 import java.util.concurrent.CopyOnWriteArrayList
 
@@ -34,6 +37,10 @@ class TestConfiguration {
     @Bean
     @Primary
     fun capturingWebhookClient(): CapturingWebhookClient = CapturingWebhookClient()
+
+    @Bean
+    @Primary
+    fun inMemorySendLogsResultStorage(): InMemorySendLogsResultStorage = InMemorySendLogsResultStorage()
 }
 
 /**
@@ -52,4 +59,33 @@ class CapturingWebhookClient : WebhookClient {
         capturedUrls.clear()
         capturedPayloads.clear()
     }
+}
+
+class InMemorySendLogsResultStorage : SendLogsResultStorage {
+    private val contents = LinkedHashMap<String, String>()
+
+    override fun store(
+        deviceId: DeviceId,
+        commandId: String,
+        rawLogsText: String,
+        truncated: Boolean,
+        collectedAt: String,
+    ): StoredSendLogsPayload {
+        val parts = rawLogsText
+            .split(Regex("(?=^===== logs-export-\\d{4}-\\d{2}-\\d{2}\\.txt =====$)", RegexOption.MULTILINE))
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+
+        val days = parts.mapIndexed { index, part ->
+            val match = Regex("^===== logs-export-(\\d{4}-\\d{2}-\\d{2})\\.txt =====$", RegexOption.MULTILINE).find(part)
+            val day = match?.groupValues?.get(1) ?: "day-${index + 1}"
+            val objectName = "$deviceId/$commandId/$day.txt"
+            contents[objectName] = part
+            pl.zarajczyk.familyrules.domain.StoredSendLogsDay(day, day, objectName)
+        }
+
+        return StoredSendLogsPayload(days, truncated, collectedAt)
+    }
+
+    override fun read(objectName: String): String = contents[objectName] ?: ""
 }

@@ -26,6 +26,10 @@ webhook:
   scheduler-interval-millis: ${WEBHOOK_SCHEDULER_INTERVAL_MILLIS:60000}
   processor-threads: ${WEBHOOK_PROCESSOR_THREADS:1}
 
+logs-storage:
+  bucket: ${LOGS_STORAGE_BUCKET:}
+  prefix: ${LOGS_STORAGE_PREFIX:device-command-logs}
+
 management:
   endpoints:
     web:
