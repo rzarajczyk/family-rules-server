@@ -17,10 +17,11 @@ class GcsSendLogsResultStorage(
 ) : SendLogsResultStorage {
 
     override fun store(deviceId: DeviceId, commandId: String, rawLogsText: String, truncated: Boolean, collectedAt: String): StoredSendLogsPayload {
+        val bucket = requireBucket()
         val days = splitByDay(rawLogsText)
             .map { (day, content) ->
                 val objectName = "${properties.prefix}/${deviceId}/${commandId}/${day}.txt"
-                val blobInfo = BlobInfo.newBuilder(BlobId.of(properties.bucket, objectName))
+                val blobInfo = BlobInfo.newBuilder(BlobId.of(bucket, objectName))
                     .setContentType("text/plain; charset=utf-8")
                     .build()
                 storage.create(blobInfo, content.toByteArray(Charsets.UTF_8))
@@ -39,8 +40,12 @@ class GcsSendLogsResultStorage(
     }
 
     override fun read(objectName: String): String {
-        val blob = storage.get(BlobId.of(properties.bucket, objectName)) ?: return ""
+        val blob = storage.get(BlobId.of(requireBucket(), objectName)) ?: return ""
         return blob.getContent().toString(Charsets.UTF_8)
+    }
+
+    private fun requireBucket(): String = properties.bucket.ifBlank {
+        throw IllegalStateException("LOGS_STORAGE_BUCKET must be configured to store SEND_LOGS results")
     }
 
     private fun splitByDay(rawLogsText: String): List<Pair<String, String>> {
