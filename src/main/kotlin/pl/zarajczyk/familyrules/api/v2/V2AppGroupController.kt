@@ -14,25 +14,13 @@ class V2AppGroupController(
     @PostMapping("/api/v2/get-blocked-apps")
     fun getBlockedApps(authentication: Authentication): BlockedAppsResponse {
         val device = devicesService.get(authentication)
-        val deviceDetails = device.getDetails()
+        return buildBlockedAppsResponse(device, device.getDetails().appGroups.block)
+    }
 
-        val blockedAppsTechnicalIds = deviceDetails.appGroups.block.flatMap { appGroupId ->
-            val appGroup = appGroupService.get(device.getOwner(), appGroupId)
-            appGroup.getMembers(device)
-        }
-        
-        return BlockedAppsResponse(
-            apps = blockedAppsTechnicalIds.map { appTechnicalId ->
-                val known = deviceDetails.knownApps[appTechnicalId]
-                MembershipAppResponse(
-                    appPath = appTechnicalId,
-                    appName = known?.appName ?: appTechnicalId,
-                    iconBase64Png = null,
-                    deviceName = deviceDetails.deviceName,
-                    deviceId = deviceDetails.deviceId.toString()
-                )
-            }
-        )
+    @PostMapping("/api/v2/get-blocked-playback-apps")
+    fun getBlockedPlaybackApps(authentication: Authentication): BlockedAppsResponse {
+        val device = devicesService.get(authentication)
+        return buildBlockedAppsResponse(device, device.getDetails().appGroups.blockPlayback)
     }
 
     @PostMapping("/api/v2/groups-usage-report")
@@ -65,6 +53,27 @@ class V2AppGroupController(
             )
         }
     )
+
+    private fun buildBlockedAppsResponse(device: Device, selectedGroupIds: List<String>): BlockedAppsResponse {
+        val deviceDetails = device.getDetails()
+        val blockedAppsTechnicalIds = selectedGroupIds.flatMap { appGroupId ->
+            val appGroup = appGroupService.get(device.getOwner(), appGroupId)
+            appGroup.getMembers(device)
+        }
+
+        return BlockedAppsResponse(
+            apps = blockedAppsTechnicalIds.map { appTechnicalId ->
+                val known = deviceDetails.knownApps[appTechnicalId]
+                MembershipAppResponse(
+                    appPath = appTechnicalId,
+                    appName = known?.appName ?: appTechnicalId,
+                    iconBase64Png = null,
+                    deviceName = deviceDetails.deviceName,
+                    deviceId = deviceDetails.deviceId.toString()
+                )
+            }
+        )
+    }
 }
 
 data class BlockedAppsResponse(

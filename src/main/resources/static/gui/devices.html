@@ -231,6 +231,19 @@
                         </template>
                     </div>
 
+                    <div class="form-control mb-3">
+                        <label class="label"><span class="label-text">Block playback from these groups when device is blocking</span></label>
+                        <template x-for="ag in editModal.availableGroups" :key="'block-playback-'+ag.id">
+                            <label class="label cursor-pointer justify-start gap-3 py-1">
+                                <input type="checkbox" class="checkbox checkbox-sm"
+                                       :value="ag.id"
+                                       :checked="editModal.selectedBlockPlaybackGroups.includes(ag.id)"
+                                       @change="toggleGroup(editModal.selectedBlockPlaybackGroups, ag.id, $event.target.checked)">
+                                <span class="label-text" x-text="ag.name"></span>
+                            </label>
+                        </template>
+                    </div>
+
                     <div class="modal-action">
                         <button class="btn" @click="editModal.open = false">Cancel</button>
                         <button class="btn btn-primary" @click="saveEdit()">Save</button>
@@ -359,7 +372,7 @@ function devicesPage() {
             open: false, instanceId: '', instanceName: '', name: '',
             iconPreview: 'default-icon.png', hasIcon: false,
             iconFile: null, iconType: '', iconData: '',
-            availableGroups: [], selectedShowGroups: [], selectedBlockGroups: []
+            availableGroups: [], selectedShowGroups: [], selectedBlockGroups: [], selectedBlockPlaybackGroups: []
         },
         clockModal: { open: false, title: '' },
         logsModal: {
@@ -464,7 +477,8 @@ function devicesPage() {
                     iconData: hasIcon ? data.icon.data : '',
                     availableGroups: data.availableAppGroups || [],
                     selectedShowGroups: data.appGroups?.show ? [...data.appGroups.show] : [],
-                    selectedBlockGroups: data.appGroups?.block ? [...data.appGroups.block] : []
+                    selectedBlockGroups: data.appGroups?.block ? [...data.appGroups.block] : [],
+                    selectedBlockPlaybackGroups: data.appGroups?.blockPlayback ? [...data.appGroups.blockPlayback] : []
                 };
             } catch (_) { Toast.error('Failed to load edit data'); }
         },
@@ -504,7 +518,11 @@ function devicesPage() {
                     body: JSON.stringify({
                         instanceName: m.name,
                         icon: iconType && iconData ? { type: iconType, data: iconData } : null,
-                        appGroups: { show: m.selectedShowGroups, block: m.selectedBlockGroups }
+                        appGroups: {
+                            show: m.selectedShowGroups,
+                            block: m.selectedBlockGroups,
+                            blockPlayback: m.selectedBlockPlaybackGroups
+                        }
                     })
                 });
             };

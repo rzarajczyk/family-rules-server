@@ -145,7 +145,8 @@ class V2AppGroupControllerIntegrationSpec : FunSpec() {
                         appGroups = pl.zarajczyk.familyrules.domain.port.ValueUpdate.set(
                             pl.zarajczyk.familyrules.domain.port.AppGroupsDto(
                                 show = listOf(groupId),
-                                block = emptyList()
+                                block = emptyList(),
+                                blockPlayback = emptyList()
                             )
                         )
                     )
@@ -229,7 +230,8 @@ class V2AppGroupControllerIntegrationSpec : FunSpec() {
                         appGroups = pl.zarajczyk.familyrules.domain.port.ValueUpdate.set(
                             pl.zarajczyk.familyrules.domain.port.AppGroupsDto(
                                 show = listOf(groupId, emptyGroupId),
-                                block = emptyList()
+                                block = emptyList(),
+                                blockPlayback = emptyList()
                             )
                         )
                     )
@@ -274,7 +276,8 @@ class V2AppGroupControllerIntegrationSpec : FunSpec() {
                         appGroups = pl.zarajczyk.familyrules.domain.port.ValueUpdate.set(
                             pl.zarajczyk.familyrules.domain.port.AppGroupsDto(
                                 show = emptyList(),
-                                block = listOf(groupId)
+                                block = listOf(groupId),
+                                blockPlayback = emptyList()
                             )
                         )
                     )
@@ -327,7 +330,8 @@ class V2AppGroupControllerIntegrationSpec : FunSpec() {
                         appGroups = pl.zarajczyk.familyrules.domain.port.ValueUpdate.set(
                             pl.zarajczyk.familyrules.domain.port.AppGroupsDto(
                                 show = listOf(groupId),
-                                block = emptyList()
+                                block = emptyList(),
+                                blockPlayback = emptyList()
                             )
                         )
                     )
@@ -376,7 +380,8 @@ class V2AppGroupControllerIntegrationSpec : FunSpec() {
                         appGroups = pl.zarajczyk.familyrules.domain.port.ValueUpdate.set(
                             pl.zarajczyk.familyrules.domain.port.AppGroupsDto(
                                 show = emptyList(),
-                                block = listOf(groupId, group2Id)
+                                block = listOf(groupId, group2Id),
+                                blockPlayback = emptyList()
                             )
                         )
                     )
@@ -408,6 +413,151 @@ class V2AppGroupControllerIntegrationSpec : FunSpec() {
                     )
                 )
                 group2.delete()
+            }
+
+            test("should stay independent from playback-blocked groups") {
+                val deviceRef = devicesService.get(deviceId)
+                deviceRef.update(
+                    pl.zarajczyk.familyrules.domain.port.DeviceDetailsUpdateDto(
+                        appGroups = pl.zarajczyk.familyrules.domain.port.ValueUpdate.set(
+                            pl.zarajczyk.familyrules.domain.port.AppGroupsDto(
+                                show = emptyList(),
+                                block = emptyList(),
+                                blockPlayback = listOf(groupId)
+                            )
+                        )
+                    )
+                )
+
+                val apiV2Basic = Base64.getEncoder().encodeToString("$deviceId:$token".toByteArray())
+                val result = mockMvc.perform(
+                    post("/api/v2/get-blocked-apps")
+                        .header("Authorization", "Basic $apiV2Basic")
+                        .contentType(MediaType.APPLICATION_JSON)
+                )
+                    .andExpect(status().isOk)
+                    .andReturn()
+
+                val json = objectMapper.readTree(result.response.contentAsString)
+                json.get("apps").size() shouldBe 0
+
+                deviceRef.update(
+                    pl.zarajczyk.familyrules.domain.port.DeviceDetailsUpdateDto(
+                        appGroups = pl.zarajczyk.familyrules.domain.port.ValueUpdate.set(
+                            pl.zarajczyk.familyrules.domain.port.AppGroupsDto.empty()
+                        )
+                    )
+                )
+            }
+        }
+
+        context("POST /api/v2/get-blocked-playback-apps") {
+            test("should return apps from playback-blocked groups") {
+                val deviceRef = devicesService.get(deviceId)
+                deviceRef.update(
+                    pl.zarajczyk.familyrules.domain.port.DeviceDetailsUpdateDto(
+                        appGroups = pl.zarajczyk.familyrules.domain.port.ValueUpdate.set(
+                            pl.zarajczyk.familyrules.domain.port.AppGroupsDto(
+                                show = emptyList(),
+                                block = emptyList(),
+                                blockPlayback = listOf(groupId)
+                            )
+                        )
+                    )
+                )
+
+                val apiV2Basic = Base64.getEncoder().encodeToString("$deviceId:$token".toByteArray())
+                val result = mockMvc.perform(
+                    post("/api/v2/get-blocked-playback-apps")
+                        .header("Authorization", "Basic $apiV2Basic")
+                        .contentType(MediaType.APPLICATION_JSON)
+                )
+                    .andExpect(status().isOk)
+                    .andExpect(jsonPath("$.apps").isArray)
+                    .andReturn()
+
+                val json = objectMapper.readTree(result.response.contentAsString)
+                val apps = json.get("apps")
+                apps.size() shouldBe 3
+                apps.map { it.get("appPath").asText() } shouldContainAll listOf(appKnown1, appKnown2, appUnknown)
+
+                deviceRef.update(
+                    pl.zarajczyk.familyrules.domain.port.DeviceDetailsUpdateDto(
+                        appGroups = pl.zarajczyk.familyrules.domain.port.ValueUpdate.set(
+                            pl.zarajczyk.familyrules.domain.port.AppGroupsDto.empty()
+                        )
+                    )
+                )
+            }
+
+            test("should return empty list when no groups are playback-blocked") {
+                val deviceRef = devicesService.get(deviceId)
+                deviceRef.update(
+                    pl.zarajczyk.familyrules.domain.port.DeviceDetailsUpdateDto(
+                        appGroups = pl.zarajczyk.familyrules.domain.port.ValueUpdate.set(
+                            pl.zarajczyk.familyrules.domain.port.AppGroupsDto(
+                                show = emptyList(),
+                                block = listOf(groupId),
+                                blockPlayback = emptyList()
+                            )
+                        )
+                    )
+                )
+
+                val apiV2Basic = Base64.getEncoder().encodeToString("$deviceId:$token".toByteArray())
+                val result = mockMvc.perform(
+                    post("/api/v2/get-blocked-playback-apps")
+                        .header("Authorization", "Basic $apiV2Basic")
+                        .contentType(MediaType.APPLICATION_JSON)
+                )
+                    .andExpect(status().isOk)
+                    .andReturn()
+
+                val json = objectMapper.readTree(result.response.contentAsString)
+                json.get("apps").size() shouldBe 0
+
+                deviceRef.update(
+                    pl.zarajczyk.familyrules.domain.port.DeviceDetailsUpdateDto(
+                        appGroups = pl.zarajczyk.familyrules.domain.port.ValueUpdate.set(
+                            pl.zarajczyk.familyrules.domain.port.AppGroupsDto.empty()
+                        )
+                    )
+                )
+            }
+
+            test("should stay independent from app-blocked groups") {
+                val deviceRef = devicesService.get(deviceId)
+                deviceRef.update(
+                    pl.zarajczyk.familyrules.domain.port.DeviceDetailsUpdateDto(
+                        appGroups = pl.zarajczyk.familyrules.domain.port.ValueUpdate.set(
+                            pl.zarajczyk.familyrules.domain.port.AppGroupsDto(
+                                show = emptyList(),
+                                block = listOf(groupId),
+                                blockPlayback = emptyList()
+                            )
+                        )
+                    )
+                )
+
+                val apiV2Basic = Base64.getEncoder().encodeToString("$deviceId:$token".toByteArray())
+                val result = mockMvc.perform(
+                    post("/api/v2/get-blocked-playback-apps")
+                        .header("Authorization", "Basic $apiV2Basic")
+                        .contentType(MediaType.APPLICATION_JSON)
+                )
+                    .andExpect(status().isOk)
+                    .andReturn()
+
+                val json = objectMapper.readTree(result.response.contentAsString)
+                json.get("apps").size() shouldBe 0
+
+                deviceRef.update(
+                    pl.zarajczyk.familyrules.domain.port.DeviceDetailsUpdateDto(
+                        appGroups = pl.zarajczyk.familyrules.domain.port.ValueUpdate.set(
+                            pl.zarajczyk.familyrules.domain.port.AppGroupsDto.empty()
+                        )
+                    )
+                )
             }
         }
     }

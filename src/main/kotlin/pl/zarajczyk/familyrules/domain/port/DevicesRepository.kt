@@ -106,9 +106,10 @@ data class DeviceStateDto(
 @Serializable
 data class AppGroupsDto(
     val show: List<String> = emptyList(),
-    val block: List<String> = emptyList()
+    val block: List<String> = emptyList(),
+    val blockPlayback: List<String> = emptyList(),
 ) {
     companion object {
-        fun empty() = AppGroupsDto(emptyList(), emptyList())
+        fun empty() = AppGroupsDto(emptyList(), emptyList(), emptyList())
     }
 }

@@ -1,6 +1,7 @@
 package pl.zarajczyk.familyrules
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import kotlinx.serialization.json.Json
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.extensions.spring.SpringExtension
 import io.kotest.matchers.nulls.shouldBeNull
@@ -23,6 +24,7 @@ import org.testcontainers.gcloud.FirestoreEmulatorContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import pl.zarajczyk.familyrules.domain.*
+import pl.zarajczyk.familyrules.domain.port.AppGroupsDto
 import pl.zarajczyk.familyrules.domain.port.DeviceDetailsUpdateDto
 import pl.zarajczyk.familyrules.domain.port.DeviceStateDto
 import pl.zarajczyk.familyrules.domain.port.DevicesRepository
@@ -37,6 +39,8 @@ import java.util.*
 @Import(TestConfiguration::class)
 @Testcontainers
 class BffOverviewControllerIntegrationSpec : FunSpec() {
+
+    private val firestoreJson = Json { ignoreUnknownKeys = true }
 
     override fun extensions() = listOf(SpringExtension)
 
@@ -452,6 +456,33 @@ class BffOverviewControllerIntegrationSpec : FunSpec() {
                 response.get("instanceName").asText() shouldBe deviceName
             }
 
+            test("should return blockPlayback groups when configured") {
+                val deviceDetails = devicesService.setupNewDevice(testUsername, "Playback Edit Info", "TEST")
+                val instanceId = deviceDetails.deviceId.toString()
+
+                devicesService.get(deviceDetails.deviceId).update(
+                    DeviceDetailsUpdateDto(
+                        appGroups = set(
+                            AppGroupsDto(
+                                show = listOf("show-group"),
+                                block = listOf("block-group"),
+                                blockPlayback = listOf("playback-group")
+                            )
+                        )
+                    )
+                )
+
+                mockMvc.perform(
+                    get("/bff/instance-edit-info")
+                        .param("instanceId", instanceId)
+                        .with(user(testUsername))
+                )
+                    .andExpect(status().isOk)
+                    .andExpect(jsonPath("$.appGroups.show[0]").value("show-group"))
+                    .andExpect(jsonPath("$.appGroups.block[0]").value("block-group"))
+                    .andExpect(jsonPath("$.appGroups.blockPlayback[0]").value("playback-group"))
+            }
+
             test("should return 500 when instanceId does not exist") {
                 mockMvc.perform(
                     get("/bff/instance-edit-info")
@@ -523,6 +554,48 @@ class BffOverviewControllerIntegrationSpec : FunSpec() {
                 details.deviceName shouldBe "Updated Name Only"
             }
 
+            test("should roundtrip blockPlayback through BFF edit info") {
+                val deviceDetails = devicesService.setupNewDevice(testUsername, "Playback Device", "TEST")
+                val instanceId = deviceDetails.deviceId.toString()
+
+                val updateRequest = """
+                    {
+                        "instanceName": "Playback Device Updated",
+                        "icon": null,
+                        "appGroups": {
+                            "show": ["show-group"],
+                            "block": ["block-group"],
+                            "blockPlayback": ["playback-group"]
+                        }
+                    }
+                """.trimIndent()
+
+                mockMvc.perform(
+                    post("/bff/instance-edit-info")
+                        .param("instanceId", instanceId)
+                        .with(user(testUsername))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(updateRequest)
+                )
+                    .andExpect(status().isOk)
+
+                val updatedRef = devicesRepository.get(deviceDetails.deviceId)!!
+                updatedRef.details.deviceName shouldBe "Playback Device Updated"
+                updatedRef.details.appGroups shouldBe AppGroupsDto(
+                    show = listOf("show-group"),
+                    block = listOf("block-group"),
+                    blockPlayback = listOf("playback-group")
+                )
+
+                mockMvc.perform(
+                    get("/bff/instance-edit-info")
+                        .param("instanceId", instanceId)
+                        .with(user(testUsername))
+                )
+                    .andExpect(status().isOk)
+                    .andExpect(jsonPath("$.appGroups.blockPlayback[0]").value("playback-group"))
+            }
+
             test("should return 500 when instanceId does not exist") {
                 val updateRequest = """
                     {
@@ -539,6 +612,60 @@ class BffOverviewControllerIntegrationSpec : FunSpec() {
                         .content(updateRequest)
                 )
                     .andExpect(status().is5xxServerError)
+            }
+        }
+
+        context("AppGroupsDto serialization") {
+            test("should roundtrip blockPlayback with kotlinx serialization") {
+                val original = AppGroupsDto(
+                    show = listOf("show-group"),
+                    block = listOf("block-group"),
+                    blockPlayback = listOf("playback-group")
+                )
+
+                val encoded = firestoreJson.encodeToString(AppGroupsDto.serializer(), original)
+                val decoded = firestoreJson.decodeFromString(AppGroupsDto.serializer(), encoded)
+
+                decoded shouldBe original
+            }
+
+            test("should default missing blockPlayback with kotlinx serialization") {
+                val decoded = firestoreJson.decodeFromString(
+                    AppGroupsDto.serializer(),
+                    """{"show":["show-group"],"block":["block-group"]}"""
+                )
+
+                decoded shouldBe AppGroupsDto(
+                    show = listOf("show-group"),
+                    block = listOf("block-group"),
+                    blockPlayback = emptyList()
+                )
+            }
+
+            test("should roundtrip blockPlayback with Jackson") {
+                val original = AppGroupsDto(
+                    show = listOf("show-group"),
+                    block = listOf("block-group"),
+                    blockPlayback = listOf("playback-group")
+                )
+
+                val encoded = objectMapper.writeValueAsString(original)
+                val decoded = objectMapper.readValue(encoded, AppGroupsDto::class.java)
+
+                decoded shouldBe original
+            }
+
+            test("should default missing blockPlayback with Jackson") {
+                val decoded = objectMapper.readValue(
+                    """{"show":["show-group"],"block":["block-group"]}""",
+                    AppGroupsDto::class.java
+                )
+
+                decoded shouldBe AppGroupsDto(
+                    show = listOf("show-group"),
+                    block = listOf("block-group"),
+                    blockPlayback = emptyList()
+                )
             }
         }
 
