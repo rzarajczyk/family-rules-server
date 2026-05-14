@@ -16,7 +16,8 @@ class BffOverviewController(
     private val stateService: StateService,
     private val deviceStateService: DeviceStateService,
     private val appGroupService: AppGroupService,
-    private val usersService: UsersService
+    private val usersService: UsersService,
+    private val groupStateService: GroupStateService,
 ) {
 
 //    companion object {
@@ -213,8 +214,13 @@ class BffOverviewController(
 
     @PostMapping("/bff/delete-instance")
     fun deleteInstance(
-        @RequestParam("instanceId") deviceId: DeviceId
-    ) = devicesService.get(deviceId).delete()
+        @RequestParam("instanceId") deviceId: DeviceId,
+        authentication: Authentication,
+    ) {
+        val user = usersService.get(authentication.name)
+        devicesService.get(deviceId).delete()
+        groupStateService.removeDeviceFromAllGroupStates(user, deviceId)
+    }
 
     private fun DeviceStateTypeDto.toDeviceStateDescriptions(appGroups: Collection<AppGroupDetails>) =
         deviceStateService.createActualInstances(this, appGroups)

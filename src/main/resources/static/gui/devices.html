@@ -330,9 +330,9 @@
                  @click.outside="groupDropdown.open = false">
                 <ul class="menu menu-sm p-1">
                     <template x-for="g in groupDropdown.groups" :key="g.id">
-                        <li><a @click="addAppToGroup(groupDropdown.instanceId, groupDropdown.appPath, g.id)" x-text="g.name"></a></li>
+                        <li><a href="#" @click.prevent="addAppToGroup(groupDropdown.instanceId, groupDropdown.appPath, g.id)" x-text="g.name"></a></li>
                     </template>
-                    <li class="border-t mt-1 pt-1"><a class="italic" @click="createGroupAndAdd()">New app group...</a></li>
+                    <li class="border-t mt-1 pt-1"><a href="#" class="italic" @click.prevent="createGroupAndAdd()">New app group...</a></li>
                 </ul>
             </div>
 

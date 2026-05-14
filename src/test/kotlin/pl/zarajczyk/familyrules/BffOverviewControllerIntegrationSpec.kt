@@ -28,6 +28,7 @@ import pl.zarajczyk.familyrules.domain.port.AppGroupsDto
 import pl.zarajczyk.familyrules.domain.port.DeviceDetailsUpdateDto
 import pl.zarajczyk.familyrules.domain.port.DeviceStateDto
 import pl.zarajczyk.familyrules.domain.port.DevicesRepository
+import pl.zarajczyk.familyrules.domain.port.AppGroupRepository
 import pl.zarajczyk.familyrules.domain.port.UsersRepository
 import pl.zarajczyk.familyrules.domain.port.ValueUpdate.Companion.set
 import pl.zarajczyk.familyrules.domain.today
@@ -58,6 +59,12 @@ class BffOverviewControllerIntegrationSpec : FunSpec() {
 
     @Autowired
     private lateinit var devicesService: DevicesService
+
+    @Autowired
+    private lateinit var appGroupRepository: AppGroupRepository
+
+    @Autowired
+    private lateinit var groupStateService: GroupStateService
 
     companion object {
         @Container
@@ -851,6 +858,34 @@ class BffOverviewControllerIntegrationSpec : FunSpec() {
                 )
                     .andExpect(status().is3xxRedirection)
                     .andExpect(header().string("Location", containsString("/gui/login.html")))
+            }
+
+            test("should remove deleted device from all group states") {
+                // Given: a device and an app group with a saved state referencing that device
+                val userRef = usersRepository.get(testUsername)!!
+                val deviceDetails = devicesService.setupNewDevice(testUsername, "Device To Delete With State", "TEST")
+                val deviceId = deviceDetails.deviceId
+
+                val groupId = UUID.randomUUID().toString()
+                val groupRef = appGroupRepository.createAppGroup(userRef, groupId, "Test Group For Deletion", "")
+                val stateId = UUID.randomUUID().toString()
+                appGroupRepository.createGroupState(groupRef, stateId, "Blocked", mapOf(deviceId to DeviceStateDto("LOCKED")))
+
+                // When: device is deleted via the BFF endpoint
+                mockMvc.perform(
+                    post("/bff/delete-instance")
+                        .param("instanceId", deviceId.toString())
+                        .with(user(testUsername))
+                )
+                    .andExpect(status().isOk)
+
+                // Then: the device is no longer referenced in the group state
+                val updatedGroupRef = appGroupRepository.get(userRef, groupId)!!
+                val updatedState = updatedGroupRef.details.states[stateId]!!
+                updatedState.deviceStates shouldBe emptyMap()
+
+                // Cleanup
+                appGroupRepository.delete(updatedGroupRef)
             }
         }
 

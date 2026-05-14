@@ -27,6 +27,10 @@ class GroupStateService(
             .map { RefBasedGroupState(it, appGroupRepository) }
     }
 
+    fun removeDeviceFromAllGroupStates(user: User, deviceId: DeviceId) {
+        appGroupRepository.removeDeviceFromAllGroupStates(user.asRef(), deviceId)
+    }
+
     fun apply(state: GroupState) {
         val details = state.fetchDetails()
         if (details.deviceStates.isEmpty()) return

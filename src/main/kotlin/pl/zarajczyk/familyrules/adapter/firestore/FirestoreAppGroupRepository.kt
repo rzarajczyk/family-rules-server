@@ -129,6 +129,20 @@ class FirestoreAppGroupRepository(
         val ref = (appGroupRef as FirestoreAppGroupRef).ref
         ref.update("states.$stateId", com.google.cloud.firestore.FieldValue.delete()).get()
     }
+
+    override fun removeDeviceFromAllGroupStates(userRef: UserRef, deviceId: DeviceId) {
+        val allGroups = getAll(userRef)
+        for (appGroupRef in allGroups) {
+            val dto = appGroupRef.details
+            for ((stateId, stateDetails) in dto.states) {
+                if (deviceId in stateDetails.deviceStates) {
+                    val updatedDeviceStates = stateDetails.deviceStates - deviceId
+                    val ref = (appGroupRef as FirestoreAppGroupRef).ref
+                    ref.update("states.$stateId.deviceStates", encodeDeviceStatesMap(updatedDeviceStates)).get()
+                }
+            }
+        }
+    }
 }
 
 data class FirestoreAppGroupRef(

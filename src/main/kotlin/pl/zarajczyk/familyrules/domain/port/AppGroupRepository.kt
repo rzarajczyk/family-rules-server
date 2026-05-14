@@ -19,6 +19,8 @@ interface AppGroupRepository {
     fun getAllGroupStates(appGroupRef: AppGroupRef): List<GroupStateRef>
     fun updateGroupState(appGroupRef: AppGroupRef, stateId: String, name: String, deviceStates: Map<DeviceId, DeviceStateDto?>)
     fun deleteGroupState(appGroupRef: AppGroupRef, stateId: String)
+
+    fun removeDeviceFromAllGroupStates(userRef: UserRef, deviceId: DeviceId)
 }
 
 /**
