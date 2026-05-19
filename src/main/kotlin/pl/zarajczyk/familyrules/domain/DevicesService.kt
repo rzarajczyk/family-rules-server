@@ -189,7 +189,7 @@ class RefBasedDevice(
     }
 
     private fun Instant.isOnline(reportIntervalSeconds: Long) =
-        (Clock.System.now() - this).inWholeSeconds <= reportIntervalSeconds
+        (Clock.System.now() - this).inWholeSeconds < reportIntervalSeconds
 
     override fun saveScreenTimeReport(
         day: LocalDate,

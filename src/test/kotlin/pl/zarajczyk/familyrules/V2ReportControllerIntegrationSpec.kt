@@ -450,6 +450,74 @@ class V2ReportControllerIntegrationSpec : FunSpec() {
                 .andExpect(jsonPath("$.serverCommands[0].commandName").value("SEND_LOGS"))
         }
 
+        test("should persist mediaPlayingApps and return them in getScreenTimeReport while device is online") {
+            val apiV2Basic = Base64.getEncoder().encodeToString("$deviceId:$token".toByteArray())
+            val reportBody = """
+                {
+                  "screenTime": 300,
+                  "applications": { "com.example.app1": 300 },
+                  "mediaPlayingApps": ["com.example.music"]
+                }
+            """.trimIndent()
+
+            mockMvc.perform(
+                post("/api/v2/report")
+                    .header("Authorization", "Basic $apiV2Basic")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(reportBody)
+            ).andExpect(status().isOk)
+
+            // Device is online immediately after reporting — mediaPlayingApps should be returned
+            val device = devicesService.get(deviceId)
+            val report = device.getScreenTimeReport(today())
+            report.mediaPlayingApps shouldBe setOf("com.example.music")
+        }
+
+        test("should return empty mediaPlayingApps when device is offline") {
+            // Set reportIntervalSeconds to 0 so the device is considered offline immediately after any report.
+            val deviceRef = devicesRepository.get(deviceId)!!
+            devicesRepository.update(deviceRef, DeviceDetailsUpdateDto(reportIntervalSeconds = set(0L)))
+
+            // Save a report directly via the domain service (avoids HTTP auth complexity).
+            // The device object is fetched fresh after the reportIntervalSeconds update.
+            val device = devicesService.get(deviceId)
+            device.saveScreenTimeReport(
+                day = today(),
+                screenTimeSeconds = 300,
+                applicationsSeconds = mapOf("com.example.app1" to 300L),
+                activeApps = null,
+                mediaPlayingApps = setOf("com.example.music"),
+            )
+
+            // With reportIntervalSeconds=0, isOnline is always false, so mediaPlayingApps must be empty.
+            // Re-read the device from Firestore to get a fresh snapshot.
+            val freshDevice = devicesService.get(deviceId)
+            val report = freshDevice.getScreenTimeReport(today())
+            report.mediaPlayingApps shouldBe emptySet()
+        }
+
+        test("should accept report without mediaPlayingApps (backward compatible) and treat it as empty") {
+            val apiV2Basic = Base64.getEncoder().encodeToString("$deviceId:$token".toByteArray())
+            // Intentionally no mediaPlayingApps field — older client payload
+            val reportBody = """
+                {
+                  "screenTime": 100,
+                  "applications": { "com.example.app1": 100 }
+                }
+            """.trimIndent()
+
+            mockMvc.perform(
+                post("/api/v2/report")
+                    .header("Authorization", "Basic $apiV2Basic")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(reportBody)
+            ).andExpect(status().isOk)
+
+            val device = devicesService.get(deviceId)
+            val report = device.getScreenTimeReport(today())
+            report.mediaPlayingApps shouldBe emptySet()
+        }
+
     test("should fail with 401 when Authorization header missing or malformed") {
             val reportBody = """
                 { "screenTime": 10, "applications": {} }
