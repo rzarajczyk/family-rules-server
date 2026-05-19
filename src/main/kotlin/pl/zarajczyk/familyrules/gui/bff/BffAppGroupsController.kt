@@ -146,6 +146,7 @@ class BffAppGroupsController(
                     devicesCount = groupReport.devicesCount,
                     totalScreenTime = groupReport.totalScreenTime,
                     online = groupReport.online,
+                    mediaPlaying = groupReport.mediaPlaying,
                     currentGroupState = currentGroupState,
                     apps = groupReport.apps.map {
                         AppGroupAppDetail(
@@ -156,7 +157,8 @@ class BffAppGroupsController(
                             screenTime = it.screenTime,
                             percentage = it.percentage,
                             iconBase64 = it.iconWebp?.let { webPToWebPBase64(it) },
-                            online = it.online
+                            online = it.online,
+                            mediaPlaying = it.mediaPlaying,
                         )
                     }
                 )
@@ -369,6 +371,7 @@ data class AppGroupStatistics(
     val devicesCount: Int,
     val totalScreenTime: Long,
     val online: Boolean = false,
+    val mediaPlaying: Boolean = false,
     val currentGroupState: CurrentGroupState? = null,
     val apps: List<AppGroupAppDetail> = emptyList()
 )
@@ -386,7 +389,8 @@ data class AppGroupAppDetail(
     val screenTime: Long,
     val percentage: Double,
     val iconBase64: String? = null,
-    val online: Boolean = false
+    val online: Boolean = false,
+    val mediaPlaying: Boolean = false,
 )
 
 data class AppGroupStatisticsResponse(

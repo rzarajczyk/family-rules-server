@@ -37,6 +37,7 @@ class AppGroupService(private val appGroupRepository: AppGroupRepository, privat
 
             var totalScreenTimeSeconds = 0L
             var isOnline = false
+            var isMediaPlaying = false
 
             devices.forEach { device ->
                 val screenTimeDto = screenTimeByDeviceId.getValue(device.getId())
@@ -47,6 +48,9 @@ class AppGroupService(private val appGroupRepository: AppGroupRepository, privat
                     if (!isOnline && appTechnicalId in screenTimeDto.onlineApps) {
                         isOnline = true
                     }
+                    if (!isMediaPlaying && appTechnicalId in screenTimeDto.mediaPlayingApps) {
+                        isMediaPlaying = true
+                    }
                 }
             }
 
@@ -54,6 +58,7 @@ class AppGroupService(private val appGroupRepository: AppGroupRepository, privat
                 id = groupDto.id,
                 name = groupDto.name,
                 online = isOnline,
+                mediaPlaying = isMediaPlaying,
                 totalScreenTimeSeconds = totalScreenTimeSeconds,
                 groupDto = groupDto,
             )
@@ -101,6 +106,7 @@ class AppGroupService(private val appGroupRepository: AppGroupRepository, privat
                         val appName = knownApp?.appName ?: appTechnicalId
                         val appIcon = knownApp?.iconWebp
                         val isOnline = appTechnicalId in screenTimeDto.onlineApps
+                        val isMediaPlaying = appTechnicalId in screenTimeDto.mediaPlayingApps
 
                         appDetails.add(
                             AppGroupAppReport(
@@ -111,7 +117,8 @@ class AppGroupService(private val appGroupRepository: AppGroupRepository, privat
                                 screenTime = appScreenTimeSeconds,
                                 percentage = 0.0, // Will be calculated below
                                 iconWebp = appIcon,
-                                online = isOnline
+                                online = isOnline,
+                                mediaPlaying = isMediaPlaying,
                             )
                         )
                     }
@@ -130,6 +137,7 @@ class AppGroupService(private val appGroupRepository: AppGroupRepository, privat
             }.sortedByDescending { it.screenTime }
 
             val isGroupOnline = appsWithPercentages.any { it.online }
+            val isGroupMediaPlaying = appsWithPercentages.any { it.mediaPlaying }
             AppGroupReport(
                 id = groupDto.id,
                 name = groupDto.name,
@@ -138,7 +146,8 @@ class AppGroupService(private val appGroupRepository: AppGroupRepository, privat
                 devicesCount = deviceCount.size,
                 totalScreenTime = totalScreenTimeSeconds,
                 apps = appsWithPercentages,
-                online = isGroupOnline
+                online = isGroupOnline,
+                mediaPlaying = isGroupMediaPlaying,
             )
         }
 
@@ -238,13 +247,15 @@ data class AppGroupReport(
     val devicesCount: Int,
     val totalScreenTime: Long,
     val apps: List<AppGroupAppReport> = emptyList(),
-    val online: Boolean = false
+    val online: Boolean = false,
+    val mediaPlaying: Boolean = false,
 )
 
 data class AppGroupSimplifiedReport(
     val id: String,
     val name: String,
     val online: Boolean,
+    val mediaPlaying: Boolean,
     val totalScreenTimeSeconds: Long,
     /** Embedded group DTO — carries members + states, used by callers for currentState computation. Not serialized. */
     val groupDto: AppGroupDto,
@@ -258,5 +269,6 @@ data class AppGroupAppReport(
     val screenTime: Long,
     val percentage: Double,
     val iconWebp: ByteArray? = null,
-    val online: Boolean = false
+    val online: Boolean = false,
+    val mediaPlaying: Boolean = false,
 )

@@ -56,6 +56,7 @@ data class DeviceDetailsDto(
     val currentApplicationTimes: Map<String, Long>? = null,
     val currentUpdatedAt: Instant? = null,
     val currentLastUpdatedApps: Set<String>? = null,
+    val currentMediaPlayingApps: Set<String>? = null,
     val currentOnlinePeriods: Set<String>? = null,
 )
 

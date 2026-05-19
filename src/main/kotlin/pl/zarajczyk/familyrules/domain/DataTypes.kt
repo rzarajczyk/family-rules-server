@@ -30,6 +30,7 @@ data class SetScreenReportDto(
     val currentOnlinePeriodBucket: String,
     val currentOnlinePeriods: Set<String>,
     val lastUpdatedApps: Set<String>,
+    val mediaPlayingApps: Set<String> = emptySet(),
     val currentAppBucketDeltas: Map<String, Long>
 )
 

@@ -93,7 +93,13 @@ interface Device {
 
     fun getAppUsageBuckets(day: LocalDate): Map<String, Set<String>>
 
-    fun saveScreenTimeReport(day: LocalDate, screenTimeSeconds: Long, applicationsSeconds: Map<String, Long>, activeApps: Set<String>?)
+    fun saveScreenTimeReport(
+        day: LocalDate,
+        screenTimeSeconds: Long,
+        applicationsSeconds: Map<String, Long>,
+        activeApps: Set<String>?,
+        mediaPlayingApps: Set<String>? = null,
+    )
 
     fun updateOwnerLastActivity(lastActivityMillis: Long)
 }
@@ -138,6 +144,7 @@ class RefBasedDevice(
             val updatedAt = details.currentUpdatedAt ?: Instant.DISTANT_PAST
             val isOnline = updatedAt.isOnline(details.reportIntervalSeconds)
             val onlineApps = if (isOnline) details.currentLastUpdatedApps ?: emptySet() else emptySet()
+            val mediaPlayingApps = if (isOnline) details.currentMediaPlayingApps ?: emptySet() else emptySet()
             return ScreenReport(
                 screenTimeSeconds = details.currentScreenTime ?: 0L,
                 applicationsSeconds = details.currentApplicationTimes,
@@ -146,7 +153,8 @@ class RefBasedDevice(
                 onlinePeriods = details.currentOnlinePeriods ?: emptySet(),
                 lastUpdatedApps = details.currentLastUpdatedApps ?: emptySet(),
                 online = isOnline,
-                onlineApps = onlineApps
+                onlineApps = onlineApps,
+                mediaPlayingApps = mediaPlayingApps,
             )
         }
         val reportIntervalSeconds = details.reportIntervalSeconds
@@ -166,6 +174,7 @@ class RefBasedDevice(
     private fun ScreenReportDto.toDomain(reportIntervalSeconds: Long): ScreenReport {
         val isOnline = updatedAt.isOnline(reportIntervalSeconds)
         val onlineApps = if (isOnline) lastUpdatedApps else emptySet()
+        val mediaPlayingApps = emptySet<String>()
         return ScreenReport(
             screenTimeSeconds = screenTimeSeconds,
             applicationsSeconds = applicationsSeconds,
@@ -174,7 +183,8 @@ class RefBasedDevice(
             onlinePeriods = onlinePeriods,
             lastUpdatedApps = lastUpdatedApps,
             online = isOnline,
-            onlineApps = onlineApps
+            onlineApps = onlineApps,
+            mediaPlayingApps = mediaPlayingApps,
         )
     }
 
@@ -186,6 +196,7 @@ class RefBasedDevice(
         screenTimeSeconds: Long,
         applicationsSeconds: Map<String, Long>,
         activeApps: Set<String>?,
+        mediaPlayingApps: Set<String>?,
     ) {
         val details = getDetails()
         val previousApplicationTimes = if (details.currentDay == day.toString()) {
@@ -206,6 +217,7 @@ class RefBasedDevice(
         } else {
             currentAppBucketDeltas.keys
         }
+        val currentMediaPlayingApps = mediaPlayingApps ?: emptySet()
 
         val now = Clock.System.now()
 
@@ -228,6 +240,7 @@ class RefBasedDevice(
                 currentOnlinePeriodBucket = onlinePeriodBucket,
                 currentOnlinePeriods = currentOnlinePeriods,
                 lastUpdatedApps = lastUpdatedApps,
+                mediaPlayingApps = currentMediaPlayingApps,
                 currentAppBucketDeltas = currentAppBucketDeltas,
             )
         )
@@ -242,6 +255,7 @@ class RefBasedDevice(
                 currentOnlinePeriodBucket = onlinePeriodBucket,
                 currentOnlinePeriods = currentOnlinePeriods,
                 lastUpdatedApps = lastUpdatedApps,
+                mediaPlayingApps = currentMediaPlayingApps,
                 currentAppBucketDeltas = currentAppBucketDeltas,
             )
         )
@@ -252,6 +266,7 @@ class RefBasedDevice(
             currentApplicationTimes = applicationsSeconds,
             currentUpdatedAt = now,
             currentLastUpdatedApps = lastUpdatedApps,
+            currentMediaPlayingApps = currentMediaPlayingApps,
             currentOnlinePeriods = currentOnlinePeriods,
         )
     }
@@ -278,5 +293,6 @@ data class ScreenReport(
     val onlinePeriods: Set<String>,
     val lastUpdatedApps: Set<String>,
     val online: Boolean,
-    val onlineApps: Set<String>
+    val onlineApps: Set<String>,
+    val mediaPlayingApps: Set<String> = emptySet(),
 )

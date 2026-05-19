@@ -117,6 +117,7 @@ class FirestoreDevicesRepository(
             currentApplicationTimes = doc.getNativeApplicationTimes("currentApplicationTimes"),
             currentUpdatedAt = doc.getString("currentUpdatedAt")?.let { Instant.parse(it) },
             currentLastUpdatedApps = doc.getNativeLastUpdatedApps("currentLastUpdatedApps"),
+            currentMediaPlayingApps = doc.getNativeLastUpdatedApps("currentMediaPlayingApps"),
             currentOnlinePeriods = doc.getNativeOnlinePeriods("currentOnlinePeriods"),
         )
         val tokenHash = doc.getStringOrThrow("instanceTokenSha256")
@@ -268,6 +269,7 @@ class FirestoreDevicesRepository(
                 "currentApplicationTimes" to screenReportDto.applicationsSeconds,
                 "currentUpdatedAt" to screenReportDto.updatedAt.toString(),
                 "currentLastUpdatedApps" to screenReportDto.lastUpdatedApps.toList(),
+                "currentMediaPlayingApps" to screenReportDto.mediaPlayingApps.toList(),
                 "currentOnlinePeriods" to screenReportDto.currentOnlinePeriods.toList()
             )
         ).get()

@@ -76,7 +76,8 @@ class BffOverviewController(
                             appName = knownApp?.appName,
                             iconBase64 = knownApp?.iconWebp?.let { webPToWebPBase64(it) },
                             appGroups = appGroupIndex[deviceIdStr to appTechnicalId] ?: emptyList(),
-                            online = appTechnicalId in screenTimeDto.onlineApps
+                            online = appTechnicalId in screenTimeDto.onlineApps,
+                            mediaPlaying = appTechnicalId in screenTimeDto.mediaPlayingApps,
                         )
                     }.sortedByDescending { it.usageSeconds },
                 forcedDeviceState = availableStates
@@ -294,6 +295,7 @@ data class AppUsage(
     val appName: String? = null,
     val iconBase64: String? = null,
     val online: Boolean,
+    val mediaPlaying: Boolean,
     val appGroups: List<AppGroupWithColor> = emptyList()
 )
 

@@ -107,6 +107,9 @@
                                             <template x-if="app.online">
                                                 <span class="text-error animate-pulse"><span class="material-icons text-xs">online_prediction</span></span>
                                             </template>
+                                            <template x-if="app.mediaPlaying">
+                                                <span class="text-secondary animate-pulse"><span class="material-icons text-xs">music_note</span></span>
+                                            </template>
                                             <button class="btn btn-ghost btn-xs"
                                                     @click="showAppUsageClock(device, app)"
                                                     title="Show app usage histogram">
