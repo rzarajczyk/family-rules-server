@@ -15,7 +15,9 @@ import javax.imageio.ImageIO
 fun pngBase64ToWebP(pngBase64: String): ByteArray {
     // Use MIME decoder — tolerates whitespace/newlines that some Android clients embed.
     val pngBytes = Base64.getMimeDecoder().decode(pngBase64)
-    val image = ImmutableImage.loader().fromBytes(pngBytes)
+    // copy(TYPE_INT_ARGB) normalises unusual colour spaces (e.g. TYPE_CUSTOM) that
+    // Java ImageIO produces for some PNGs — scrimage's WebpWriter rejects TYPE_CUSTOM.
+    val image = ImmutableImage.loader().fromBytes(pngBytes).copy(BufferedImage.TYPE_INT_ARGB)
     return image.bytes(WebpWriter.DEFAULT.withQ(75))
 }
 

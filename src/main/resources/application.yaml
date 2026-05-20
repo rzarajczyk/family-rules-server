@@ -30,6 +30,10 @@ logs-storage:
   bucket: ${LOGS_STORAGE_BUCKET:}
   prefix: ${LOGS_STORAGE_PREFIX:device-command-logs}
 
+logging:
+  level:
+    org.springframework.web.servlet.resource.ResourceHttpRequestHandler: WARN
+
 management:
   endpoints:
     web:
