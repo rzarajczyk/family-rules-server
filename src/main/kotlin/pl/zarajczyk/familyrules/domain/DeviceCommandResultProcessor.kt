@@ -34,9 +34,9 @@ class DeviceCommandResultProcessor(
 }
 
 data class StoredSendLogsPayload(
-    val days: List<StoredSendLogsDay>,
-    val truncated: Boolean,
-    val collectedAt: String,
+    val days: List<StoredSendLogsDay> = emptyList(),
+    val truncated: Boolean = false,
+    val collectedAt: String = "",
 )
 
 data class StoredSendLogsDay(
