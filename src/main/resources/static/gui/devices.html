@@ -320,6 +320,9 @@
                     <div class="modal-action">
                         <button class="btn btn-error btn-outline" x-show="logsModal.status === 'PENDING'" @click="cancelLogsRequest()">Cancel</button>
                         <button class="btn btn-warning btn-outline" x-show="logsModal.status === 'RECEIVED'" @click="clearLogsRequest()">Clear</button>
+                        <button class="btn btn-outline" x-show="logsModal.logsText !== '' && !logsModal.dayLoading" @click="downloadLogs()">
+                            <span class="material-icons text-sm">download</span> Download log
+                        </button>
                         <button class="btn" @click="closeLogsModal()">Close</button>
                     </div>
                 </div>
@@ -723,6 +726,19 @@ function devicesPage() {
             } finally {
                 this.logsModal.dayLoading = false;
             }
+        },
+
+        downloadLogs() {
+            const text = this.logsModal.logsText;
+            const day = this.logsModal.selectedDay || 'log';
+            const filename = `${this.logsModal.instanceName}-${day}.txt`;
+            const blob = new Blob([text], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
         },
 
         // --- Usage clock ---
