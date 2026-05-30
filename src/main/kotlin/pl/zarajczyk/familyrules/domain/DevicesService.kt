@@ -99,6 +99,7 @@ interface Device {
         applicationsSeconds: Map<String, Long>,
         activeApps: Set<String>?,
         mediaPlayingApps: Set<String>? = null,
+        isOnline: Boolean = true,
     )
 
     fun updateOwnerLastActivity(lastActivityMillis: Long)
@@ -197,6 +198,7 @@ class RefBasedDevice(
         applicationsSeconds: Map<String, Long>,
         activeApps: Set<String>?,
         mediaPlayingApps: Set<String>?,
+        isOnline: Boolean,
     ) {
         val details = getDetails()
         val previousApplicationTimes = if (details.currentDay == day.toString()) {
@@ -221,14 +223,18 @@ class RefBasedDevice(
 
         val now = Clock.System.now()
 
-        val onlinePeriodBucket = now.toBucket()
+        val onlinePeriodBucket = if (isOnline) now.toBucket() else null
 
         val previousOnlinePeriods: Set<String> = if (details.currentDay == day.toString()) {
             details.currentOnlinePeriods ?: emptySet()
         } else {
             emptySet()
         }
-        val currentOnlinePeriods: Set<String> = previousOnlinePeriods + onlinePeriodBucket
+        val currentOnlinePeriods: Set<String> = if (onlinePeriodBucket != null) {
+            previousOnlinePeriods + onlinePeriodBucket
+        } else {
+            previousOnlinePeriods
+        }
 
         devicesRepository.setScreenReport(
             device = deviceRef,
@@ -236,7 +242,7 @@ class RefBasedDevice(
             screenReportDto = SetScreenReportDto(
                 screenTimeSeconds = screenTimeSeconds,
                 applicationsSeconds = applicationsSeconds,
-                updatedAt = now,
+                updatedAt = if (isOnline) now else null,
                 currentOnlinePeriodBucket = onlinePeriodBucket,
                 currentOnlinePeriods = currentOnlinePeriods,
                 lastUpdatedApps = lastUpdatedApps,
@@ -251,7 +257,7 @@ class RefBasedDevice(
             screenReportDto = SetScreenReportDto(
                 screenTimeSeconds = screenTimeSeconds,
                 applicationsSeconds = applicationsSeconds,
-                updatedAt = now,
+                updatedAt = if (isOnline) now else null,
                 currentOnlinePeriodBucket = onlinePeriodBucket,
                 currentOnlinePeriods = currentOnlinePeriods,
                 lastUpdatedApps = lastUpdatedApps,
@@ -264,7 +270,7 @@ class RefBasedDevice(
             currentDay = day.toString(),
             currentScreenTime = screenTimeSeconds,
             currentApplicationTimes = applicationsSeconds,
-            currentUpdatedAt = now,
+            currentUpdatedAt = if (isOnline) now else cachedDetails.currentUpdatedAt,
             currentLastUpdatedApps = lastUpdatedApps,
             currentMediaPlayingApps = currentMediaPlayingApps,
             currentOnlinePeriods = currentOnlinePeriods,

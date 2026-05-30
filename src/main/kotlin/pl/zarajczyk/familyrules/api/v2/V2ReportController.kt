@@ -33,6 +33,7 @@ class V2ReportController(
                 applicationsSeconds = report.applicationsSeconds,
                 activeApps = report.activeApps,
                 mediaPlayingApps = report.mediaPlayingApps,
+                isOnline = report.isOnline,
             )
             
             // Update user's lastActivity timestamp (blind write — no prior fetch)
@@ -67,6 +68,7 @@ data class ReportRequest(
     @JsonProperty("applications") val applicationsSeconds: Map<String, Long>,
     @JsonProperty("activeApps") val activeApps: Set<String>? = null,
     @JsonProperty("mediaPlayingApps") val mediaPlayingApps: Set<String>? = null,
+    @JsonProperty("isOnline") val isOnline: Boolean = true,
 )
 
 data class ReportResponse(

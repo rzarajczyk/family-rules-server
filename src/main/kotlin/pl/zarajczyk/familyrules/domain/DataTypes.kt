@@ -26,8 +26,8 @@ data class ScreenReportDto(
 data class SetScreenReportDto(
     val screenTimeSeconds: Long,
     val applicationsSeconds: Map<String, Long>,
-    val updatedAt: Instant,
-    val currentOnlinePeriodBucket: String,
+    val updatedAt: Instant?,
+    val currentOnlinePeriodBucket: String?,
     val currentOnlinePeriods: Set<String>,
     val lastUpdatedApps: Set<String>,
     val mediaPlayingApps: Set<String> = emptySet(),

@@ -212,42 +212,36 @@ class FirestoreDevicesRepository(
 
         val isFirstReportForDay = device.details.currentDay != day.toString() || device.details.currentApplicationTimes == null
 
+        val baseFields = mutableMapOf<String, Any>(
+            "screenTime" to screenReportDto.screenTimeSeconds,
+            "applicationTimes" to screenReportDto.applicationsSeconds.encodeApplicationTimes(),
+            "lastUpdatedApps" to screenReportDto.lastUpdatedApps.encodeLastUpdatedApps(),
+        )
+        if (screenReportDto.updatedAt != null) {
+            baseFields["updatedAt"] = screenReportDto.updatedAt.toString()
+        }
+        if (screenReportDto.currentOnlinePeriodBucket != null) {
+            baseFields["onlinePeriods"] = FieldValue.arrayUnion(screenReportDto.currentOnlinePeriodBucket)
+        }
+
         if (isFirstReportForDay) {
-            val initialAppBuckets = if (screenReportDto.currentAppBucketDeltas.isEmpty()) {
-                emptyMap()
-            } else {
+            if (screenReportDto.currentOnlinePeriodBucket != null && screenReportDto.currentAppBucketDeltas.isNotEmpty()) {
                 // appBuckets is stored as bucket -> encodedAppId -> seconds so app ids remain safe in Firestore field paths.
-                mapOf(
+                baseFields["appBuckets"] = mapOf(
                     screenReportDto.currentOnlinePeriodBucket to screenReportDto.currentAppBucketDeltas
                         .mapKeys { (appId, _) -> appId.encodeAppBucketKey() }
                 )
             }
-
-            screenTimeRef.set(
-                mapOf(
-                    "screenTime" to screenReportDto.screenTimeSeconds,
-                    "applicationTimes" to screenReportDto.applicationsSeconds.encodeApplicationTimes(),
-                    "updatedAt" to screenReportDto.updatedAt.toString(),
-                    "lastUpdatedApps" to screenReportDto.lastUpdatedApps.encodeLastUpdatedApps(),
-                    "onlinePeriods" to FieldValue.arrayUnion(screenReportDto.currentOnlinePeriodBucket),
-                    "appBuckets" to initialAppBuckets,
-                ),
-                SetOptions.merge()
-            ).get()
+            screenTimeRef.set(baseFields, SetOptions.merge()).get()
             return
         }
 
-        val updates = mutableMapOf<String, Any>(
-            "screenTime" to screenReportDto.screenTimeSeconds,
-            "applicationTimes" to screenReportDto.applicationsSeconds.encodeApplicationTimes(),
-            "updatedAt" to screenReportDto.updatedAt.toString(),
-            "lastUpdatedApps" to screenReportDto.lastUpdatedApps.encodeLastUpdatedApps(),
-            "onlinePeriods" to FieldValue.arrayUnion(screenReportDto.currentOnlinePeriodBucket),
-        )
-
-        screenReportDto.currentAppBucketDeltas.forEach { (appId, deltaSeconds) ->
-            val encodedAppId = appId.encodeAppBucketKey()
-            updates["appBuckets.${screenReportDto.currentOnlinePeriodBucket}.$encodedAppId"] = FieldValue.increment(deltaSeconds)
+        val updates = baseFields.toMutableMap()
+        if (screenReportDto.currentOnlinePeriodBucket != null) {
+            screenReportDto.currentAppBucketDeltas.forEach { (appId, deltaSeconds) ->
+                val encodedAppId = appId.encodeAppBucketKey()
+                updates["appBuckets.${screenReportDto.currentOnlinePeriodBucket}.$encodedAppId"] = FieldValue.increment(deltaSeconds)
+            }
         }
 
         screenTimeRef.update(updates).get()
@@ -262,17 +256,18 @@ class FirestoreDevicesRepository(
         screenReportDto: SetScreenReportDto
     ) {
         val doc = (device as FirestoreDeviceRef).document
-        doc.reference.update(
-            mapOf(
-                "currentDay" to day.toString(),
-                "currentScreenTime" to screenReportDto.screenTimeSeconds,
-                "currentApplicationTimes" to screenReportDto.applicationsSeconds,
-                "currentUpdatedAt" to screenReportDto.updatedAt.toString(),
-                "currentLastUpdatedApps" to screenReportDto.lastUpdatedApps.toList(),
-                "currentMediaPlayingApps" to screenReportDto.mediaPlayingApps.toList(),
-                "currentOnlinePeriods" to screenReportDto.currentOnlinePeriods.toList()
-            )
-        ).get()
+        val fields = mutableMapOf<String, Any>(
+            "currentDay" to day.toString(),
+            "currentScreenTime" to screenReportDto.screenTimeSeconds,
+            "currentApplicationTimes" to screenReportDto.applicationsSeconds,
+            "currentLastUpdatedApps" to screenReportDto.lastUpdatedApps.toList(),
+            "currentMediaPlayingApps" to screenReportDto.mediaPlayingApps.toList(),
+            "currentOnlinePeriods" to screenReportDto.currentOnlinePeriods.toList(),
+        )
+        if (screenReportDto.updatedAt != null) {
+            fields["currentUpdatedAt"] = screenReportDto.updatedAt.toString()
+        }
+        doc.reference.update(fields).get()
     }
 
     @Suppress("UNCHECKED_CAST")
