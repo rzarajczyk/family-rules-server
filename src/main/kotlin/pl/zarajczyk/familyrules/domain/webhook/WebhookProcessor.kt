@@ -176,9 +176,21 @@ class WebhookProcessor(
             )
         }
 
+        val deviceLocations = allDevices.map { device ->
+            val details = device.getDetails()
+            DeviceLocation(
+                deviceId = details.deviceId.toString(),
+                deviceName = details.deviceName,
+                latitude = details.currentLatitude,
+                longitude = details.currentLongitude,
+                locationUpdatedAt = details.currentLocationUpdatedAt?.toString(),
+            )
+        }
+
         return WebhookPayload(
             date = date.toString(),
             appGroups = appGroupStatistics,
+            locations = deviceLocations,
         )
     }
 
@@ -215,7 +227,8 @@ class WebhookProcessor(
 
 data class WebhookPayload(
     val date: String,
-    val appGroups: List<AppGroupStatus>
+    val appGroups: List<AppGroupStatus>,
+    val locations: List<DeviceLocation>,
 )
 
 data class AppGroupStatus(
@@ -230,4 +243,12 @@ data class AppGroupCurrentState(
     val kind: String,   // "named" | "automatic" | "different"
     val label: String,
     val stateId: String?,
+)
+
+data class DeviceLocation(
+    val deviceId: String,
+    val deviceName: String,
+    val latitude: Double?,
+    val longitude: Double?,
+    val locationUpdatedAt: String?,
 )

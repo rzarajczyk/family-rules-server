@@ -337,5 +337,52 @@ class WebhookIntegrationSpec : FunSpec() {
             currentState.get("label").asText() shouldBe "Locked"
             currentState.get("stateId").asText() shouldBe lockedState.fetchDetails().id
         }
+
+        test("webhook payload should include device locations") {
+            // Given
+            val testUsername = "webhook-location-test-${System.currentTimeMillis()}"
+            usersRepository.createUser(testUsername, "pass".sha256(), AccessLevel.PARENT)
+            val user = usersService.get(testUsername)
+            user.updateWebhookSettings(webhookEnabled = true, webhookUrl = "https://example.com/webhook")
+            user.updateLastActivity(System.currentTimeMillis())
+
+            val device = devicesService.setupNewDevice(testUsername, "TestDevice", "android")
+            val deviceId = device.deviceId
+
+            // Send a screen time report with location
+            val deviceDomain = devicesService.get(deviceId)
+            deviceDomain.saveScreenTimeReport(
+                day = today(),
+                screenTimeSeconds = 600,
+                applicationsSeconds = emptyMap(),
+                activeApps = null,
+                latitude = 52.2297,
+                longitude = 21.0122,
+            )
+
+            appGroupService.createAppGroup(user, "DummyGroup")
+
+            capturingWebhookClient.clear()
+
+            // When
+            webhookQueue.enqueue(usersService.get(testUsername))
+            val deadline = System.currentTimeMillis() + 5_000
+            while (capturingWebhookClient.capturedPayloads.isEmpty() && System.currentTimeMillis() < deadline) {
+                Thread.sleep(100)
+            }
+
+            // Then
+            capturingWebhookClient.capturedPayloads.size shouldBe 1
+            val payload = objectMapper.readTree(capturingWebhookClient.capturedPayloads[0])
+            val locations = payload.get("locations")
+            locations.shouldNotBeNull()
+            locations.size() shouldBe 1
+
+            val deviceLocation = locations[0]
+            deviceLocation.get("deviceName").asText() shouldBe "TestDevice"
+            deviceLocation.get("latitude").asDouble() shouldBe 52.2297
+            deviceLocation.get("longitude").asDouble() shouldBe 21.0122
+            deviceLocation.get("locationUpdatedAt").shouldNotBeNull()
+        }
     }
 }
