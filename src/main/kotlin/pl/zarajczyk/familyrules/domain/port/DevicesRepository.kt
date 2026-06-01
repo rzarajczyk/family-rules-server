@@ -22,6 +22,8 @@ interface DevicesRepository {
 
     fun updateOwnerLastActivity(deviceRef: DeviceRef, lastActivityMillis: Long)
 
+    fun updateLocation(deviceRef: DeviceRef, latitude: Double, longitude: Double, updatedAt: Instant)
+
     // Screen time operations
     fun setScreenReport(device: DeviceRef, day: LocalDate, screenReportDto: SetScreenReportDto)
     fun setCurrentScreenReport(device: DeviceRef, day: LocalDate, screenReportDto: SetScreenReportDto)
@@ -58,6 +60,9 @@ data class DeviceDetailsDto(
     val currentLastUpdatedApps: Set<String>? = null,
     val currentMediaPlayingApps: Set<String>? = null,
     val currentOnlinePeriods: Set<String>? = null,
+    val currentLatitude: Double? = null,
+    val currentLongitude: Double? = null,
+    val currentLocationUpdatedAt: Instant? = null,
 )
 
 data class DeviceDetailsUpdateDto(

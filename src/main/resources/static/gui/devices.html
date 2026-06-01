@@ -142,6 +142,12 @@
                                         @click="requestLogs(device)">
                                     <span class="material-icons text-sm">article</span> <span class="hidden sm:inline">Request logs</span>
                                 </button>
+                                <button class="btn btn-sm btn-ghost"
+                                        :class="!device.latitude && 'btn-disabled opacity-50'"
+                                        :disabled="!device.latitude"
+                                        @click="showLocation(device)">
+                                    <span class="material-icons text-sm">location_on</span> <span class="hidden sm:inline">Location</span>
+                                </button>
                                 <div class="flex-1"></div>
                                 <button class="btn btn-sm btn-outline btn-primary" @click="showChangeState(device.instanceId)">Change device state</button>
                             </div>
@@ -329,6 +335,30 @@
                 <form method="dialog" class="modal-backdrop" @click="closeLogsModal()"></form>
             </dialog>
 
+            <!-- Location Modal -->
+            <dialog class="modal" :class="locationModal.open && 'modal-open'">
+                <div class="modal-box">
+                    <h3 class="font-bold text-lg mb-4">Location: <b x-text="locationModal.instanceName"></b></h3>
+                    <template x-if="locationModal.hasLocation">
+                        <div class="flex flex-col gap-3">
+                            <table class="table">
+                                <tr><td class="font-medium">Latitude</td><td x-text="locationModal.latitude"></td></tr>
+                                <tr><td class="font-medium">Longitude</td><td x-text="locationModal.longitude"></td></tr>
+                                <tr><td class="font-medium">Reported at</td><td x-text="locationModal.reportedAt"></td></tr>
+                            </table>
+                            <a :href="locationModal.mapsUrl" target="_blank" class="btn btn-sm btn-outline btn-primary gap-2">
+                                <span class="material-icons text-sm">map</span> Open in Google Maps
+                            </a>
+                        </div>
+                    </template>
+                    <template x-if="!locationModal.hasLocation">
+                        <p class="text-base-content/60">No location data available for this device.</p>
+                    </template>
+                    <div class="modal-action"><button class="btn" @click="locationModal.open = false">Close</button></div>
+                </div>
+                <form method="dialog" class="modal-backdrop" @click="locationModal.open = false"></form>
+            </dialog>
+
             <!-- Add group dropdown (positioned absolutely) -->
             <div x-show="groupDropdown.open" x-transition
                  class="fixed z-50 bg-base-100 border border-base-300 rounded-lg shadow-lg min-w-[160px] max-h-52 overflow-y-auto"
@@ -381,6 +411,7 @@ function devicesPage() {
             availableGroups: [], selectedShowGroups: [], selectedBlockGroups: [], selectedBlockPlaybackGroups: []
         },
         clockModal: { open: false, title: '' },
+        locationModal: { open: false, instanceName: '', hasLocation: false, latitude: '', longitude: '', reportedAt: '', mapsUrl: '' },
         logsModal: {
             open: false,
             instanceId: '',
@@ -463,6 +494,20 @@ function devicesPage() {
                 const data = await resp.json();
                 this.infoModal = { open: true, ...data };
             } catch (_) { Toast.error('Failed to load info'); }
+        },
+
+        // --- Location ---
+        showLocation(device) {
+            const hasLocation = !!(device.latitude && device.longitude);
+            this.locationModal = {
+                open: true,
+                instanceName: device.instanceName,
+                hasLocation,
+                latitude: hasLocation ? device.latitude.toFixed(5) : '',
+                longitude: hasLocation ? device.longitude.toFixed(5) : '',
+                reportedAt: device.locationUpdatedAt ? this.formatDateTime(device.locationUpdatedAt) : '',
+                mapsUrl: hasLocation ? 'https://www.google.com/maps?q=' + device.latitude + ',' + device.longitude : '',
+            };
         },
 
         // --- Edit ---

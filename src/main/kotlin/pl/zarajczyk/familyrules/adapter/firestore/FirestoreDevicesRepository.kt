@@ -119,6 +119,9 @@ class FirestoreDevicesRepository(
             currentLastUpdatedApps = doc.getNativeLastUpdatedApps("currentLastUpdatedApps"),
             currentMediaPlayingApps = doc.getNativeLastUpdatedApps("currentMediaPlayingApps"),
             currentOnlinePeriods = doc.getNativeOnlinePeriods("currentOnlinePeriods"),
+            currentLatitude = doc.getDouble("currentLatitude"),
+            currentLongitude = doc.getDouble("currentLongitude"),
+            currentLocationUpdatedAt = doc.getString("currentLocationUpdatedAt")?.let { Instant.parse(it) },
         )
         val tokenHash = doc.getStringOrThrow("instanceTokenSha256")
         return FirestoreDeviceRef(doc, details, tokenHash)
@@ -387,6 +390,17 @@ class FirestoreDevicesRepository(
             ?: throw UserNotFoundException("parent is null")
         val timestamp = com.google.cloud.Timestamp.ofTimeMicroseconds(lastActivityMillis * 1000)
         userDoc.update("lastActivity", timestamp).get()
+    }
+
+    override fun updateLocation(deviceRef: DeviceRef, latitude: Double, longitude: Double, updatedAt: Instant) {
+        val doc = (deviceRef as FirestoreDeviceRef).document
+        doc.reference.update(
+            mapOf(
+                "currentLatitude" to latitude,
+                "currentLongitude" to longitude,
+                "currentLocationUpdatedAt" to updatedAt.toString(),
+            )
+        ).get()
     }
 }
 

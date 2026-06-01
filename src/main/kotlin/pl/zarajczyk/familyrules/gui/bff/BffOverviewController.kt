@@ -91,6 +91,9 @@ class BffOverviewController(
                 icon = deviceDetails.getIcon(),
                 availableAppGroups = appGroupsDetails.values.toList(),
                 supportedServerCommands = deviceDetails.supportedServerCommands,
+                latitude = deviceDetails.currentLatitude,
+                longitude = deviceDetails.currentLongitude,
+                locationUpdatedAt = deviceDetails.currentLocationUpdatedAt?.toString(),
             )
         })
     } catch (_: InvalidPassword) {
@@ -281,6 +284,9 @@ data class Instance(
     val online: Boolean,
     val availableAppGroups: List<AppGroupDetails>,
     val supportedServerCommands: List<String>,
+    val latitude: Double? = null,
+    val longitude: Double? = null,
+    val locationUpdatedAt: String? = null,
 )
 
 data class Icon(

@@ -100,6 +100,8 @@ interface Device {
         activeApps: Set<String>?,
         mediaPlayingApps: Set<String>? = null,
         isOnline: Boolean = true,
+        latitude: Double? = null,
+        longitude: Double? = null,
     )
 
     fun updateOwnerLastActivity(lastActivityMillis: Long)
@@ -199,6 +201,8 @@ class RefBasedDevice(
         activeApps: Set<String>?,
         mediaPlayingApps: Set<String>?,
         isOnline: Boolean,
+        latitude: Double?,
+        longitude: Double?,
     ) {
         val details = getDetails()
         val previousApplicationTimes = if (details.currentDay == day.toString()) {
@@ -275,6 +279,15 @@ class RefBasedDevice(
             currentMediaPlayingApps = currentMediaPlayingApps,
             currentOnlinePeriods = currentOnlinePeriods,
         )
+
+        if (latitude != null && longitude != null) {
+            devicesRepository.updateLocation(deviceRef, latitude, longitude, now)
+            cachedDetails = cachedDetails.copy(
+                currentLatitude = latitude,
+                currentLongitude = longitude,
+                currentLocationUpdatedAt = now,
+            )
+        }
     }
 
     override fun updateOwnerLastActivity(lastActivityMillis: Long) {

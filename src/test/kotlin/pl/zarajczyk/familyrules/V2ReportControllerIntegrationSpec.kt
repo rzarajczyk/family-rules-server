@@ -530,6 +530,80 @@ class V2ReportControllerIntegrationSpec : FunSpec() {
             )
                 .andExpect(status().isUnauthorized)
         }
+
+        test("should accept report with latitude and longitude fields") {
+            val apiV2Basic = Base64.getEncoder().encodeToString("$deviceId:$token".toByteArray())
+            val reportBody = """
+                {
+                  "screenTime": 600,
+                  "applications": {
+                    "com.example.app1": 600
+                  },
+                  "latitude": 52.2297,
+                  "longitude": 21.0122
+                }
+            """.trimIndent()
+
+            mockMvc.perform(
+                post("/api/v2/report")
+                    .header("Authorization", "Basic $apiV2Basic")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(reportBody)
+            )
+                .andExpect(status().isOk)
+                .andExpect(jsonPath("$.deviceState").exists())
+
+            // Verify the report was persisted (location fields are accepted but not stored yet)
+            val deviceRef = devicesRepository.get(deviceId)!!
+            val today = today()
+            val screenTimes = devicesRepository.getScreenReport(deviceRef, today)
+            screenTimes.shouldNotBeNull()
+            screenTimes.screenTimeSeconds shouldBe 600L
+        }
+
+        test("should accept report without latitude and longitude (backward compatible)") {
+            val apiV2Basic = Base64.getEncoder().encodeToString("$deviceId:$token".toByteArray())
+            val reportBody = """
+                {
+                  "screenTime": 400,
+                  "applications": {
+                    "com.example.app1": 400
+                  }
+                }
+            """.trimIndent()
+
+            mockMvc.perform(
+                post("/api/v2/report")
+                    .header("Authorization", "Basic $apiV2Basic")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(reportBody)
+            )
+                .andExpect(status().isOk)
+                .andExpect(jsonPath("$.deviceState").exists())
+        }
+
+        test("should accept report with null latitude and longitude") {
+            val apiV2Basic = Base64.getEncoder().encodeToString("$deviceId:$token".toByteArray())
+            val reportBody = """
+                {
+                  "screenTime": 300,
+                  "applications": {
+                    "com.example.app1": 300
+                  },
+                  "latitude": null,
+                  "longitude": null
+                }
+            """.trimIndent()
+
+            mockMvc.perform(
+                post("/api/v2/report")
+                    .header("Authorization", "Basic $apiV2Basic")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(reportBody)
+            )
+                .andExpect(status().isOk)
+                .andExpect(jsonPath("$.deviceState").exists())
+        }
     }
 }
 
