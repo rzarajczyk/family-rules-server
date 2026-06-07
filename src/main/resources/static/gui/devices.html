@@ -138,15 +138,16 @@
                                     <span class="material-icons text-sm">bar_chart</span> <span class="hidden sm:inline">Usage</span>
                                 </button>
                                 <button class="btn btn-sm btn-ghost"
-                                        :class="!canRequestLogs(device) && 'btn-disabled opacity-50'"
-                                        :disabled="!canRequestLogs(device)"
-                                        :title="canRequestLogs(device) ? 'Request logs from device' : 'Supported only on newer client versions'"
+                                        x-show="canRequestLogs(device)"
+                                        title="Request logs from device"
                                         @click="requestLogs(device)">
                                     <span class="material-icons text-sm">article</span> <span class="hidden sm:inline">Request logs</span>
                                 </button>
                                 <button class="btn btn-sm btn-ghost"
+                                        x-show="canShowLocation(device)"
                                         :class="!device.latitude && 'btn-disabled opacity-50'"
                                         :disabled="!device.latitude"
+                                        :title="device.latitude ? 'Show device location' : 'No location reported yet'"
                                         @click="showLocation(device)">
                                     <span class="material-icons text-sm">location_on</span> <span class="hidden sm:inline">Location</span>
                                 </button>
@@ -500,6 +501,10 @@ function devicesPage() {
         },
 
         // --- Location ---
+        canShowLocation(device) {
+            return (device.capabilities || []).includes('LOCATION_REPORT');
+        },
+
         showLocation(device) {
             const hasLocation = !!(device.latitude && device.longitude);
             this.locationModal = {
