@@ -399,7 +399,7 @@ class BffOverviewControllerIntegrationSpec : FunSpec() {
                 val deviceName = "Test Device Info"
                 val deviceDetails = devicesService.setupNewDevice(testUsername, deviceName, "ANDROID")
                 devicesService.get(deviceDetails.deviceId).update(DeviceDetailsUpdateDto(
-                    supportedServerCommands = set(listOf("SEND_LOGS"))
+                    capabilities = set(listOf("LOGS_COMMAND", "COMMANDS_PULL"))
                 ))
                 val instanceId = deviceDetails.deviceId.toString()
 
@@ -414,7 +414,7 @@ class BffOverviewControllerIntegrationSpec : FunSpec() {
                     .andExpect(jsonPath("$.clientType").value("ANDROID"))
                     .andExpect(jsonPath("$.clientVersion").exists())
                     .andExpect(jsonPath("$.clientTimezoneOffsetSeconds").exists())
-                    .andExpect(jsonPath("$.supportedServerCommands[0]").value("SEND_LOGS"))
+                    .andExpect(jsonPath("$.capabilities[0]").value("LOGS_COMMAND"))
                     .andReturn()
 
                 val response = objectMapper.readTree(result.response.contentAsString)

@@ -111,7 +111,7 @@ class BffDeviceCommandsControllerIntegrationSpec : FunSpec() {
 
         test("should enqueue command and return completed result") {
             val device = devicesService.get(deviceId)
-            device.update(DeviceDetailsUpdateDto(supportedServerCommands = set(listOf("SEND_LOGS"))))
+            device.update(DeviceDetailsUpdateDto(capabilities = set(listOf("LOGS_COMMAND", "COMMANDS_PULL"))))
 
             val createResult = mockMvc.perform(
                 post("/bff/instance-commands")
@@ -163,7 +163,7 @@ class BffDeviceCommandsControllerIntegrationSpec : FunSpec() {
 
         test("should return empty when no request exists and support clear") {
             val device = devicesService.get(deviceId)
-            device.update(DeviceDetailsUpdateDto(supportedServerCommands = set(listOf("SEND_LOGS"))))
+            device.update(DeviceDetailsUpdateDto(capabilities = set(listOf("LOGS_COMMAND", "COMMANDS_PULL"))))
 
             mockMvc.perform(
                 get("/bff/instance-commands")
@@ -203,7 +203,7 @@ class BffDeviceCommandsControllerIntegrationSpec : FunSpec() {
 
         test("should forbid access from another user") {
             val device = devicesService.get(deviceId)
-            device.update(DeviceDetailsUpdateDto(supportedServerCommands = set(listOf("SEND_LOGS"))))
+            device.update(DeviceDetailsUpdateDto(capabilities = set(listOf("LOGS_COMMAND", "COMMANDS_PULL"))))
 
             mockMvc.perform(
                 post("/bff/instance-commands")

@@ -85,7 +85,7 @@ class V2DeviceCommandsControllerIntegrationSpec : FunSpec() {
             deviceId = newDevice.deviceId
             token = newDevice.token
             val device = devicesService.get(deviceId)
-            device.update(DeviceDetailsUpdateDto(supportedServerCommands = set(listOf("SEND_LOGS"))))
+            device.update(DeviceDetailsUpdateDto(capabilities = set(listOf("LOGS_COMMAND", "COMMANDS_PULL"))))
         }
 
         afterTest {

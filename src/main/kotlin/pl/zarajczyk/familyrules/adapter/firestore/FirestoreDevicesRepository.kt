@@ -49,7 +49,7 @@ class FirestoreDevicesRepository(
             "apps" to details.knownApps.toNativeAppsMap(),
             "reportIntervalSeconds" to details.reportIntervalSeconds,
             "deviceStates" to details.availableDeviceStates.encodeDeviceStates(),
-            "supportedServerCommands" to json.encodeToString(details.supportedServerCommands),
+            "capabilities" to json.encodeToString(details.capabilities),
             "appGroups" to details.appGroups.encodeAppGroups(),
             "hasPendingServerCommands" to details.hasPendingServerCommands,
         )
@@ -108,7 +108,7 @@ class FirestoreDevicesRepository(
             reportIntervalSeconds = doc.getLongOrThrow("reportIntervalSeconds"),
             knownApps = doc.getNativeApps(),
             availableDeviceStates = doc.getAvailableDeviceStates("deviceStates"),
-            supportedServerCommands = doc.getSupportedServerCommands("supportedServerCommands"),
+            capabilities = doc.getCapabilities(),
             appGroups = doc.getAppGroups("appGroups"),
             autoAddGroupIds = doc.getAutoAddGroupIds("autoAddGroupIds"),
             hasPendingServerCommands = doc.getBoolean("hasPendingServerCommands") ?: false,
@@ -142,7 +142,7 @@ class FirestoreDevicesRepository(
             details.knownApps.ifPresent { "apps" to it.toNativeAppsMap() },
             details.reportIntervalSeconds.ifPresent { "reportIntervalSeconds" to it },
             details.availableDeviceStates.ifPresent { "deviceStates" to it.encodeDeviceStates() },
-            details.supportedServerCommands.ifPresent { "supportedServerCommands" to json.encodeToString(it) },
+            details.capabilities.ifPresent { "capabilities" to json.encodeToString(it) },
             details.appGroups.ifPresent { "appGroups" to it.encodeAppGroups() },
             details.autoAddGroupIds.ifPresent { "autoAddGroupIds" to json.encodeToString(it) },
             details.hasPendingServerCommands.ifPresent { "hasPendingServerCommands" to it },
@@ -185,6 +185,18 @@ class FirestoreDevicesRepository(
         } catch (_: Exception) {
             emptyList()
         }
+
+    private fun QueryDocumentSnapshot.getCapabilities(): List<String> {
+        val stored = getString("capabilities")
+        if (stored != null) {
+            return try {
+                json.decodeFromString<List<String>>(stored)
+            } catch (_: Exception) {
+                emptyList()
+            }
+        }
+        return deriveCapabilitiesFromCommands(getSupportedServerCommands("supportedServerCommands"))
+    }
 
     private fun QueryDocumentSnapshot.getSupportedServerCommands(fieldName: String): List<String> =
         try {

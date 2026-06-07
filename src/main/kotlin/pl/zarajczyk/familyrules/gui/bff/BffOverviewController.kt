@@ -90,7 +90,7 @@ class BffOverviewController(
                 online = screenTimeDto.online,
                 icon = deviceDetails.getIcon(),
                 availableAppGroups = appGroupsDetails.values.toList(),
-                supportedServerCommands = deviceDetails.supportedServerCommands,
+                capabilities = deviceDetails.capabilities,
                 latitude = deviceDetails.currentLatitude,
                 longitude = deviceDetails.currentLongitude,
                 locationUpdatedAt = deviceDetails.currentLocationUpdatedAt?.toString(),
@@ -122,7 +122,7 @@ class BffOverviewController(
             clientType = details.clientType,
             clientVersion = details.clientVersion,
             clientTimezoneOffsetSeconds = details.clientTimezoneOffsetSeconds,
-            supportedServerCommands = details.supportedServerCommands,
+            capabilities = details.capabilities,
         )
     }
 
@@ -256,7 +256,7 @@ data class InstanceInfoResponse(
     val clientType: String,
     val clientVersion: String,
     val clientTimezoneOffsetSeconds: Long,
-    val supportedServerCommands: List<String>,
+    val capabilities: List<String>,
 )
 
 data class DeviceStateDescriptionResponse(
@@ -283,7 +283,7 @@ data class Instance(
     val forcedDeviceState: DeviceStateDescriptionResponse?,
     val online: Boolean,
     val availableAppGroups: List<AppGroupDetails>,
-    val supportedServerCommands: List<String>,
+    val capabilities: List<String>,
     val latitude: Double? = null,
     val longitude: Double? = null,
     val locationUpdatedAt: String? = null,

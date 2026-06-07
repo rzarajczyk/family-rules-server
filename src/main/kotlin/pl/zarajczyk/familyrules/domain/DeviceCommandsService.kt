@@ -19,7 +19,8 @@ class DeviceCommandsService(
 ) {
 
     fun enqueue(device: Device, commandName: String): DeviceCommandDto {
-        if (commandName !in device.getDetails().supportedServerCommands) {
+        val required = COMMAND_CAPABILITY[commandName]
+        if (required == null || required !in device.getDetails().capabilities) {
             throw ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "Command $commandName is not supported by this device")
         }
 

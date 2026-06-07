@@ -27,7 +27,7 @@ class V2ClientInfoController(
             reportIntervalSeconds = set(request.reportIntervalSeconds ?: 60L),
             knownApps = set(newKnownApps),
             availableDeviceStates = set(request.availableStates.map { it.toDto() }),
-            supportedServerCommands = set(request.supportedServerCommands ?: emptyList())
+            capabilities = set(request.capabilities ?: emptyList())
 
         ))
         return ClientInfoResponse()
@@ -62,7 +62,7 @@ data class ClientInfoRequest(
     val timezoneOffsetSeconds: Long?,
     val reportIntervalSeconds: Long?,
     val knownApps: Map<String, App>?,
-    val supportedServerCommands: List<String>? = null,
+    val capabilities: List<String>? = null,
 )
 
 data class ClientInfoResponse(

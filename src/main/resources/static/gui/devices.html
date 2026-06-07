@@ -657,7 +657,7 @@ function devicesPage() {
 
         // --- Request logs ---
         canRequestLogs(device) {
-            return (device.supportedServerCommands || []).includes('SEND_LOGS');
+            return (device.capabilities || []).includes('LOGS_COMMAND');
         },
 
         async requestLogs(device) {

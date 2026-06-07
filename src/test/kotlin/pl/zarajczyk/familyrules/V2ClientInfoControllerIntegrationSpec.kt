@@ -1,10 +1,12 @@
 package pl.zarajczyk.familyrules
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.google.cloud.firestore.Firestore
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.extensions.spring.SpringExtension
 import io.kotest.matchers.collections.shouldContain
 import io.kotest.matchers.collections.shouldContainAll
+import io.kotest.matchers.collections.shouldContainExactlyInAnyOrder
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
@@ -41,6 +43,9 @@ class V2ClientInfoControllerIntegrationSpec : FunSpec() {
 
     @Autowired
     private lateinit var mockMvc: MockMvc
+
+    @Autowired
+    private lateinit var firestore: Firestore
 
     @Autowired
     private lateinit var objectMapper: ObjectMapper
@@ -97,7 +102,7 @@ class V2ClientInfoControllerIntegrationSpec : FunSpec() {
                       "version": "v9.9.9",
                       "timezoneOffsetSeconds": 7200,
                       "reportIntervalSeconds": 30,
-                      "supportedServerCommands": ["SEND_LOGS"],
+                      "capabilities": ["LOGS_COMMAND", "COMMANDS_PULL"],
                       "availableStates": [
                         {
                           "deviceState": "ACTIVE",
@@ -131,7 +136,7 @@ class V2ClientInfoControllerIntegrationSpec : FunSpec() {
                 dto.reportIntervalSeconds shouldBe 30
                 dto.knownApps.keys.shouldContainAll(listOf("com.example.app1", "com.example.app2"))
                 dto.knownApps["com.example.app1"]!!.appName shouldBe "App One"
-                dto.supportedServerCommands shouldBe listOf("SEND_LOGS")
+                dto.capabilities shouldBe listOf("LOGS_COMMAND", "COMMANDS_PULL")
 
                 val states = dto.availableDeviceStates
                 states shouldNotBe null
@@ -198,6 +203,33 @@ class V2ClientInfoControllerIntegrationSpec : FunSpec() {
                 dto.clientTimezoneOffsetSeconds shouldBe 0
                 dto.reportIntervalSeconds shouldBe 60
                 dto.knownApps.keys shouldHaveSize 0
+                dto.capabilities shouldBe emptyList()
+            }
+        }
+
+        context("POST /api/v2/client-info - legacy read-path fallback") {
+            test("should derive capabilities from legacy supportedServerCommands on read") {
+                val legacyDevice = devicesService.setupNewDevice(username, "Legacy Device", clientType)
+                val legacyDeviceId = legacyDevice.deviceId
+
+                val instanceDoc = firestore.collectionGroup("instances")
+                    .whereEqualTo("instanceId", legacyDeviceId.toString())
+                    .get()
+                    .get()
+                    .documents
+                    .first()
+
+                instanceDoc.reference.update(
+                    mapOf(
+                        "supportedServerCommands" to """["SEND_LOGS"]""",
+                        "capabilities" to com.google.cloud.firestore.FieldValue.delete(),
+                    )
+                ).get()
+
+                val deviceRef = devicesRepository.get(legacyDeviceId)!!
+                deviceRef.details.capabilities shouldContainExactlyInAnyOrder listOf("LOGS_COMMAND", "COMMANDS_PULL")
+
+                devicesRepository.delete(deviceRef)
             }
         }
 

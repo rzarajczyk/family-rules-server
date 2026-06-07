@@ -435,7 +435,7 @@ class V2ReportControllerIntegrationSpec : FunSpec() {
             val apiV2Basic = Base64.getEncoder().encodeToString("$deviceId:$token".toByteArray())
             val device = devicesService.get(deviceId)
             device.update(DeviceDetailsUpdateDto(
-                supportedServerCommands = set(listOf("SEND_LOGS"))
+                capabilities = set(listOf("LOGS_COMMAND", "COMMANDS_PULL"))
             ))
             val command = deviceCommandsService.enqueue(device, "SEND_LOGS")
 
