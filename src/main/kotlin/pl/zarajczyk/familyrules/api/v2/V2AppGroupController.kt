@@ -20,6 +20,9 @@ class V2AppGroupController(
     @PostMapping("/api/v2/get-blocked-playback-apps")
     fun getBlockedPlaybackApps(authentication: Authentication): BlockedAppsResponse {
         val device = devicesService.get(authentication)
+        if (Capability.MEDIA_PLAYBACK_BLOCK !in device.getDetails().capabilities) {
+            return BlockedAppsResponse(apps = emptyList())
+        }
         return buildBlockedAppsResponse(device, device.getDetails().appGroups.blockPlayback)
     }
 
