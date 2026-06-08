@@ -20,7 +20,7 @@ class DeviceCommandsService(
 
     fun enqueue(device: Device, commandName: String): DeviceCommandDto {
         val required = COMMAND_CAPABILITY[commandName]
-        if (required == null || required !in device.getDetails().capabilities) {
+        if (required == null || !deviceHasCapability(device.getDetails().capabilities, required)) {
             throw ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "Command $commandName is not supported by this device")
         }
 
@@ -49,7 +49,7 @@ class DeviceCommandsService(
 
     fun getOrEnqueue(device: Device, commandName: String): DeviceCommandDto {
         val latest = deviceCommandsRepository.getLatest(device.asRef(), commandName)
-        if (latest != null && (latest.status == CommandLifecycleStatus.QUEUED || latest.status == CommandLifecycleStatus.ACKNOWLEDGED || latest.status == CommandLifecycleStatus.COMPLETED || latest.status == CommandLifecycleStatus.FAILED)) {
+        if (latest != null && (latest.status == CommandLifecycleStatus.QUEUED || latest.status == CommandLifecycleStatus.ACKNOWLEDGED)) {
             return latest
         }
         return enqueue(device, commandName)

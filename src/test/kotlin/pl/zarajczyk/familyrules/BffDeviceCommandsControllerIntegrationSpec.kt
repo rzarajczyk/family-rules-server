@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.extensions.spring.SpringExtension
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
 import org.hamcrest.Matchers.containsString
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
@@ -224,6 +225,63 @@ class BffDeviceCommandsControllerIntegrationSpec : FunSpec() {
             )
                 .andExpect(status().is3xxRedirection)
                 .andExpect(header().string("Location", containsString("/gui/login.html")))
+        }
+
+        test("should enqueue SEND_LOGS when device advertises SEND_LOGS_COMMAND capability") {
+            val device = devicesService.get(deviceId)
+            device.update(DeviceDetailsUpdateDto(capabilities = set(listOf("SEND_LOGS_COMMAND", "COMMANDS_PULL"))))
+
+            mockMvc.perform(
+                post("/bff/instance-commands")
+                    .param("instanceId", deviceId.toString())
+                    .with(user(username))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{ "commandName": "SEND_LOGS" }""")
+            )
+                .andExpect(status().isOk)
+                .andExpect(jsonPath("$.commandId").exists())
+                .andExpect(jsonPath("$.status").value("PENDING"))
+        }
+
+        test("should enqueue a new command when the latest command is completed") {
+            val device = devicesService.get(deviceId)
+            device.update(DeviceDetailsUpdateDto(capabilities = set(listOf("LOGS_COMMAND", "COMMANDS_PULL"))))
+
+            val firstResult = mockMvc.perform(
+                post("/bff/instance-commands")
+                    .param("instanceId", deviceId.toString())
+                    .with(user(username))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{ "commandName": "SEND_LOGS" }""")
+            )
+                .andExpect(status().isOk)
+                .andReturn()
+
+            val firstCommandId = objectMapper.readTree(firstResult.response.contentAsString).get("commandId").asText()
+            deviceCommandsService.submitResults(device, listOf(
+                pl.zarajczyk.familyrules.domain.port.CommandResultDto(
+                    commandId = firstCommandId,
+                    commandName = "SEND_LOGS",
+                    completedAt = kotlinx.datetime.Instant.parse("2026-05-03T12:01:05Z"),
+                    status = CommandResultStatus.SUCCEEDED,
+                    responseType = "SEND_LOGS_V1",
+                    responsePayloadJson = "{\"logsText\":\"hello\",\"truncated\":false,\"collectedAt\":\"2026-05-03T12:01:00Z\"}",
+                )
+            ))
+
+            val secondResult = mockMvc.perform(
+                post("/bff/instance-commands")
+                    .param("instanceId", deviceId.toString())
+                    .with(user(username))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{ "commandName": "SEND_LOGS" }""")
+            )
+                .andExpect(status().isOk)
+                .andExpect(jsonPath("$.status").value("PENDING"))
+                .andReturn()
+
+            val secondCommandId = objectMapper.readTree(secondResult.response.contentAsString).get("commandId").asText()
+            secondCommandId shouldNotBe firstCommandId
         }
     }
 }

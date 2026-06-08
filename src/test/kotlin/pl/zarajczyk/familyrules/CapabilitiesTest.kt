@@ -5,6 +5,7 @@ import io.kotest.matchers.collections.shouldContainExactlyInAnyOrder
 import io.kotest.matchers.shouldBe
 import pl.zarajczyk.familyrules.domain.Capability
 import pl.zarajczyk.familyrules.domain.deriveCapabilitiesFromCommands
+import pl.zarajczyk.familyrules.domain.deviceHasCapability
 
 class CapabilitiesTest : FunSpec({
 
@@ -37,5 +38,11 @@ class CapabilitiesTest : FunSpec({
             Capability.UNINSTALL_COMMAND,
             Capability.COMMANDS_PULL,
         )
+    }
+
+    test("deviceHasCapability accepts SEND_LOGS_COMMAND as synonym for LOGS_COMMAND") {
+        deviceHasCapability(listOf(Capability.SEND_LOGS_COMMAND), Capability.LOGS_COMMAND) shouldBe true
+        deviceHasCapability(listOf(Capability.LOGS_COMMAND), Capability.LOGS_COMMAND) shouldBe true
+        deviceHasCapability(listOf(Capability.COMMANDS_PULL), Capability.LOGS_COMMAND) shouldBe false
     }
 })
