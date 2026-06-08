@@ -63,7 +63,6 @@ function stateIcon(state) {
     if (state === 'ACTIVE') return 'check_circle';
     if (state === 'LOCKED') return 'lock';
     if (state === 'LOGGED_OUT') return 'logout';
-    if (state === 'APP_DISABLED') return 'warning';
     return 'star';
 }
 
@@ -71,7 +70,6 @@ function stateLabel(state) {
     if (state === 'ACTIVE') return 'Active';
     if (state === 'LOCKED') return 'Locked';
     if (state === 'LOGGED_OUT') return 'Logged out';
-    if (state === 'APP_DISABLED') return 'App disabled!';
     if (!state || state === '') return 'Automatic';
     return state;
 }

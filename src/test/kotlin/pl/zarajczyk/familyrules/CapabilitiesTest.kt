@@ -24,4 +24,18 @@ class CapabilitiesTest : FunSpec({
             Capability.COMMANDS_PULL,
         )
     }
+
+    test("deriveCapabilitiesFromCommands maps DISABLE to DISABLE_COMMAND and COMMANDS_PULL") {
+        deriveCapabilitiesFromCommands(listOf("DISABLE")) shouldContainExactlyInAnyOrder listOf(
+            Capability.DISABLE_COMMAND,
+            Capability.COMMANDS_PULL,
+        )
+    }
+
+    test("deriveCapabilitiesFromCommands maps UNINSTALL to UNINSTALL_COMMAND and COMMANDS_PULL") {
+        deriveCapabilitiesFromCommands(listOf("UNINSTALL")) shouldContainExactlyInAnyOrder listOf(
+            Capability.UNINSTALL_COMMAND,
+            Capability.COMMANDS_PULL,
+        )
+    }
 })

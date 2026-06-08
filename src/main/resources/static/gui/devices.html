@@ -144,6 +144,18 @@
                                     <span class="material-icons text-sm">article</span> <span class="hidden sm:inline">Request logs</span>
                                 </button>
                                 <button class="btn btn-sm btn-ghost"
+                                        x-show="canDisableApp(device)"
+                                        title="Disable app on device"
+                                        @click="disableApp(device)">
+                                    <span class="material-icons text-sm">power_settings_new</span> <span class="hidden sm:inline">Disable app</span>
+                                </button>
+                                <button class="btn btn-sm btn-ghost"
+                                        x-show="canUninstallApp(device)"
+                                        title="Uninstall app on device"
+                                        @click="uninstallApp(device)">
+                                    <span class="material-icons text-sm">delete_forever</span> <span class="hidden sm:inline">Uninstall app</span>
+                                </button>
+                                <button class="btn btn-sm btn-ghost"
                                         x-show="canShowLocation(device)"
                                         :class="!device.latitude && 'btn-disabled opacity-50'"
                                         :disabled="!device.latitude"
@@ -688,6 +700,43 @@ function devicesPage() {
                 }
             } catch (_) {
                 Toast.error('Failed to request logs');
+            }
+        },
+
+        // --- Disable / Uninstall app ---
+        canDisableApp(device) {
+            return (device.capabilities || []).includes('DISABLE_COMMAND');
+        },
+
+        canUninstallApp(device) {
+            return (device.capabilities || []).includes('UNINSTALL_COMMAND');
+        },
+
+        async disableApp(device) {
+            if (!this.canDisableApp(device)) return;
+            if (!confirm('Disable the Family Rules app on this device? It will quit and stop starting at login. Local data is kept.')) return;
+            try {
+                await ServerRequest.fetch('/bff/instance-commands?instanceId=' + encodeURIComponent(device.instanceId), {
+                    method: 'POST',
+                    body: JSON.stringify({ commandName: 'DISABLE' })
+                });
+                Toast.info('Disable command sent');
+            } catch (_) {
+                Toast.error('Failed to send disable command');
+            }
+        },
+
+        async uninstallApp(device) {
+            if (!this.canUninstallApp(device)) return;
+            if (!confirm('Uninstall the Family Rules app on this device? It will quit, stop starting at login, and wipe all local data. The device will need setup again if the app is reinstalled.')) return;
+            try {
+                await ServerRequest.fetch('/bff/instance-commands?instanceId=' + encodeURIComponent(device.instanceId), {
+                    method: 'POST',
+                    body: JSON.stringify({ commandName: 'UNINSTALL' })
+                });
+                Toast.info('Uninstall command sent');
+            } catch (_) {
+                Toast.error('Failed to send uninstall command');
             }
         },
 
