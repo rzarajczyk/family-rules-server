@@ -32,12 +32,12 @@
     <div class="drawer-content flex flex-col">
         <div id="app-header"></div>
 
-        <div class="container mx-auto p-4 max-w-4xl" x-data="devicesPage()" x-init="init()">
+        <div class="container mx-auto p-4 max-w-4xl" x-data="devicesPage()" x-init="init()" @destroy="destroy()">
 
             <!-- Date picker -->
             <div class="form-control mb-4 max-w-xs">
                 <label class="label"><span class="label-text">Date</span></label>
-                <input type="date" class="input input-bordered" x-model="selectedDate" @change="update()">
+                <input type="date" class="input input-bordered" x-model="selectedDate" @change="refresh()">
             </div>
 
             <!-- Loading -->
@@ -50,14 +50,16 @@
             <div x-show="errorMsg" class="flex flex-col items-center py-12 gap-4">
                 <span class="material-icons text-error text-5xl">error</span>
                 <p class="text-base-content/60" x-text="errorMsg"></p>
-                <button class="btn btn-primary" @click="update()"><span class="material-icons text-sm">refresh</span> Retry</button>
+                <button class="btn btn-primary" @click="refresh()"><span class="material-icons text-sm">refresh</span> Retry</button>
             </div>
 
             <!-- Devices list -->
             <div x-show="!loading && !errorMsg" class="flex flex-col gap-3">
                 <template x-for="device in instances" :key="device.instanceId">
                     <div class="collapse collapse-arrow bg-base-100 shadow-sm">
-                        <input type="checkbox">
+                        <input type="checkbox"
+                               :checked="isExpanded(device.instanceId)"
+                               @change="setExpanded(device.instanceId, $event.target.checked)">
                         <!-- Header -->
                         <div class="collapse-title pr-10">
                             <div class="flex items-center gap-3 flex-wrap">
@@ -408,6 +410,8 @@ function devicesPage() {
         instances: [],
         loading: false,
         errorMsg: '',
+        expandedIds: {},
+        _autoRefresh: null,
 
         // Modals
         stateModal: { open: false, instanceId: '', instanceName: '', states: [], currentState: null },
@@ -442,23 +446,71 @@ function devicesPage() {
         groupDropdown: { open: false, x: 0, y: 0, groups: [], instanceId: '', appPath: '' },
         deviceMenuDropdown: { open: false, x: 0, y: 0, device: null },
 
-        init() { this.update(); },
+        init() {
+            this.refresh();
+            this._autoRefresh = createAutoRefresh(this, { intervalMs: 15000 });
+            this._autoRefresh.start();
+        },
 
-        async update() {
-            this.loading = true;
-            this.errorMsg = '';
+        destroy() {
+            this._autoRefresh?.stop();
+        },
+
+        isExpanded(id) {
+            return !!this.expandedIds[id];
+        },
+
+        setExpanded(id, value) {
+            if (value) this.expandedIds[id] = true;
+            else delete this.expandedIds[id];
+        },
+
+        isInteractionOpen() {
+            return this.stateModal.open
+                || this.infoModal.open
+                || this.editModal.open
+                || this.clockModal.open
+                || this.locationModal.open
+                || this.logsModal.open
+                || this.deviceMenuDropdown.open
+                || this.groupDropdown.open;
+        },
+
+        mergeDevice(oldItem, newItem) {
+            const merged = { ...newItem };
+            merged.appUsageSeconds = mergeNestedByKey(
+                oldItem?.appUsageSeconds,
+                newItem.appUsageSeconds,
+                app => app.path,
+                '_showPath'
+            );
+            return merged;
+        },
+
+        async refresh(silent = false) {
+            if (!silent) {
+                this.loading = true;
+                this.errorMsg = '';
+            }
             try {
                 const resp = await ServerRequest.fetch('/bff/status?date=' + this.selectedDate);
                 const data = await resp.json();
-                // Add reactive _showPath to each app
-                data.instances.forEach(inst => {
-                    (inst.appUsageSeconds || []).forEach(app => { app._showPath = false; });
-                });
-                this.instances = data.instances;
+                const merged = mergeListById(
+                    this.instances,
+                    data.instances,
+                    'instanceId',
+                    (oldItem, newItem) => this.mergeDevice(oldItem, newItem)
+                );
+                this.instances = merged;
+                pruneExpandedIds(this.expandedIds, merged.map(d => d.instanceId));
             } catch (e) {
-                this.errorMsg = 'Failed to load devices data. Please try again.';
+                if (!silent) {
+                    this.errorMsg = 'Failed to load devices data. Please try again.';
+                }
             } finally {
-                this.loading = false;
+                if (!silent) {
+                    this.loading = false;
+                }
             }
         },
 
@@ -493,7 +545,7 @@ function devicesPage() {
                 });
                 Toast.info('Saved');
                 this.stateModal.open = false;
-                this.update();
+                this.refresh();
             } catch (_) { Toast.error('Failed to set state'); }
         },
 
@@ -633,7 +685,7 @@ function devicesPage() {
                 }
                 Toast.info('Saved');
                 m.open = false;
-                this.update();
+                this.refresh();
             } catch (_) { Toast.error('Failed to save'); }
         },
 
@@ -663,7 +715,7 @@ function devicesPage() {
             try {
                 await ServerRequest.fetch('/bff/delete-instance?instanceId=' + instanceId, { method: 'POST' });
                 Toast.info('Deleted');
-                this.update();
+                this.refresh();
             } catch (_) { Toast.error('Failed to delete'); }
         },
 

@@ -30,12 +30,12 @@
     <div class="drawer-content flex flex-col">
         <div id="app-header"></div>
 
-        <div class="container mx-auto p-4 max-w-4xl" x-data="groupsPage()" x-init="init()">
+        <div class="container mx-auto p-4 max-w-4xl" x-data="groupsPage()" x-init="init()" @destroy="destroy()">
 
             <!-- Date picker -->
             <div class="form-control mb-4 max-w-xs">
                 <label class="label"><span class="label-text">Date</span></label>
-                <input type="date" class="input input-bordered" x-model="selectedDate" @change="update()">
+                <input type="date" class="input input-bordered" x-model="selectedDate" @change="refresh()">
             </div>
 
             <!-- Loading -->
@@ -48,7 +48,7 @@
             <div x-show="errorMsg" class="flex flex-col items-center py-12 gap-4">
                 <span class="material-icons text-error text-5xl">error</span>
                 <p class="text-base-content/60" x-text="errorMsg"></p>
-                <button class="btn btn-primary" @click="update()"><span class="material-icons text-sm">refresh</span> Retry</button>
+                <button class="btn btn-primary" @click="refresh()"><span class="material-icons text-sm">refresh</span> Retry</button>
             </div>
 
             <!-- Groups list -->
@@ -59,7 +59,9 @@
 
                 <template x-for="group in groups" :key="group.id">
                     <div class="collapse collapse-arrow bg-base-100 shadow-sm">
-                        <input type="checkbox">
+                        <input type="checkbox"
+                               :checked="isExpanded(group.id)"
+                               @change="setExpanded(group.id, $event.target.checked)">
                         <!-- Header -->
                         <div class="collapse-title pr-10">
                             <div class="flex items-center gap-3 flex-wrap">
@@ -448,6 +450,8 @@ function groupsPage() {
         groups: [],
         loading: false,
         errorMsg: '',
+        expandedIds: {},
+        _autoRefresh: null,
 
         // Modals
         allAppsModal: { open: false, groupId: '', groupName: '', devices: [], initialState: new Map(), loading: false, saving: false },
@@ -458,32 +462,92 @@ function groupsPage() {
         editGroupModal: { open: false, groupId: '', name: '', description: '' },
         clockModal: { open: false, title: '' },
 
-        init() { this.update(); },
+        init() {
+            this.refresh();
+            this._autoRefresh = createAutoRefresh(this, { intervalMs: 15000 });
+            this._autoRefresh.start();
+        },
 
-        async update() {
-            this.loading = true;
-            this.errorMsg = '';
+        destroy() {
+            this._autoRefresh?.stop();
+        },
+
+        isExpanded(id) {
+            return !!this.expandedIds[id];
+        },
+
+        setExpanded(id, value) {
+            if (value) this.expandedIds[id] = true;
+            else delete this.expandedIds[id];
+        },
+
+        isInteractionOpen() {
+            return this.allAppsModal.open
+                || this.autoAddModal.open
+                || this.statesModal.open
+                || this.editStateModal.open
+                || this.applyModal.open
+                || this.editGroupModal.open
+                || this.clockModal.open;
+        },
+
+        mergeGroup(oldItem, newItem) {
+            const merged = { ...newItem };
+            merged.apps = mergeNestedByKey(
+                oldItem?.apps,
+                newItem.apps,
+                app => app.packageName + '-' + app.deviceName,
+                '_showPath'
+            );
+            if (oldItem) {
+                merged.hasStates = oldItem.hasStates;
+            }
+            return merged;
+        },
+
+        async fetchHasStates(group) {
+            try {
+                const sr = await ServerRequest.fetch('/bff/app-groups/' + group.id + '/states');
+                const sd = await sr.json();
+                group.hasStates = sd.states && sd.states.length > 0;
+            } catch (_) {
+                group.hasStates = false;
+            }
+        },
+
+        async refresh(silent = false) {
+            if (!silent) {
+                this.loading = true;
+                this.errorMsg = '';
+            }
             try {
                 const resp = await ServerRequest.fetch('/bff/app-groups/statistics?date=' + this.selectedDate);
                 const data = await resp.json();
-                // Fetch hasStates for each group in parallel
-                const groups = data.groups || [];
-                await Promise.all(groups.map(async (group) => {
-                    try {
-                        const sr = await ServerRequest.fetch('/bff/app-groups/' + group.id + '/states');
-                        const sd = await sr.json();
-                        group.hasStates = sd.states && sd.states.length > 0;
-                    } catch (_) {
-                        group.hasStates = false;
-                    }
-                    // Add _showPath to apps
-                    (group.apps || []).forEach(app => { app._showPath = false; });
-                }));
-                this.groups = groups;
+                const oldById = new Map(this.groups.map(g => [g.id, g]));
+                const merged = mergeListById(
+                    this.groups,
+                    data.groups || [],
+                    'id',
+                    (oldItem, newItem) => this.mergeGroup(oldItem, newItem)
+                );
+
+                if (silent) {
+                    const newGroups = merged.filter(g => !oldById.has(g.id));
+                    await Promise.all(newGroups.map(g => this.fetchHasStates(g)));
+                } else {
+                    await Promise.all(merged.map(g => this.fetchHasStates(g)));
+                }
+
+                this.groups = merged;
+                pruneExpandedIds(this.expandedIds, merged.map(g => g.id));
             } catch (e) {
-                this.errorMsg = 'Failed to load app groups data. Please try again.';
+                if (!silent) {
+                    this.errorMsg = 'Failed to load app groups data. Please try again.';
+                }
             } finally {
-                this.loading = false;
+                if (!silent) {
+                    this.loading = false;
+                }
             }
         },
 
@@ -492,7 +556,7 @@ function groupsPage() {
             if (!confirm('Are you sure you want to delete this app group? This will remove all apps from this group.')) return;
             try {
                 await ServerRequest.fetch('/bff/app-groups/' + groupId, { method: 'DELETE' });
-                this.update();
+                this.refresh();
             } catch (_) { Toast.error('Failed to delete group'); }
         },
 
@@ -515,7 +579,7 @@ function groupsPage() {
                     body: JSON.stringify({ newName: m.name.trim(), description: m.description })
                 });
                 m.open = false;
-                this.update();
+                this.refresh();
             } catch (_) { Toast.error('Failed to update group'); }
         },
 
@@ -562,7 +626,7 @@ function groupsPage() {
                     body: JSON.stringify({ devices: Array.from(changes.values()) })
                 });
                 m.open = false;
-                this.update();
+                this.refresh();
             } catch (_) {
                 Toast.error('Failed to save changes');
             } finally {
@@ -751,7 +815,7 @@ function groupsPage() {
                 if (data.success) {
                     Toast.info('Group state applied to ' + data.appliedDevices + ' device(s)');
                     this.applyModal.open = false;
-                    this.update();
+                    this.refresh();
                 } else {
                     Toast.error('Failed to apply group state');
                 }

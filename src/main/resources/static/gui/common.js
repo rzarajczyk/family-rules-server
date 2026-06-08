@@ -90,6 +90,68 @@ function appIconSrc(base64) {
     return 'default-icon.png';
 }
 
+// ---- List merge helpers (auto-refresh) ----
+
+function mergeListById(oldItems, newItems, idKey, mergeItem) {
+    const oldById = new Map((oldItems || []).map(item => [item[idKey], item]));
+    return (newItems || []).map(newItem => {
+        const oldItem = oldById.get(newItem[idKey]);
+        return mergeItem(oldItem || null, newItem);
+    });
+}
+
+function mergeNestedByKey(oldItems, newItems, keyFn, uiKey) {
+    const oldByKey = new Map((oldItems || []).map(item => [keyFn(item), item]));
+    return (newItems || []).map(newItem => {
+        const oldItem = oldByKey.get(keyFn(newItem));
+        const merged = { ...newItem };
+        merged[uiKey] = oldItem ? !!oldItem[uiKey] : false;
+        return merged;
+    });
+}
+
+function pruneExpandedIds(expandedIds, validIds) {
+    const valid = new Set(validIds);
+    for (const id of Object.keys(expandedIds)) {
+        if (!valid.has(id)) delete expandedIds[id];
+    }
+}
+
+function createAutoRefresh(page, options = {}) {
+    const intervalMs = options.intervalMs ?? 15000;
+    let intervalId = null;
+
+    function shouldSkip() {
+        if (document.hidden) return true;
+        if (page.selectedDate !== today()) return true;
+        if (page.isInteractionOpen?.()) return true;
+        return false;
+    }
+
+    async function tick() {
+        if (shouldSkip()) return;
+        await page.refresh(true);
+    }
+
+    function onVisibilityChange() {
+        if (!document.hidden) tick();
+    }
+
+    return {
+        start() {
+            intervalId = setInterval(tick, intervalMs);
+            document.addEventListener('visibilitychange', onVisibilityChange);
+        },
+        stop() {
+            if (intervalId !== null) {
+                clearInterval(intervalId);
+                intervalId = null;
+            }
+            document.removeEventListener('visibilitychange', onVisibilityChange);
+        }
+    };
+}
+
 // ---- Toast (Alpine store) ----
 
 document.addEventListener('alpine:init', () => {
