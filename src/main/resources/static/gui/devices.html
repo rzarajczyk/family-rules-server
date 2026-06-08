@@ -125,23 +125,11 @@
 
                             <!-- Action buttons -->
                             <div class="flex flex-wrap gap-2">
-                                <button class="btn btn-sm btn-ghost" @click="showInfo(device.instanceId)">
-                                    <span class="material-icons text-sm">info</span> <span class="hidden sm:inline">Info</span>
-                                </button>
-                                <button class="btn btn-sm btn-ghost" @click="showEdit(device)">
-                                    <span class="material-icons text-sm">edit</span> <span class="hidden sm:inline">Edit</span>
-                                </button>
-                                <button class="btn btn-sm btn-ghost" @click="deleteDevice(device.instanceId)">
-                                    <span class="material-icons text-sm">delete</span> <span class="hidden sm:inline">Delete</span>
+                                <button class="btn btn-sm btn-ghost" @click.stop="showDeviceMenu($event, device)">
+                                    <span class="material-icons text-sm">devices</span> <span class="hidden sm:inline">Device</span>
                                 </button>
                                 <button class="btn btn-sm btn-ghost" @click="showUsageClock(device)">
                                     <span class="material-icons text-sm">bar_chart</span> <span class="hidden sm:inline">Usage</span>
-                                </button>
-                                <button class="btn btn-sm btn-ghost"
-                                        x-show="canRequestLogs(device)"
-                                        title="Request logs from device"
-                                        @click="requestLogs(device)">
-                                    <span class="material-icons text-sm">article</span> <span class="hidden sm:inline">Request logs</span>
                                 </button>
                                 <button class="btn btn-sm btn-ghost"
                                         x-show="canDisableApp(device)"
@@ -169,6 +157,7 @@
                         </div>
                     </div>
                 </template>
+                <div class="h-24" aria-hidden="true"></div>
             </div>
 
             <!-- Change State Modal -->
@@ -375,6 +364,19 @@
                 <form method="dialog" class="modal-backdrop" @click="locationModal.open = false"></form>
             </dialog>
 
+            <!-- Device menu dropdown (positioned absolutely) -->
+            <div x-show="deviceMenuDropdown.open" x-transition
+                 class="fixed z-50 bg-base-100 border border-base-300 rounded-lg shadow-lg min-w-[160px]"
+                 :style="`left:${deviceMenuDropdown.x}px;top:${deviceMenuDropdown.y}px`"
+                 @click.outside="deviceMenuDropdown.open = false">
+                <ul class="menu menu-sm p-1">
+                    <li><a href="#" @click.prevent="showInfo(deviceMenuDropdown.device.instanceId); deviceMenuDropdown.open = false"><span class="material-icons text-sm">info</span> Info</a></li>
+                    <li><a href="#" @click.prevent="showEdit(deviceMenuDropdown.device); deviceMenuDropdown.open = false"><span class="material-icons text-sm">edit</span> Edit</a></li>
+                    <li><a href="#" @click.prevent="deleteDevice(deviceMenuDropdown.device.instanceId); deviceMenuDropdown.open = false"><span class="material-icons text-sm">delete</span> Delete</a></li>
+                    <li x-show="canRequestLogs(deviceMenuDropdown.device)"><a href="#" @click.prevent="requestLogs(deviceMenuDropdown.device); deviceMenuDropdown.open = false"><span class="material-icons text-sm">article</span> Request logs</a></li>
+                </ul>
+            </div>
+
             <!-- Add group dropdown (positioned absolutely) -->
             <div x-show="groupDropdown.open" x-transition
                  class="fixed z-50 bg-base-100 border border-base-300 rounded-lg shadow-lg min-w-[160px] max-h-52 overflow-y-auto"
@@ -448,6 +450,7 @@ function devicesPage() {
             pollToken: 0
         },
         groupDropdown: { open: false, x: 0, y: 0, groups: [], instanceId: '', appPath: '' },
+        deviceMenuDropdown: { open: false, x: 0, y: 0, device: null },
 
         init() { this.update(); },
 
@@ -676,7 +679,7 @@ function devicesPage() {
 
         // --- Request logs ---
         canRequestLogs(device) {
-            return (device.capabilities || []).includes('LOGS_COMMAND');
+            return (device?.capabilities || []).includes('LOGS_COMMAND');
         },
 
         async requestLogs(device) {
@@ -906,7 +909,27 @@ function devicesPage() {
         },
 
         // --- App group management ---
+        findApp(instanceId, appPath) {
+            const device = this.instances.find(i => String(i.instanceId) === String(instanceId));
+            if (!device) return null;
+            const app = (device.appUsageSeconds || []).find(a => a.path === appPath);
+            if (!app) return null;
+            return { device, app };
+        },
+
+        showDeviceMenu(event, device) {
+            this.groupDropdown.open = false;
+            const rect = event.currentTarget.getBoundingClientRect();
+            this.deviceMenuDropdown = {
+                open: true,
+                x: Math.min(rect.left, window.innerWidth - 180),
+                y: rect.bottom + 4,
+                device
+            };
+        },
+
         showAddGroupDropdown(event, instanceId, appPath, availableGroups) {
+            this.deviceMenuDropdown.open = false;
             const rect = event.target.getBoundingClientRect();
             this.groupDropdown = {
                 open: true,
@@ -924,14 +947,25 @@ function devicesPage() {
                     method: 'POST',
                     body: JSON.stringify({ instanceId, appPath })
                 });
-                this.update();
+                const found = this.findApp(instanceId, appPath);
+                if (!found) return;
+                const { device, app } = found;
+                if (!app.appGroups) app.appGroups = [];
+                if (app.appGroups.some(g => g.id === groupId)) return;
+                const groupMeta = (this.groupDropdown.groups || device.availableAppGroups || [])
+                    .find(g => g.id === groupId);
+                if (groupMeta) {
+                    app.appGroups.push({ id: groupMeta.id, name: groupMeta.name });
+                }
             } catch (_) { Toast.error('Failed to add app to group'); }
         },
 
         async removeAppFromGroup(instanceId, appPath, groupId) {
             try {
                 await ServerRequest.fetch('/bff/app-groups/' + groupId + '/apps/' + encodeURIComponent(appPath) + '?instanceId=' + instanceId, { method: 'DELETE' });
-                this.update();
+                const found = this.findApp(instanceId, appPath);
+                if (!found) return;
+                found.app.appGroups = (found.app.appGroups || []).filter(g => g.id !== groupId);
             } catch (_) { Toast.error('Failed to remove app from group'); }
         },
 
@@ -945,7 +979,15 @@ function devicesPage() {
                 });
                 const data = await resp.json();
                 if (data.group) {
-                    await this.addAppToGroup(this.groupDropdown.instanceId, this.groupDropdown.appPath, data.group.id);
+                    const newGroup = data.group;
+                    this.instances.forEach(device => {
+                        if (!device.availableAppGroups) device.availableAppGroups = [];
+                        if (!device.availableAppGroups.some(g => g.id === newGroup.id)) {
+                            device.availableAppGroups.push(newGroup);
+                        }
+                    });
+                    this.groupDropdown.groups = [...(this.groupDropdown.groups || []), newGroup];
+                    await this.addAppToGroup(this.groupDropdown.instanceId, this.groupDropdown.appPath, newGroup.id);
                 }
             } catch (_) { Toast.error('Failed to create group'); }
             this.groupDropdown.open = false;

@@ -180,45 +180,58 @@
 
             <!-- All Apps Modal -->
             <dialog class="modal" :class="allAppsModal.open && 'modal-open'">
-                <div class="modal-box w-11/12 max-w-3xl">
-                    <h3 class="font-bold text-lg mb-4" x-text="allAppsModal.groupName"></h3>
+                <div class="modal-box w-11/12 max-w-3xl max-h-[90vh] flex flex-col p-0">
+                    <div class="px-6 pt-6 pb-2 flex-shrink-0">
+                        <h3 class="font-bold text-lg">Select Apps — <span x-text="allAppsModal.groupName"></span></h3>
+                    </div>
                     <!-- Loading -->
-                    <div x-show="allAppsModal.loading" class="flex flex-col items-center py-8">
+                    <div x-show="allAppsModal.loading" class="flex flex-col items-center py-8 flex-1">
                         <span class="loading loading-spinner loading-lg text-primary"></span>
                         <p class="mt-2 text-base-content/60">Loading apps...</p>
                     </div>
-                    <!-- Content -->
-                    <div x-show="!allAppsModal.loading">
+                    <!-- Scrollable device/app list -->
+                    <div x-show="!allAppsModal.loading" class="flex-1 overflow-y-auto min-h-0 px-6 py-2">
                         <template x-if="allAppsModal.devices.length === 0">
                             <p class="text-center py-8 text-base-content/50">No apps found on any device</p>
                         </template>
                         <template x-for="device in allAppsModal.devices" :key="device.deviceId">
-                            <div class="mb-6">
-                                <h4 class="font-medium flex items-center gap-2 pb-2 mb-2 border-b-2 border-primary">
+                            <div class="collapse collapse-arrow bg-base-100 border border-base-300 mb-2">
+                                <input type="checkbox">
+                                <div class="collapse-title flex items-center gap-2 text-sm font-medium min-h-12 py-0 after:top-1/2 after:-translate-y-1/2">
                                     <span class="material-icons text-sm">phone_android</span>
                                     <span x-text="device.deviceName"></span>
-                                </h4>
-                                <template x-if="device.apps.length === 0">
-                                    <p class="py-2 text-base-content/50">No apps on this device</p>
-                                </template>
-                                <template x-for="app in device.apps" :key="device.deviceId + ':' + app.packageName">
-                                    <label class="flex items-center gap-3 py-2 cursor-pointer hover:bg-base-200 rounded px-2">
-                                        <input type="checkbox" class="checkbox checkbox-sm"
-                                               :checked="app.inGroup"
-                                               @change="app.inGroup = $event.target.checked">
-                                        <img :src="appIconSrc(app.iconBase64)" class="w-5 h-5 flex-shrink-0" alt="">
-                                        <div class="flex-1 min-w-0">
-                                            <span class="font-medium text-sm block" x-text="app.name"></span>
-                                            <span class="text-xs font-mono text-base-content/50 block truncate" x-text="app.packageName"></span>
-                                        </div>
-                                    </label>
-                                </template>
+                                    <span class="badge badge-sm badge-ghost"
+                                          x-text="device.apps.length + ' app' + (device.apps.length === 1 ? '' : 's')"></span>
+                                    <template x-if="device.apps.some(a => a.inGroup)">
+                                        <span class="badge badge-sm badge-primary"
+                                              x-text="device.apps.filter(a => a.inGroup).length + ' selected'"></span>
+                                    </template>
+                                </div>
+                                <div class="collapse-content">
+                                    <template x-if="device.apps.length === 0">
+                                        <p class="py-2 text-base-content/50">No apps on this device</p>
+                                    </template>
+                                    <template x-for="app in device.apps" :key="device.deviceId + ':' + app.packageName">
+                                        <label class="flex items-center gap-3 py-2 cursor-pointer hover:bg-base-200 rounded px-2">
+                                            <input type="checkbox" class="checkbox checkbox-sm"
+                                                   :checked="app.inGroup"
+                                                   @change="app.inGroup = $event.target.checked">
+                                            <img :src="appIconSrc(app.iconBase64)" class="w-5 h-5 flex-shrink-0" alt="">
+                                            <div class="flex-1 min-w-0">
+                                                <span class="font-medium text-sm block" x-text="app.name"></span>
+                                                <span class="text-xs font-mono text-base-content/50 block truncate" x-text="app.packageName"></span>
+                                            </div>
+                                        </label>
+                                    </template>
+                                </div>
                             </div>
                         </template>
                     </div>
-                    <div class="modal-action">
+                    <div class="modal-action flex-shrink-0 px-6 py-4 border-t border-base-200 mt-0">
                         <button class="btn" @click="allAppsModal.open = false">Cancel</button>
-                        <button class="btn btn-primary" :disabled="allAppsModal.saving" @click="saveAllAppsChanges()">
+                        <button class="btn btn-primary"
+                                :disabled="allAppsModal.loading || allAppsModal.saving"
+                                @click="saveAllAppsChanges()">
                             <span x-show="allAppsModal.saving" class="loading loading-spinner loading-xs"></span>
                             <span x-text="allAppsModal.saving ? 'Saving...' : 'Save Changes'"></span>
                         </button>
