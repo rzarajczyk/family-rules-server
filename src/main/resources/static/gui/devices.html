@@ -132,18 +132,6 @@
                                     <span class="material-icons text-sm">bar_chart</span> <span class="hidden sm:inline">Usage</span>
                                 </button>
                                 <button class="btn btn-sm btn-ghost"
-                                        x-show="canDisableApp(device)"
-                                        title="Disable app on device"
-                                        @click="disableApp(device)">
-                                    <span class="material-icons text-sm">power_settings_new</span> <span class="hidden sm:inline">Disable app</span>
-                                </button>
-                                <button class="btn btn-sm btn-ghost"
-                                        x-show="canUninstallApp(device)"
-                                        title="Uninstall app on device"
-                                        @click="uninstallApp(device)">
-                                    <span class="material-icons text-sm">delete_forever</span> <span class="hidden sm:inline">Uninstall app</span>
-                                </button>
-                                <button class="btn btn-sm btn-ghost"
                                         x-show="canShowLocation(device)"
                                         :class="!device.latitude && 'btn-disabled opacity-50'"
                                         :disabled="!device.latitude"
@@ -374,6 +362,8 @@
                     <li><a href="#" @click.prevent="showEdit(deviceMenuDropdown.device); deviceMenuDropdown.open = false"><span class="material-icons text-sm">edit</span> Edit</a></li>
                     <li><a href="#" @click.prevent="deleteDevice(deviceMenuDropdown.device.instanceId); deviceMenuDropdown.open = false"><span class="material-icons text-sm">delete</span> Delete</a></li>
                     <li x-show="canRequestLogs(deviceMenuDropdown.device)"><a href="#" @click.prevent="requestLogs(deviceMenuDropdown.device); deviceMenuDropdown.open = false"><span class="material-icons text-sm">article</span> Request logs</a></li>
+                    <li x-show="canDisableApp(deviceMenuDropdown.device)"><a href="#" @click.prevent="disableApp(deviceMenuDropdown.device); deviceMenuDropdown.open = false"><span class="material-icons text-sm">power_settings_new</span> Disable app</a></li>
+                    <li x-show="canUninstallApp(deviceMenuDropdown.device)"><a href="#" @click.prevent="uninstallApp(deviceMenuDropdown.device); deviceMenuDropdown.open = false"><span class="material-icons text-sm">delete_forever</span> Uninstall app</a></li>
                 </ul>
             </div>
 
@@ -708,11 +698,11 @@ function devicesPage() {
 
         // --- Disable / Uninstall app ---
         canDisableApp(device) {
-            return (device.capabilities || []).includes('DISABLE_COMMAND');
+            return (device?.capabilities || []).includes('DISABLE_COMMAND');
         },
 
         canUninstallApp(device) {
-            return (device.capabilities || []).includes('UNINSTALL_COMMAND');
+            return (device?.capabilities || []).includes('UNINSTALL_COMMAND');
         },
 
         async disableApp(device) {
