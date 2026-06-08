@@ -64,6 +64,42 @@ src/main/kotlin/pl/zarajczyk/familyrules/
 
 ---
 
+## Device Commands and Capabilities
+
+Remote admin actions use a command queue stored in Firestore. Key domain files:
+
+- `domain/Capabilities.kt` — capability constants, `COMMAND_CAPABILITY` mapping (command name → required capability), `deviceHasCapability()` with synonym support (e.g. `SEND_LOGS_COMMAND` satisfies `LOGS_COMMAND`), and `deriveCapabilitiesFromCommands()` for legacy migration
+- `domain/DeviceCommandsService.kt` — enqueue/get-or-enqueue logic; validates capabilities before accepting a command
+
+Supported commands:
+
+| Command | Capability | Notes |
+|---|---|---|
+| `SEND_LOGS` | `LOGS_COMMAND` | Log file storage uses GCS — see `GCS.md` |
+| `DISABLE` | `DISABLE_COMMAND` | Soft shutdown on the client |
+| `UNINSTALL` | `UNINSTALL_COMMAND` | Full local wipe on the client |
+
+`getOrEnqueue()` returns an existing command only while it is `QUEUED` or `ACKNOWLEDGED`. Once `COMPLETED` or `FAILED`, a new POST creates a fresh command (re-enqueue).
+
+BFF endpoint: `POST /bff/instance-commands?instanceId=<uuid>` with body `{ "commandName": "SEND_LOGS" | "DISABLE" | "UNINSTALL" }`.
+
+The legacy `APP_DISABLED` device state was removed from the GUI and server (2026-06-08).
+
+---
+
+## Static GUI
+
+The browser UI lives in `src/main/resources/static/gui/` (Alpine.js + Tailwind/DaisyUI). Key pages: `devices.html`, `groups.html`.
+
+Auto-refresh helpers in `common.js`:
+
+- `createAutoRefresh(page, { intervalMs })` — polls every 15 seconds by default; skips when the tab is hidden, the selected date is not today, or a modal/dropdown is open
+- `mergeListById()` / `mergeNestedByKey()` — preserve expand/collapse UI state across silent refreshes
+
+When adding interactive list pages, follow the `devicesPage()` pattern: track `expandedIds`, implement `isInteractionOpen()`, and call `refresh(silent)` for background updates.
+
+---
+
 ## Code Style Guidelines
 
 ### Kotlin Style

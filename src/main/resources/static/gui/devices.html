@@ -207,7 +207,7 @@
                     </div>
 
                     <!-- App groups (show) -->
-                    <div class="form-control mb-3">
+                    <div class="form-control mb-3" x-show="editModal.canShowAllMyDevices">
                         <label class="label"><span class="label-text">Show these app groups in 'All my devices' tab</span></label>
                         <template x-for="ag in editModal.availableGroups" :key="ag.id">
                             <label class="label cursor-pointer justify-start gap-3 py-1">
@@ -626,7 +626,8 @@ function devicesPage() {
                     selectedShowGroups: data.appGroups?.show ? [...data.appGroups.show] : [],
                     selectedBlockGroups: data.appGroups?.block ? [...data.appGroups.block] : [],
                     selectedBlockPlaybackGroups: data.appGroups?.blockPlayback ? [...data.appGroups.blockPlayback] : [],
-                    canBlockPlayback: (device.capabilities || []).includes('MEDIA_PLAYBACK_BLOCK')
+                    canBlockPlayback: (device.capabilities || []).includes('MEDIA_PLAYBACK_BLOCK'),
+                    canShowAllMyDevices: (device.capabilities || []).includes('ALL_MY_DEVICES_DISPLAY')
                 };
             } catch (_) { Toast.error('Failed to load edit data'); }
         },

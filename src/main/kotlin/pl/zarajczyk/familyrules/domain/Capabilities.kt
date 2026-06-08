@@ -9,6 +9,7 @@ object Capability {
     const val LOCATION_REPORT = "LOCATION_REPORT"
     const val MEDIA_PLAYBACK_REPORT = "MEDIA_PLAYBACK_REPORT"
     const val MEDIA_PLAYBACK_BLOCK = "MEDIA_PLAYBACK_BLOCK"
+    const val ALL_MY_DEVICES_DISPLAY = "ALL_MY_DEVICES_DISPLAY"
 }
 
 val COMMAND_CAPABILITY: Map<String, String> = mapOf(
