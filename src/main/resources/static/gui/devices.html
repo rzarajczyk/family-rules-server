@@ -221,7 +221,7 @@
                     </div>
 
                     <!-- App groups (block) -->
-                    <div class="form-control mb-3">
+                    <div class="form-control mb-3" x-show="editModal.canBlockRestrictedApps">
                         <label class="label"><span class="label-text">Block apps from these groups when device is blocking</span></label>
                         <template x-for="ag in editModal.availableGroups" :key="'block-'+ag.id">
                             <label class="label cursor-pointer justify-start gap-3 py-1">
@@ -421,7 +421,7 @@ function devicesPage() {
             iconPreview: 'default-icon.png', hasIcon: false,
             iconFile: null, iconType: '', iconData: '',
             availableGroups: [], selectedShowGroups: [], selectedBlockGroups: [], selectedBlockPlaybackGroups: [],
-            canBlockPlayback: false
+            canBlockRestrictedApps: false, canBlockPlayback: false
         },
         clockModal: { open: false, title: '' },
         locationModal: { open: false, instanceName: '', hasLocation: false, latitude: '', longitude: '', reportedAt: '', mapsUrl: '' },
@@ -626,6 +626,7 @@ function devicesPage() {
                     selectedShowGroups: data.appGroups?.show ? [...data.appGroups.show] : [],
                     selectedBlockGroups: data.appGroups?.block ? [...data.appGroups.block] : [],
                     selectedBlockPlaybackGroups: data.appGroups?.blockPlayback ? [...data.appGroups.blockPlayback] : [],
+                    canBlockRestrictedApps: (device.capabilities || []).includes('RESTRICTED_APPS_BLOCK'),
                     canBlockPlayback: (device.capabilities || []).includes('MEDIA_PLAYBACK_BLOCK'),
                     canShowAllMyDevices: (device.capabilities || []).includes('ALL_MY_DEVICES_DISPLAY')
                 };

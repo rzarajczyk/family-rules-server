@@ -79,6 +79,14 @@ Supported commands:
 | `DISABLE` | `DISABLE_COMMAND` | Soft shutdown on the client |
 | `UNINSTALL` | `UNINSTALL_COMMAND` | Full local wipe on the client |
 
+Feature capabilities (advertised in `POST /api/v2/client-info`, not command-gated):
+
+| Capability | Gated endpoint / GUI | Notes |
+|---|---|---|
+| `RESTRICTED_APPS_BLOCK` | `POST /api/v2/get-blocked-apps`; block-groups section in `devices.html` | Per-app overlay/terminate blocking |
+| `FULL_DEVICE_BLOCK` | — (no fetch endpoint) | Whole-session blocking via forced device state (`LOCK_SCREEN*`, `LOGOUT*`) |
+| `MEDIA_PLAYBACK_BLOCK` | `POST /api/v2/get-blocked-playback-apps`; playback-block section in `devices.html` | Pause/stop media playback for configured groups |
+
 `getOrEnqueue()` returns an existing command only while it is `QUEUED` or `ACKNOWLEDGED`. Once `COMPLETED` or `FAILED`, a new POST creates a fresh command (re-enqueue).
 
 BFF endpoint: `POST /bff/instance-commands?instanceId=<uuid>` with body `{ "commandName": "SEND_LOGS" | "DISABLE" | "UNINSTALL" }`.

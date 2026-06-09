@@ -273,6 +273,9 @@ class V2AppGroupControllerIntegrationSpec : FunSpec() {
                 val deviceRef = devicesService.get(deviceId)
                 deviceRef.update(
                     pl.zarajczyk.familyrules.domain.port.DeviceDetailsUpdateDto(
+                        capabilities = pl.zarajczyk.familyrules.domain.port.ValueUpdate.set(
+                            listOf(Capability.RESTRICTED_APPS_BLOCK)
+                        ),
                         appGroups = pl.zarajczyk.familyrules.domain.port.ValueUpdate.set(
                             pl.zarajczyk.familyrules.domain.port.AppGroupsDto(
                                 show = emptyList(),
@@ -315,6 +318,7 @@ class V2AppGroupControllerIntegrationSpec : FunSpec() {
                 // Reset device configuration
                 deviceRef.update(
                     pl.zarajczyk.familyrules.domain.port.DeviceDetailsUpdateDto(
+                        capabilities = pl.zarajczyk.familyrules.domain.port.ValueUpdate.set(emptyList()),
                         appGroups = pl.zarajczyk.familyrules.domain.port.ValueUpdate.set(
                             pl.zarajczyk.familyrules.domain.port.AppGroupsDto.empty()
                         )
@@ -327,6 +331,9 @@ class V2AppGroupControllerIntegrationSpec : FunSpec() {
                 val deviceRef = devicesService.get(deviceId)
                 deviceRef.update(
                     pl.zarajczyk.familyrules.domain.port.DeviceDetailsUpdateDto(
+                        capabilities = pl.zarajczyk.familyrules.domain.port.ValueUpdate.set(
+                            listOf(Capability.RESTRICTED_APPS_BLOCK)
+                        ),
                         appGroups = pl.zarajczyk.familyrules.domain.port.ValueUpdate.set(
                             pl.zarajczyk.familyrules.domain.port.AppGroupsDto(
                                 show = listOf(groupId),
@@ -354,6 +361,7 @@ class V2AppGroupControllerIntegrationSpec : FunSpec() {
                 // Reset device configuration
                 deviceRef.update(
                     pl.zarajczyk.familyrules.domain.port.DeviceDetailsUpdateDto(
+                        capabilities = pl.zarajczyk.familyrules.domain.port.ValueUpdate.set(emptyList()),
                         appGroups = pl.zarajczyk.familyrules.domain.port.ValueUpdate.set(
                             pl.zarajczyk.familyrules.domain.port.AppGroupsDto.empty()
                         )
@@ -377,6 +385,9 @@ class V2AppGroupControllerIntegrationSpec : FunSpec() {
                 // Configure device to block both groups
                 deviceRef.update(
                     pl.zarajczyk.familyrules.domain.port.DeviceDetailsUpdateDto(
+                        capabilities = pl.zarajczyk.familyrules.domain.port.ValueUpdate.set(
+                            listOf(Capability.RESTRICTED_APPS_BLOCK)
+                        ),
                         appGroups = pl.zarajczyk.familyrules.domain.port.ValueUpdate.set(
                             pl.zarajczyk.familyrules.domain.port.AppGroupsDto(
                                 show = emptyList(),
@@ -407,6 +418,7 @@ class V2AppGroupControllerIntegrationSpec : FunSpec() {
                 // Reset device configuration and clean up
                 deviceRef.update(
                     pl.zarajczyk.familyrules.domain.port.DeviceDetailsUpdateDto(
+                        capabilities = pl.zarajczyk.familyrules.domain.port.ValueUpdate.set(emptyList()),
                         appGroups = pl.zarajczyk.familyrules.domain.port.ValueUpdate.set(
                             pl.zarajczyk.familyrules.domain.port.AppGroupsDto.empty()
                         )
@@ -415,10 +427,49 @@ class V2AppGroupControllerIntegrationSpec : FunSpec() {
                 group2.delete()
             }
 
+            test("should return empty list when device lacks RESTRICTED_APPS_BLOCK capability") {
+                val deviceRef = devicesService.get(deviceId)
+                deviceRef.update(
+                    pl.zarajczyk.familyrules.domain.port.DeviceDetailsUpdateDto(
+                        capabilities = pl.zarajczyk.familyrules.domain.port.ValueUpdate.set(emptyList()),
+                        appGroups = pl.zarajczyk.familyrules.domain.port.ValueUpdate.set(
+                            pl.zarajczyk.familyrules.domain.port.AppGroupsDto(
+                                show = emptyList(),
+                                block = listOf(groupId),
+                                blockPlayback = emptyList()
+                            )
+                        )
+                    )
+                )
+
+                val apiV2Basic = Base64.getEncoder().encodeToString("$deviceId:$token".toByteArray())
+                val result = mockMvc.perform(
+                    post("/api/v2/get-blocked-apps")
+                        .header("Authorization", "Basic $apiV2Basic")
+                        .contentType(MediaType.APPLICATION_JSON)
+                )
+                    .andExpect(status().isOk)
+                    .andReturn()
+
+                val json = objectMapper.readTree(result.response.contentAsString)
+                json.get("apps").size() shouldBe 0
+
+                deviceRef.update(
+                    pl.zarajczyk.familyrules.domain.port.DeviceDetailsUpdateDto(
+                        appGroups = pl.zarajczyk.familyrules.domain.port.ValueUpdate.set(
+                            pl.zarajczyk.familyrules.domain.port.AppGroupsDto.empty()
+                        )
+                    )
+                )
+            }
+
             test("should stay independent from playback-blocked groups") {
                 val deviceRef = devicesService.get(deviceId)
                 deviceRef.update(
                     pl.zarajczyk.familyrules.domain.port.DeviceDetailsUpdateDto(
+                        capabilities = pl.zarajczyk.familyrules.domain.port.ValueUpdate.set(
+                            listOf(Capability.RESTRICTED_APPS_BLOCK)
+                        ),
                         appGroups = pl.zarajczyk.familyrules.domain.port.ValueUpdate.set(
                             pl.zarajczyk.familyrules.domain.port.AppGroupsDto(
                                 show = emptyList(),
@@ -443,6 +494,7 @@ class V2AppGroupControllerIntegrationSpec : FunSpec() {
 
                 deviceRef.update(
                     pl.zarajczyk.familyrules.domain.port.DeviceDetailsUpdateDto(
+                        capabilities = pl.zarajczyk.familyrules.domain.port.ValueUpdate.set(emptyList()),
                         appGroups = pl.zarajczyk.familyrules.domain.port.ValueUpdate.set(
                             pl.zarajczyk.familyrules.domain.port.AppGroupsDto.empty()
                         )

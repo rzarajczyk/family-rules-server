@@ -14,6 +14,9 @@ class V2AppGroupController(
     @PostMapping("/api/v2/get-blocked-apps")
     fun getBlockedApps(authentication: Authentication): BlockedAppsResponse {
         val device = devicesService.get(authentication)
+        if (Capability.RESTRICTED_APPS_BLOCK !in device.getDetails().capabilities) {
+            return BlockedAppsResponse(apps = emptyList())
+        }
         return buildBlockedAppsResponse(device, device.getDetails().appGroups.block)
     }
 
