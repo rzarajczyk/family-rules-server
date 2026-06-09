@@ -1,12 +1,13 @@
 package pl.zarajczyk.familyrules.util
 
 import com.sksamuel.scrimage.ImmutableImage
+import com.sksamuel.scrimage.nio.PngWriter
 import com.sksamuel.scrimage.webp.WebpWriter
+import org.slf4j.LoggerFactory
 import java.awt.image.BufferedImage
-import java.io.ByteArrayInputStream
-import java.io.ByteArrayOutputStream
 import java.util.Base64
-import javax.imageio.ImageIO
+
+private val logger = LoggerFactory.getLogger("pl.zarajczyk.familyrules.util.IconConverter")
 
 /**
  * Converts a Base64-encoded PNG to raw WebP bytes (lossy q=75).
@@ -23,13 +24,20 @@ fun pngBase64ToWebP(pngBase64: String): ByteArray {
 
 /**
  * Converts raw WebP bytes to a Base64-encoded PNG string.
- * Used when serving icons back to the Android client via groups-usage-report.
+ * Used when serving icons back to mobile/native clients via groups-usage-report.
+ * Returns null when bytes are missing or not decodable as WebP.
  */
-fun webPToPngBase64(webpBytes: ByteArray): String {
-    val image: BufferedImage = ImageIO.read(ByteArrayInputStream(webpBytes))
-    val out = ByteArrayOutputStream()
-    ImageIO.write(image, "png", out)
-    return Base64.getEncoder().encodeToString(out.toByteArray())
+fun webPToPngBase64(webpBytes: ByteArray): String? {
+    return try {
+        val pngBytes = ImmutableImage.loader()
+            .fromBytes(webpBytes)
+            .copy(BufferedImage.TYPE_INT_ARGB)
+            .bytes(PngWriter.NoCompression)
+        Base64.getEncoder().encodeToString(pngBytes)
+    } catch (e: Exception) {
+        logger.warn("Failed to convert WebP icon to PNG ({} bytes)", webpBytes.size, e)
+        null
+    }
 }
 
 /**
