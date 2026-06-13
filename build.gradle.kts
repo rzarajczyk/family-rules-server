@@ -33,6 +33,7 @@ dependencies {
     implementation("io.micrometer:micrometer-registry-prometheus")
     implementation("com.google.cloud:google-cloud-firestore:3.31.6")
     implementation("com.google.cloud:google-cloud-storage:2.53.0")
+    implementation("com.google.firebase:firebase-admin:9.4.3")
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.5.0")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
     implementation("com.sksamuel.scrimage:scrimage-core:4.1.3")

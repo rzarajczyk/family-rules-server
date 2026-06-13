@@ -63,6 +63,8 @@ data class DeviceDetailsDto(
     val currentLatitude: Double? = null,
     val currentLongitude: Double? = null,
     val currentLocationUpdatedAt: Instant? = null,
+    val pushToken: String? = null,
+    val pushTokenUpdatedAt: Instant? = null,
 )
 
 data class DeviceDetailsUpdateDto(
@@ -82,6 +84,8 @@ data class DeviceDetailsUpdateDto(
     val appGroups: ValueUpdate<AppGroupsDto> = leaveUnchanged(),
     val autoAddGroupIds: ValueUpdate<List<String>> = leaveUnchanged(),
     val hasPendingServerCommands: ValueUpdate<Boolean> = leaveUnchanged(),
+    val pushToken: ValueUpdate<String?> = leaveUnchanged(),
+    val pushTokenUpdatedAt: ValueUpdate<Instant?> = leaveUnchanged(),
 )
 
 data class ValueUpdate<T>(

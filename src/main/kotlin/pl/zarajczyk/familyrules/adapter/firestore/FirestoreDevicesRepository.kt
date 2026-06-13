@@ -122,6 +122,8 @@ class FirestoreDevicesRepository(
             currentLatitude = doc.getDouble("currentLatitude"),
             currentLongitude = doc.getDouble("currentLongitude"),
             currentLocationUpdatedAt = doc.getString("currentLocationUpdatedAt")?.let { Instant.parse(it) },
+            pushToken = doc.getString("pushToken"),
+            pushTokenUpdatedAt = doc.getString("pushTokenUpdatedAt")?.let { Instant.parse(it) },
         )
         val tokenHash = doc.getStringOrThrow("instanceTokenSha256")
         return FirestoreDeviceRef(doc, details, tokenHash)
@@ -146,6 +148,8 @@ class FirestoreDevicesRepository(
             details.appGroups.ifPresent { "appGroups" to it.encodeAppGroups() },
             details.autoAddGroupIds.ifPresent { "autoAddGroupIds" to json.encodeToString(it) },
             details.hasPendingServerCommands.ifPresent { "hasPendingServerCommands" to it },
+            details.pushToken.ifPresent { "pushToken" to it },
+            details.pushTokenUpdatedAt.ifPresent { "pushTokenUpdatedAt" to it?.toString() },
         ).toMap()
 
         val doc = (device as FirestoreDeviceRef).document

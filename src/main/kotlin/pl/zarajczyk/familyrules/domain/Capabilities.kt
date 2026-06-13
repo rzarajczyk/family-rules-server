@@ -12,6 +12,25 @@ object Capability {
     const val RESTRICTED_APPS_BLOCK = "RESTRICTED_APPS_BLOCK"
     const val FULL_DEVICE_BLOCK = "FULL_DEVICE_BLOCK"
     const val ALL_MY_DEVICES_DISPLAY = "ALL_MY_DEVICES_DISPLAY"
+    const val FCM_FORCE_REPORT_PUSH = "FCM_FORCE_REPORT_PUSH"
+    const val APNS_FORCE_REPORT_PUSH = "APNS_FORCE_REPORT_PUSH"
+}
+
+val FORCE_REPORT_PUSH_CAPABILITIES: Set<String> = setOf(
+    Capability.FCM_FORCE_REPORT_PUSH,
+    Capability.APNS_FORCE_REPORT_PUSH,
+)
+
+fun forceReportPushCapabilities(capabilities: List<String>): List<String> =
+    capabilities.filter { it in FORCE_REPORT_PUSH_CAPABILITIES }
+
+fun deviceForceReportPushCapability(capabilities: List<String>): String? =
+    forceReportPushCapabilities(capabilities).singleOrNull()
+
+fun validateForceReportPushCapabilities(capabilities: List<String>) {
+    if (forceReportPushCapabilities(capabilities).size > 1) {
+        throw IllegalArgumentException("Multiple force-report push capabilities are not allowed")
+    }
 }
 
 val COMMAND_CAPABILITY: Map<String, String> = mapOf(

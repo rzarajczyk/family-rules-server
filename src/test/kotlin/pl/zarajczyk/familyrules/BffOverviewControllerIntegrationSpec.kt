@@ -415,6 +415,7 @@ class BffOverviewControllerIntegrationSpec : FunSpec() {
                     .andExpect(jsonPath("$.clientVersion").exists())
                     .andExpect(jsonPath("$.clientTimezoneOffsetSeconds").exists())
                     .andExpect(jsonPath("$.capabilities[0]").value("LOGS_COMMAND"))
+                    .andExpect(jsonPath("$.hasPushToken").value(false))
                     .andReturn()
 
                 val response = objectMapper.readTree(result.response.contentAsString)
@@ -440,6 +441,34 @@ class BffOverviewControllerIntegrationSpec : FunSpec() {
                 )
                     .andExpect(status().is3xxRedirection)
                     .andExpect(header().string("Location", containsString("/gui/login.html")))
+            }
+        }
+
+        context("POST /bff/wake-device") {
+            test("should reject device without force-report capability") {
+                val deviceDetails = devicesService.setupNewDevice(testUsername, "Wake Test", "ANDROID")
+                val instanceId = deviceDetails.deviceId.toString()
+
+                mockMvc.perform(
+                    post("/bff/wake-device")
+                        .param("instanceId", instanceId)
+                        .with(user(testUsername))
+                )
+                    .andExpect(status().isUnprocessableEntity)
+            }
+
+            test("should reject capable device without push token") {
+                val deviceDetails = devicesService.setupNewDevice(testUsername, "Wake Test 2", "ANDROID")
+                devicesService.get(deviceDetails.deviceId).update(
+                    DeviceDetailsUpdateDto(capabilities = set(listOf(Capability.FCM_FORCE_REPORT_PUSH)))
+                )
+
+                mockMvc.perform(
+                    post("/bff/wake-device")
+                        .param("instanceId", deviceDetails.deviceId.toString())
+                        .with(user(testUsername))
+                )
+                    .andExpect(status().isUnprocessableEntity)
             }
         }
 

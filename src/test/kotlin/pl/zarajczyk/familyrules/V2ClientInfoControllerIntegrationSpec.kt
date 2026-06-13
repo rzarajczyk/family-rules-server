@@ -182,6 +182,7 @@ class V2ClientInfoControllerIntegrationSpec : FunSpec() {
                       "version": "v1.2.3",
                       "timezoneOffsetSeconds": null,
                       "reportIntervalSeconds": null,
+                      "capabilities": [],
                       "availableStates": [
                         { "deviceState": "ACTIVE", "title": "Active", "icon": null, "description": null, "arguments": null }
                       ]
@@ -230,6 +231,57 @@ class V2ClientInfoControllerIntegrationSpec : FunSpec() {
                 deviceRef.details.capabilities shouldContainExactlyInAnyOrder listOf("LOGS_COMMAND", "COMMANDS_PULL")
 
                 devicesRepository.delete(deviceRef)
+            }
+        }
+
+        context("POST /api/v2/client-info - push token registration") {
+            test("should store push token when FCM_FORCE_REPORT_PUSH capability is advertised") {
+                val basic = Base64.getEncoder().encodeToString("$deviceId:$token".toByteArray())
+                val body = """
+                    {
+                      "version": "v2.0.0",
+                      "timezoneOffsetSeconds": 0,
+                      "availableStates": [
+                        { "deviceState": "ACTIVE", "title": "Active", "icon": null, "description": null, "arguments": [] }
+                      ],
+                      "capabilities": ["FCM_FORCE_REPORT_PUSH", "COMMANDS_PULL"],
+                      "pushToken": "fcm-token-abc"
+                    }
+                """.trimIndent()
+
+                mockMvc.perform(
+                    post("/api/v2/client-info")
+                        .header("Authorization", "Basic $basic")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body)
+                )
+                    .andExpect(status().isOk)
+
+                val dto = devicesRepository.get(deviceId)!!.details
+                dto.pushToken shouldBe "fcm-token-abc"
+                dto.pushTokenUpdatedAt.shouldNotBeNull()
+            }
+
+            test("should reject pushToken without force-report capability") {
+                val basic = Base64.getEncoder().encodeToString("$deviceId:$token".toByteArray())
+                val body = """
+                    {
+                      "version": "v2.0.0",
+                      "availableStates": [
+                        { "deviceState": "ACTIVE", "title": "Active", "icon": null, "description": null, "arguments": [] }
+                      ],
+                      "capabilities": ["COMMANDS_PULL"],
+                      "pushToken": "fcm-token-abc"
+                    }
+                """.trimIndent()
+
+                mockMvc.perform(
+                    post("/api/v2/client-info")
+                        .header("Authorization", "Basic $basic")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body)
+                )
+                    .andExpect(status().isUnprocessableEntity)
             }
         }
 

@@ -17,6 +17,9 @@ firestore:
   project-id: ${FIRESTORE_PROJECT_ID:}
   service-account-path: ${GOOGLE_APPLICATION_CREDENTIALS:}
 
+firebase:
+  project-id: ${FIREBASE_PROJECT_ID:}
+
 database-initialization:
   enabled: true
   username: ${ADMIN_USER:admin}

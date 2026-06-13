@@ -180,7 +180,17 @@
                         <tr><td class="font-medium">Client version</td><td x-text="infoModal.clientVersion"></td></tr>
                         <tr><td class="font-medium">Timezone offset</td><td x-text="infoModal.clientTimezoneOffsetSeconds"></td></tr>
                     </table>
-                    <div class="modal-action"><button class="btn" @click="infoModal.open = false">Close</button></div>
+                    <div class="modal-action">
+                        <button class="btn btn-primary"
+                                x-show="canForceReportRefresh(infoModal)"
+                                :disabled="infoModal.refreshing"
+                                @click="forceReportRefresh()">
+                            <span class="material-icons text-sm" x-show="!infoModal.refreshing">refresh</span>
+                            <span class="loading loading-spinner loading-xs" x-show="infoModal.refreshing"></span>
+                            Refresh
+                        </button>
+                        <button class="btn" @click="infoModal.open = false">Close</button>
+                    </div>
                 </div>
                 <form method="dialog" class="modal-backdrop" @click="infoModal.open = false"></form>
             </dialog>
@@ -415,7 +425,7 @@ function devicesPage() {
 
         // Modals
         stateModal: { open: false, instanceId: '', instanceName: '', states: [], currentState: null },
-        infoModal: { open: false, instanceName: '', clientType: '', clientVersion: '', clientTimezoneOffsetSeconds: '' },
+        infoModal: { open: false, instanceId: '', instanceName: '', clientType: '', clientVersion: '', clientTimezoneOffsetSeconds: '', capabilities: [], hasPushToken: false, refreshing: false },
         editModal: {
             open: false, instanceId: '', instanceName: '', name: '',
             iconPreview: 'default-icon.png', hasIcon: false,
@@ -550,12 +560,38 @@ function devicesPage() {
         },
 
         // --- Info ---
+        canForceReportRefresh(info) {
+            const capabilities = info?.capabilities || [];
+            const hasForceReportPush = capabilities.some(c => c.endsWith('_FORCE_REPORT_PUSH'));
+            return hasForceReportPush && info?.hasPushToken === true;
+        },
+
         async showInfo(instanceId) {
             try {
                 const resp = await ServerRequest.fetch('/bff/instance-info?instanceId=' + instanceId);
                 const data = await resp.json();
-                this.infoModal = { open: true, ...data };
+                this.infoModal = { open: true, refreshing: false, ...data };
             } catch (_) { Toast.error('Failed to load info'); }
+        },
+
+        async forceReportRefresh() {
+            if (!this.infoModal.instanceId || this.infoModal.refreshing) return;
+            this.infoModal.refreshing = true;
+            try {
+                const resp = await ServerRequest.fetch(
+                    '/bff/wake-device?instanceId=' + encodeURIComponent(this.infoModal.instanceId),
+                    { method: 'POST' }
+                );
+                if (!resp.ok) {
+                    const body = await resp.json().catch(() => ({}));
+                    throw new Error(body.message || 'Refresh failed');
+                }
+                Toast.info('Refresh push sent');
+            } catch (e) {
+                Toast.error(e.message || 'Refresh failed');
+            } finally {
+                this.infoModal.refreshing = false;
+            }
         },
 
         // --- Location ---

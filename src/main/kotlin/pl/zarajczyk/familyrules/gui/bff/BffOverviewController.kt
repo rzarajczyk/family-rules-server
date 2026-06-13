@@ -123,6 +123,7 @@ class BffOverviewController(
             clientVersion = details.clientVersion,
             clientTimezoneOffsetSeconds = details.clientTimezoneOffsetSeconds,
             capabilities = details.capabilities,
+            hasPushToken = !details.pushToken.isNullOrBlank(),
         )
     }
 
@@ -257,6 +258,7 @@ data class InstanceInfoResponse(
     val clientVersion: String,
     val clientTimezoneOffsetSeconds: Long,
     val capabilities: List<String>,
+    val hasPushToken: Boolean,
 )
 
 data class DeviceStateDescriptionResponse(

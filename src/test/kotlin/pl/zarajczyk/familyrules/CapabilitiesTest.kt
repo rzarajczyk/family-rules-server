@@ -1,11 +1,14 @@
 package pl.zarajczyk.familyrules
 
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldContainExactlyInAnyOrder
 import io.kotest.matchers.shouldBe
 import pl.zarajczyk.familyrules.domain.Capability
 import pl.zarajczyk.familyrules.domain.deriveCapabilitiesFromCommands
+import pl.zarajczyk.familyrules.domain.deviceForceReportPushCapability
 import pl.zarajczyk.familyrules.domain.deviceHasCapability
+import pl.zarajczyk.familyrules.domain.validateForceReportPushCapabilities
 
 class CapabilitiesTest : FunSpec({
 
@@ -44,5 +47,18 @@ class CapabilitiesTest : FunSpec({
         deviceHasCapability(listOf(Capability.SEND_LOGS_COMMAND), Capability.LOGS_COMMAND) shouldBe true
         deviceHasCapability(listOf(Capability.LOGS_COMMAND), Capability.LOGS_COMMAND) shouldBe true
         deviceHasCapability(listOf(Capability.COMMANDS_PULL), Capability.LOGS_COMMAND) shouldBe false
+    }
+
+    test("deviceForceReportPushCapability returns single force-report capability") {
+        deviceForceReportPushCapability(listOf(Capability.FCM_FORCE_REPORT_PUSH, Capability.COMMANDS_PULL)) shouldBe
+            Capability.FCM_FORCE_REPORT_PUSH
+    }
+
+    test("validateForceReportPushCapabilities rejects multiple force-report capabilities") {
+        shouldThrow<IllegalArgumentException> {
+            validateForceReportPushCapabilities(
+                listOf(Capability.FCM_FORCE_REPORT_PUSH, Capability.APNS_FORCE_REPORT_PUSH)
+            )
+        }
     }
 })
