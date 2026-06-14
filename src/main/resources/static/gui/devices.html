@@ -142,12 +142,13 @@
                                     <span class="material-icons text-sm">location_on</span> <span class="hidden sm:inline">Location</span>
                                 </button>
                                 <button class="btn btn-sm btn-ghost"
-                                        x-show="canForceReportRefresh(device)"
-                                        :disabled="forceReportRefreshing[device.instanceId]"
-                                        title="Send refresh push to device"
+                                        x-show="canShowForceReportRefresh(device)"
+                                        :class="!isForceReportRefreshReady(device) && 'btn-disabled opacity-50'"
+                                        :disabled="!isForceReportRefreshReady(device)"
+                                        :title="isForceReportRefreshReady(device) ? 'Send refresh push to device' : 'Waiting for push token from device'"
                                         @click.stop="forceReportRefresh(device)">
-                                    <span class="material-icons text-sm" x-show="!forceReportRefreshing[device.instanceId]">refresh</span>
-                                    <span class="loading loading-spinner loading-xs" x-show="forceReportRefreshing[device.instanceId]"></span>
+                                    <span class="material-icons text-sm" x-show="!isForceReportRefreshing(device.instanceId)">refresh</span>
+                                    <span class="loading loading-spinner loading-xs" x-show="isForceReportRefreshing(device.instanceId)"></span>
                                     <span class="hidden sm:inline">Refresh</span>
                                 </button>
                                 <div class="flex-1"></div>
@@ -562,10 +563,26 @@ function devicesPage() {
         },
 
         // --- Info / force-report refresh ---
-        canForceReportRefresh(device) {
-            const capabilities = device?.capabilities || [];
-            const hasForceReportPush = capabilities.some(c => c.endsWith('_FORCE_REPORT_PUSH'));
-            return hasForceReportPush && device?.hasPushToken === true;
+        canShowForceReportRefresh(device) {
+            return (device?.capabilities || []).some(c => c.endsWith('_FORCE_REPORT_PUSH'));
+        },
+
+        isForceReportRefreshReady(device) {
+            return !!device?.hasPushToken;
+        },
+
+        isForceReportRefreshing(instanceId) {
+            return !!this.forceReportRefreshing[instanceId];
+        },
+
+        setForceReportRefreshing(instanceId, refreshing) {
+            if (refreshing) {
+                this.forceReportRefreshing = { ...this.forceReportRefreshing, [instanceId]: true };
+            } else {
+                const next = { ...this.forceReportRefreshing };
+                delete next[instanceId];
+                this.forceReportRefreshing = next;
+            }
         },
 
         async showInfo(instanceId) {
@@ -577,8 +594,8 @@ function devicesPage() {
         },
 
         async forceReportRefresh(device) {
-            if (!device?.instanceId || this.forceReportRefreshing[device.instanceId]) return;
-            this.forceReportRefreshing[device.instanceId] = true;
+            if (!device?.instanceId || !this.isForceReportRefreshReady(device) || this.isForceReportRefreshing(device.instanceId)) return;
+            this.setForceReportRefreshing(device.instanceId, true);
             try {
                 const resp = await fetch(
                     '/bff/wake-device?instanceId=' + encodeURIComponent(device.instanceId),
@@ -592,7 +609,7 @@ function devicesPage() {
             } catch (e) {
                 Toast.error(e.message || 'Refresh failed');
             } finally {
-                delete this.forceReportRefreshing[device.instanceId];
+                this.setForceReportRefreshing(device.instanceId, false);
             }
         },
 

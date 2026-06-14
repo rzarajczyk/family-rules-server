@@ -141,6 +141,24 @@ class BffOverviewControllerIntegrationSpec : FunSpec() {
                 instances[0].get("instanceName").asText() shouldBe deviceName
             }
 
+            test("should include hasPushToken in status when push token is registered") {
+                val deviceDetails = devicesService.setupNewDevice(testUsername, "Push Token Status", "ANDROID")
+                devicesService.get(deviceDetails.deviceId).update(
+                    DeviceDetailsUpdateDto(
+                        capabilities = set(listOf(Capability.FCM_FORCE_REPORT_PUSH)),
+                        pushToken = set("fcm-token-status"),
+                    )
+                )
+
+                mockMvc.perform(
+                    get("/bff/status")
+                        .param("date", "2024-01-15")
+                        .with(user(testUsername))
+                )
+                    .andExpect(status().isOk)
+                    .andExpect(jsonPath("$.instances[0].hasPushToken").value(true))
+            }
+
             test("should show device as offline when no recent reports") {
                 val deviceName = "Test Device Offline"
                 val deviceDetails = devicesService.setupNewDevice(testUsername, deviceName, "TEST")
