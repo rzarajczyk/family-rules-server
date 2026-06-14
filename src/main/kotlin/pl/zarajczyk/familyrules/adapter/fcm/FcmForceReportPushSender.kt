@@ -15,8 +15,10 @@ import pl.zarajczyk.familyrules.domain.port.ForceReportPushSender
 import pl.zarajczyk.familyrules.domain.port.ForceReportPushStatus
 
 @Component
-@ConditionalOnBean(FirebaseApp::class)
-class FcmForceReportPushSender : ForceReportPushSender {
+@ConditionalOnBean(name = ["firebaseApp"])
+class FcmForceReportPushSender(
+    @Suppress("unused") firebaseApp: FirebaseApp,
+) : ForceReportPushSender {
     private val logger = LoggerFactory.getLogger(javaClass)
 
     override fun supportedCapability(): String = Capability.FCM_FORCE_REPORT_PUSH

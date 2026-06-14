@@ -141,6 +141,15 @@
                                         @click="showLocation(device)">
                                     <span class="material-icons text-sm">location_on</span> <span class="hidden sm:inline">Location</span>
                                 </button>
+                                <button class="btn btn-sm btn-ghost"
+                                        x-show="canForceReportRefresh(device)"
+                                        :disabled="forceReportRefreshing[device.instanceId]"
+                                        title="Send refresh push to device"
+                                        @click.stop="forceReportRefresh(device)">
+                                    <span class="material-icons text-sm" x-show="!forceReportRefreshing[device.instanceId]">refresh</span>
+                                    <span class="loading loading-spinner loading-xs" x-show="forceReportRefreshing[device.instanceId]"></span>
+                                    <span class="hidden sm:inline">Refresh</span>
+                                </button>
                                 <div class="flex-1"></div>
                                 <button class="btn btn-sm btn-outline btn-primary" @click="showChangeState(device.instanceId)">Change device state</button>
                             </div>
@@ -181,14 +190,6 @@
                         <tr><td class="font-medium">Timezone offset</td><td x-text="infoModal.clientTimezoneOffsetSeconds"></td></tr>
                     </table>
                     <div class="modal-action">
-                        <button class="btn btn-primary"
-                                x-show="canForceReportRefresh(infoModal)"
-                                :disabled="infoModal.refreshing"
-                                @click="forceReportRefresh()">
-                            <span class="material-icons text-sm" x-show="!infoModal.refreshing">refresh</span>
-                            <span class="loading loading-spinner loading-xs" x-show="infoModal.refreshing"></span>
-                            Refresh
-                        </button>
                         <button class="btn" @click="infoModal.open = false">Close</button>
                     </div>
                 </div>
@@ -425,7 +426,8 @@ function devicesPage() {
 
         // Modals
         stateModal: { open: false, instanceId: '', instanceName: '', states: [], currentState: null },
-        infoModal: { open: false, instanceId: '', instanceName: '', clientType: '', clientVersion: '', clientTimezoneOffsetSeconds: '', capabilities: [], hasPushToken: false, refreshing: false },
+        infoModal: { open: false, instanceId: '', instanceName: '', clientType: '', clientVersion: '', clientTimezoneOffsetSeconds: '' },
+        forceReportRefreshing: {},
         editModal: {
             open: false, instanceId: '', instanceName: '', name: '',
             iconPreview: 'default-icon.png', hasIcon: false,
@@ -559,38 +561,38 @@ function devicesPage() {
             } catch (_) { Toast.error('Failed to set state'); }
         },
 
-        // --- Info ---
-        canForceReportRefresh(info) {
-            const capabilities = info?.capabilities || [];
+        // --- Info / force-report refresh ---
+        canForceReportRefresh(device) {
+            const capabilities = device?.capabilities || [];
             const hasForceReportPush = capabilities.some(c => c.endsWith('_FORCE_REPORT_PUSH'));
-            return hasForceReportPush && info?.hasPushToken === true;
+            return hasForceReportPush && device?.hasPushToken === true;
         },
 
         async showInfo(instanceId) {
             try {
                 const resp = await ServerRequest.fetch('/bff/instance-info?instanceId=' + instanceId);
                 const data = await resp.json();
-                this.infoModal = { open: true, refreshing: false, ...data };
+                this.infoModal = { open: true, ...data };
             } catch (_) { Toast.error('Failed to load info'); }
         },
 
-        async forceReportRefresh() {
-            if (!this.infoModal.instanceId || this.infoModal.refreshing) return;
-            this.infoModal.refreshing = true;
+        async forceReportRefresh(device) {
+            if (!device?.instanceId || this.forceReportRefreshing[device.instanceId]) return;
+            this.forceReportRefreshing[device.instanceId] = true;
             try {
-                const resp = await ServerRequest.fetch(
-                    '/bff/wake-device?instanceId=' + encodeURIComponent(this.infoModal.instanceId),
-                    { method: 'POST' }
+                const resp = await fetch(
+                    '/bff/wake-device?instanceId=' + encodeURIComponent(device.instanceId),
+                    { method: 'POST', credentials: 'include', redirect: 'manual' }
                 );
                 if (!resp.ok) {
                     const body = await resp.json().catch(() => ({}));
-                    throw new Error(body.message || 'Refresh failed');
+                    throw new Error(body.message || ('Refresh failed (' + resp.status + ')'));
                 }
                 Toast.info('Refresh push sent');
             } catch (e) {
                 Toast.error(e.message || 'Refresh failed');
             } finally {
-                this.infoModal.refreshing = false;
+                delete this.forceReportRefreshing[device.instanceId];
             }
         },
 
