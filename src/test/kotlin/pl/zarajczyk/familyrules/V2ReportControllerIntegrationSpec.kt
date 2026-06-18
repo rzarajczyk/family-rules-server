@@ -9,6 +9,7 @@ import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.collections.shouldContain
+import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.TimeZone
@@ -36,6 +37,7 @@ import pl.zarajczyk.familyrules.domain.port.UsersRepository
 import pl.zarajczyk.familyrules.domain.port.ValueUpdate.Companion.set
 import java.util.Base64
 import java.util.UUID
+import kotlin.time.Duration.Companion.hours
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc
@@ -450,6 +452,33 @@ class V2ReportControllerIntegrationSpec : FunSpec() {
                 .andExpect(jsonPath("$.serverCommands[0].commandName").value("SEND_LOGS"))
         }
 
+        test("should silently drop undelivered commands after delivery TTL expires") {
+            val apiV2Basic = Base64.getEncoder().encodeToString("$deviceId:$token".toByteArray())
+            val device = devicesService.get(deviceId)
+            device.update(DeviceDetailsUpdateDto(
+                capabilities = set(listOf("LOGS_COMMAND", "COMMANDS_PULL"))
+            ))
+            val command = deviceCommandsService.enqueue(device, "SEND_LOGS")
+
+            setCommandCreatedAt(
+                firestore = firestore,
+                deviceId = deviceId,
+                commandId = command.commandId,
+                createdAt = Clock.System.now() - 7.hours,
+            )
+
+            mockMvc.perform(
+                post("/api/v2/report")
+                    .header("Authorization", "Basic $apiV2Basic")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{ "screenTime": 10, "applications": {} }""")
+            )
+                .andExpect(status().isOk)
+                .andExpect(jsonPath("$.serverCommands").isEmpty)
+
+            deviceCommandsService.getLatestForDevice(devicesService.get(deviceId), "SEND_LOGS") shouldBe null
+        }
+
         test("should persist mediaPlayingApps and return them in getScreenTimeReport while device is online") {
             val apiV2Basic = Base64.getEncoder().encodeToString("$deviceId:$token".toByteArray())
             val reportBody = """
@@ -669,4 +698,27 @@ private fun histogramBucketFor(updatedAt: Instant): String {
     val minuteBucket = (localDateTime.minute / 10) * 10
     val minute = minuteBucket.toString().padStart(2, '0')
     return "$hour:$minute"
+}
+
+private fun setCommandCreatedAt(
+    firestore: Firestore,
+    deviceId: UUID,
+    commandId: String,
+    createdAt: Instant,
+) {
+    val instanceDoc = firestore.collectionGroup("instances")
+        .whereEqualTo("instanceId", deviceId.toString())
+        .get()
+        .get()
+        .documents
+        .first()
+
+    instanceDoc.reference
+        .collection("serverCommands")
+        .document(commandId)
+        .update(
+            "createdAt",
+            com.google.cloud.Timestamp.ofTimeSecondsAndNanos(createdAt.epochSeconds, createdAt.nanosecondsOfSecond),
+        )
+        .get()
 }
