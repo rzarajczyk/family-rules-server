@@ -17,6 +17,7 @@ class CommandTtlTest : FunSpec({
         commandDeliveryTtl("SEND_LOGS") shouldBe 6.hours
         commandDeliveryTtl("DISABLE") shouldBe 10.minutes
         commandDeliveryTtl("UNINSTALL") shouldBe 10.minutes
+        commandDeliveryTtl("PLAY_LOUD_SOUND") shouldBe 10.minutes
         commandDeliveryTtl("UNKNOWN") shouldBe null
     }
 

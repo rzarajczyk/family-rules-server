@@ -243,6 +243,63 @@ class BffDeviceCommandsControllerIntegrationSpec : FunSpec() {
                 .andExpect(jsonPath("$.status").value("PENDING"))
         }
 
+        test("should enqueue PLAY_LOUD_SOUND when device advertises PLAY_LOUD_SOUND_COMMAND capability") {
+            val device = devicesService.get(deviceId)
+            device.update(DeviceDetailsUpdateDto(capabilities = set(listOf("PLAY_LOUD_SOUND_COMMAND", "COMMANDS_PULL"))))
+
+            mockMvc.perform(
+                post("/bff/instance-commands")
+                    .param("instanceId", deviceId.toString())
+                    .with(user(username))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{ "commandName": "PLAY_LOUD_SOUND" }""")
+            )
+                .andExpect(status().isOk)
+                .andExpect(jsonPath("$.commandId").exists())
+                .andExpect(jsonPath("$.status").value("PENDING"))
+        }
+
+        test("should reject PLAY_LOUD_SOUND when capability is missing") {
+            mockMvc.perform(
+                post("/bff/instance-commands")
+                    .param("instanceId", deviceId.toString())
+                    .with(user(username))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{ "commandName": "PLAY_LOUD_SOUND" }""")
+            )
+                .andExpect(status().isUnprocessableEntity)
+        }
+
+        test("should enqueue a fresh PLAY_LOUD_SOUND on each request while the previous is still pending") {
+            val device = devicesService.get(deviceId)
+            device.update(DeviceDetailsUpdateDto(capabilities = set(listOf("PLAY_LOUD_SOUND_COMMAND", "COMMANDS_PULL"))))
+
+            val firstResult = mockMvc.perform(
+                post("/bff/instance-commands")
+                    .param("instanceId", deviceId.toString())
+                    .with(user(username))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{ "commandName": "PLAY_LOUD_SOUND" }""")
+            )
+                .andExpect(status().isOk)
+                .andReturn()
+
+            val firstCommandId = objectMapper.readTree(firstResult.response.contentAsString).get("commandId").asText()
+
+            val secondResult = mockMvc.perform(
+                post("/bff/instance-commands")
+                    .param("instanceId", deviceId.toString())
+                    .with(user(username))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{ "commandName": "PLAY_LOUD_SOUND" }""")
+            )
+                .andExpect(status().isOk)
+                .andReturn()
+
+            val secondCommandId = objectMapper.readTree(secondResult.response.contentAsString).get("commandId").asText()
+            secondCommandId shouldNotBe firstCommandId
+        }
+
         test("should enqueue a new command when the latest command is completed") {
             val device = devicesService.get(deviceId)
             device.update(DeviceDetailsUpdateDto(capabilities = set(listOf("LOGS_COMMAND", "COMMANDS_PULL"))))

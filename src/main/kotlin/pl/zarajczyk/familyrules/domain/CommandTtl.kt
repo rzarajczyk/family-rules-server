@@ -10,6 +10,7 @@ val COMMAND_DELIVERY_TTL: Map<String, Duration> = mapOf(
     "SEND_LOGS" to 6.hours,
     "DISABLE" to 10.minutes,
     "UNINSTALL" to 10.minutes,
+    "PLAY_LOUD_SOUND" to 10.minutes,
 )
 
 fun commandDeliveryTtl(commandName: String): Duration? = COMMAND_DELIVERY_TTL[commandName]

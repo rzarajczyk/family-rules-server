@@ -2,6 +2,7 @@ package pl.zarajczyk.familyrules.domain
 
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.web.server.ResponseStatusException
 import org.springframework.http.HttpStatus
@@ -9,6 +10,7 @@ import pl.zarajczyk.familyrules.domain.port.CommandAckDto
 import pl.zarajczyk.familyrules.domain.port.CommandResultDto
 import pl.zarajczyk.familyrules.domain.port.DeviceCommandDto
 import pl.zarajczyk.familyrules.domain.port.DeviceCommandsRepository
+import pl.zarajczyk.familyrules.domain.port.ForceReportPushStatus
 import java.util.UUID
 
 @Service
@@ -16,7 +18,10 @@ class DeviceCommandsService(
     private val devicesService: DevicesService,
     private val deviceCommandsRepository: DeviceCommandsRepository,
     private val deviceCommandResultProcessor: DeviceCommandResultProcessor,
+    private val forceReportPushService: ForceReportPushService,
 ) {
+
+    private val logger = LoggerFactory.getLogger(javaClass)
 
     fun enqueue(device: Device, commandName: String): DeviceCommandDto {
         val required = COMMAND_CAPABILITY[commandName]
@@ -44,11 +49,18 @@ class DeviceCommandsService(
         device.update(pl.zarajczyk.familyrules.domain.port.DeviceDetailsUpdateDto(
             hasPendingServerCommands = pl.zarajczyk.familyrules.domain.port.ValueUpdate.set(true)
         ))
+        if (commandName == "PLAY_LOUD_SOUND") {
+            wakeDeviceForPlayLoudSound(device)
+        }
         return command
     }
 
     fun getOrEnqueue(device: Device, commandName: String): DeviceCommandDto {
         dropExpiredUndeliveredCommands(device)
+        if (commandName == "PLAY_LOUD_SOUND") {
+            supersedeIncompletePlayLoudSound(device)
+            return enqueue(device, commandName)
+        }
         val latest = deviceCommandsRepository.getLatest(device.asRef(), commandName)
         if (latest != null && (latest.status == CommandLifecycleStatus.QUEUED || latest.status == CommandLifecycleStatus.ACKNOWLEDGED)) {
             return latest
@@ -113,6 +125,26 @@ class DeviceCommandsService(
         device.update(pl.zarajczyk.familyrules.domain.port.DeviceDetailsUpdateDto(
             hasPendingServerCommands = pl.zarajczyk.familyrules.domain.port.ValueUpdate.set(hasPending)
         ))
+    }
+
+    private fun supersedeIncompletePlayLoudSound(device: Device) {
+        val latest = deviceCommandsRepository.getLatest(device.asRef(), "PLAY_LOUD_SOUND") ?: return
+        if (latest.status == CommandLifecycleStatus.QUEUED || latest.status == CommandLifecycleStatus.ACKNOWLEDGED) {
+            deviceCommandsRepository.delete(device.asRef(), latest.commandId)
+            refreshPendingFlag(device)
+        }
+    }
+
+    private fun wakeDeviceForPlayLoudSound(device: Device) {
+        val result = forceReportPushService.send(device)
+        if (result.status != ForceReportPushStatus.SUCCESS) {
+            logger.info(
+                "PLAY_LOUD_SOUND wake push for device {}: {} {}",
+                device.getId(),
+                result.status,
+                result.message.orEmpty(),
+            )
+        }
     }
 }
 

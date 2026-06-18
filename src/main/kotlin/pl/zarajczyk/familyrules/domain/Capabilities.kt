@@ -5,6 +5,7 @@ object Capability {
     const val SEND_LOGS_COMMAND = "SEND_LOGS_COMMAND"
     const val DISABLE_COMMAND = "DISABLE_COMMAND"
     const val UNINSTALL_COMMAND = "UNINSTALL_COMMAND"
+    const val PLAY_LOUD_SOUND_COMMAND = "PLAY_LOUD_SOUND_COMMAND"
     const val COMMANDS_PULL = "COMMANDS_PULL"
     const val LOCATION_REPORT = "LOCATION_REPORT"
     const val MEDIA_PLAYBACK_REPORT = "MEDIA_PLAYBACK_REPORT"
@@ -37,6 +38,7 @@ val COMMAND_CAPABILITY: Map<String, String> = mapOf(
     "SEND_LOGS" to Capability.LOGS_COMMAND,
     "DISABLE" to Capability.DISABLE_COMMAND,
     "UNINSTALL" to Capability.UNINSTALL_COMMAND,
+    "PLAY_LOUD_SOUND" to Capability.PLAY_LOUD_SOUND_COMMAND,
 )
 
 private val CAPABILITY_SYNONYMS: Map<String, String> = mapOf(
