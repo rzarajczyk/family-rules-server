@@ -357,24 +357,31 @@
                                 <tr><td class="font-medium">Longitude</td><td x-text="locationModal.longitude"></td></tr>
                                 <tr><td class="font-medium">Reported at</td><td x-text="locationModal.reportedAt"></td></tr>
                             </table>
-                            <a :href="locationModal.osmUrl" target="_blank" class="btn btn-sm btn-outline btn-primary gap-2">
-                                <span class="material-icons text-sm">map</span> Open in OpenStreetMap
-                            </a>
+                            <template x-if="locationModal.showPlaySound">
+                                <button class="btn btn-sm btn-outline btn-primary gap-2"
+                                        :disabled="locationModal.playingLoudSound"
+                                        @click="playLoudSound()">
+                                    <span class="material-icons text-sm" x-show="!locationModal.playingLoudSound">campaign</span>
+                                    <span class="loading loading-spinner loading-xs" x-show="locationModal.playingLoudSound"></span>
+                                    Play sound on device
+                                </button>
+                                <p class="text-sm text-base-content/60">Plays a loud alarm for 30 seconds, even when the device is silenced.</p>
+                            </template>
                         </div>
                     </template>
                     <template x-if="locationModal.showNoLocationMessage">
                         <p class="text-base-content/60 mb-3">No location data available for this device.</p>
                     </template>
-                    <template x-if="locationModal.showPlaySound">
+                    <template x-if="locationModal.showPlaySound && !locationModal.showMap">
                         <div :class="locationModal.findDeviceOnly ? 'flex flex-col items-center gap-3 py-4' : 'mt-3'">
-                            <button class="btn btn-primary gap-2"
+                            <button class="btn btn-sm btn-outline btn-primary gap-2"
                                     :disabled="locationModal.playingLoudSound"
                                     @click="playLoudSound()">
                                 <span class="material-icons text-sm" x-show="!locationModal.playingLoudSound">campaign</span>
                                 <span class="loading loading-spinner loading-xs" x-show="locationModal.playingLoudSound"></span>
                                 Play sound on device
                             </button>
-                            <p class="text-sm text-base-content/60 text-center">Plays a loud alarm for 60 seconds, even when the device is silenced.</p>
+                            <p class="text-sm text-base-content/60 text-center">Plays a loud alarm for 30 seconds, even when the device is silenced.</p>
                         </div>
                     </template>
                     <div class="modal-action"><button class="btn" @click="locationModal.open = false">Close</button></div>
@@ -456,7 +463,7 @@ function devicesPage() {
         locationModal: {
             open: false, instanceId: '', instanceName: '', findDeviceOnly: false,
             showMap: false, showPlaySound: false, showNoLocationMessage: false,
-            hasLocation: false, latitude: '', longitude: '', reportedAt: '', osmUrl: '',
+            hasLocation: false, latitude: '', longitude: '', reportedAt: '',
             playingLoudSound: false,
         },
         logsModal: {
@@ -679,7 +686,6 @@ function devicesPage() {
                 latitude: hasLocation ? device.latitude.toFixed(5) : '',
                 longitude: hasLocation ? device.longitude.toFixed(5) : '',
                 reportedAt: device.locationUpdatedAt ? this.formatDateTime(device.locationUpdatedAt) : '',
-                osmUrl: hasLocation ? 'https://www.openstreetmap.org/?mlat=' + device.latitude + '&mlon=' + device.longitude + '#map=15/' + device.latitude + '/' + device.longitude : '',
                 playingLoudSound: false,
             };
             if (showMap) {
